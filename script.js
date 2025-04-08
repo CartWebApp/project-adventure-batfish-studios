@@ -124,6 +124,8 @@ function formatText(text) {
         {name: 'fontSize', identifier: 'fs'}, // example font sizes identifier: [fs:32px], or [fs:] to reset
         {name: 'rotate', identifier: 'rt'}, // example rotation identifier: [rt:180deg], or [rt:] to reset
         {name: 'textShadow', identifier: 'ts'}, // example text shadow identifier: [ts:4px,4px,3px,yellow], or [ts:] to reset
+        {name: 'animation', identifier: 'an'}, // example animation identifier: [an:text-blur 1s ease], or [an:] to reset
+        {name: 'filter', identifier: 'fi'}, // example filter identifier: [fi:blur(6px)], or [fi:] to reset
     ]
 
     for (const style of textStyles) {
@@ -254,13 +256,13 @@ function init() {
     // add styles to text by doing [identifier: + any valid css color + ]
     // to reset that style, just do [identifier:]. to reset all styles, do [-:]
     // EX: [c:red] = [c:#ff0000] = [c:rgb(255,0,0)]
-    room.addStory(`This is a [c:red]test[c:] story`);
-    room.addStory(`This is a [c:red]test[c:] story [c:#00ff00][ff:'Courier New'][fs:32px]contin[:]ued`, 100, 33, 'impact');
+    room.addStory(`This is a [an:text-blur .4s ease][c:red]test[c:] story`);
+    room.addStory(`This is a [c:red]test[c:] [fi:blur(1px)]story[fi:] [c:#00ff00][ff:'Courier New'][fs:32px]contin[:]ued`, 100, 33, 'impact');
     room.addStory(`[ts:2px 2px 2px white][c:#c5c5c5]Lorem [rt:90deg]ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et [rt:180deg]dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure [rt:270deg]dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui [rt:]officia deserunt mollit anim id est laborum.`, 10, 3, 'funky');
     room.addStory(`Woah`, 1000, 100, 'shaky');
     room.addStory(`[c:rgb(0,255,255)]Cooleo![c:] This is a neat blur effect! I like it so much, I think I will put [c:yellow][fs:24px]more[:] text!`, 100, 10, 'blur');
     room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, 50, 10, 'fade-alternate');
-    room.choices.push({
+    room.choices.push({ 
         name: 'Example choice',
         actions: [{ // actions 
             type: 'getItems',
