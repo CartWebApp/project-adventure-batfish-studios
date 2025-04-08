@@ -119,11 +119,13 @@ output, span, .finished-text {
 
 .transition-word {
     display: flex;
+    align-items: center;
 }
 
 .transition-character {
     width: fit-content;
     white-space: pre;
+    height: fit-content
 }
 
 .transition-character.default {
