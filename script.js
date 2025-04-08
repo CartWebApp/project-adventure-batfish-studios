@@ -80,7 +80,7 @@ class Room {
     constructor(name) {
         this.name = name;
         this.choices = [];
-        this.story = []; // gets displayed when entering a room
+        this.storyParts = []; // gets displayed when entering a room
     }
 
     // adds a choice to the room
@@ -89,33 +89,58 @@ class Room {
     }
 
     // adds a story line to the room
-    addStory(choice) {
-        this.story.push(choice);
+    addStory(story, speed=30, variance=30, animation='default') {
+        this.storyParts.push({text: story, speed, variance, animation});
     }
 }
 
 // types out text (can be skipped by clicking on element)
-async function typeText(text, element, speed=10, variance=0, skippable=true, skipElement=null) {
-    let clickListener;
+async function typeText(text, element, speed=10, variance=0, skippable=true, skipElement=null, animation='none') {
     let isWriting = true;
 
-    let skip = () => { isWriting = false; }
+    let skipFunction = () => {
+        speed = 0;
+        skipElement.addEventListener('click', hardSkipFunction);
+        element.removeEventListener('click', skipFunction);
+    }
+    let hardSkipFunction = () => {
+        isWriting = false;
+        element.removeEventListener('click', hardSkipFunction);
+    }
     if (skippable) {
         skipElement = skipElement ?? element; // the element the user clicks on to trigger skip
-        clickListener = skipElement.addEventListener('click', skip);
+        skipElement.addEventListener('click', skipFunction);
     }
 
-    for (let i = 0; i < text.length; i++) {
-        if (isWriting) {
-            element.textContent = text.substr(0, i)
+    element.innerHTML = `<span class='finished-text'></span>`;
+    for (const word of text.split(' ')) {
+        let wordSpan = document.createElement('span')
+        wordSpan.className = 'transition-word';
+        element.appendChild(wordSpan)
+        for (const textChar of word) {
+            if (!isWriting) break;
+            let charSpan = document.createElement('span');
+            charSpan.textContent = textChar;
+            charSpan.className = `transition-character ${animation}`;
+            wordSpan.appendChild(charSpan);
             await sleep(speed + random(0, variance));
         }
+        if (!isWriting) break;
+        let space = document.createElement('span');
+        space.textContent = ' ';
+        space.className = `transition-character ${animation}`;
+        wordSpan.appendChild(space);
     }
-    
-    isWriting = false;
-    element.textContent = text;
 
-    if (skippable) element.removeEventListener('click', skip);
+    if (!isWriting) {
+        element.innerHTML = `<span class='finished-text'>${text}</span>`
+        return;
+    }
+    let lastChar = element.querySelector('.transition-word:last-of-type .transition-character:last-of-type')
+    // sets the dialogue to be just text, no spans
+    lastChar.addEventListener('animationend', () => {
+        element.innerHTML = `<span class='finished-text'>${text}</span>`;
+    })
     
 }
 
@@ -124,15 +149,16 @@ async function showStory(story) {
     const dialogueBox = document.getElementById('dialogue-box');
     const storyElement = document.getElementById('story');
     for (const part of story) {
-        await typeText(part, storyElement, 30, 10, true, dialogueBox);
+        await typeText(part.text, storyElement, part.speed, part.variance, true, dialogueBox, part.animation);
         await awaitClick(dialogueBox)
     }
 }
 
+// repeats every room
 async function gameLoop() {
     let currentRoom = rooms['Example'];
     while (isGameLoop) {
-        await showStory(currentRoom.story);
+        await showStory(currentRoom.storyParts);
     }
 }
 
@@ -140,13 +166,18 @@ function createEventListeners() {
 
 }
 
+// initializes the rooms and player
 function init() {
     createEventListeners();
-    let player = new Player();
+    player = new Player();
 
     let room = new Room('Example');
     room.addStory(`This is test story`);
-    room.addStory(`This is test story continued`);
+    room.addStory(`This is test story continued`, 100, 33, 'impact');
+    room.addStory(`Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, 10, 3, 'funky');
+    room.addStory(`Woah`, 1000, 100, 'shaky');
+    room.addStory(`Cooleo! This is a neat blur effect`, 100, 10, 'blur');
+    room.addStory(`Or maybe try alternating text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, 50, 10, 'fade-alternate');
     room.choices.push({
         name: 'Example choice',
         actions: [{ // actions 

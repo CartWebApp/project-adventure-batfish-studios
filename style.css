@@ -27,8 +27,8 @@ button {
     user-select: none;
 }
 
-output {
-    overflow-wrap: break-word;
+output, span, .finished-text {
+    overflow-wrap: anywhere;
     display: block;
 }
 
@@ -96,7 +96,163 @@ output {
 }
 
 #story {
+    display: flex;
+    flex-wrap: wrap;
     pointer-events: none;
     user-select: none;
     width: 100%;
+}
+
+.transition-word {
+    display: flex;
+}
+
+.transition-character {
+    width: fit-content;
+    white-space: pre;
+}
+
+.transition-character.default {
+    animation: text-default 150ms ease;
+}
+
+.transition-character.none {
+    animation: none;
+}
+
+.transition-character.impact {
+    animation: text-impact 300ms ease;
+}
+
+.transition-character.funky {
+    animation: text-default 150ms cubic-bezier(0.175, 0.885, 0.32, 1.2);
+}
+
+.transition-character.shaky {
+    animation: text-shaky 1500ms linear;
+}
+
+.transition-character.blur {
+    animation: text-blur 300ms ease;
+}
+
+.transition-character.fade-alternate:nth-child(odd) {
+    animation: text-fade-odd 300ms ease;
+}
+.transition-character.fade-alternate:nth-child(even) {
+    animation: text-fade-even 300ms ease;
+}
+
+@keyframes text-default {
+    0% {
+        transform: translate(0px, -1em);
+        opacity: 0;
+    }
+    100% {
+        transform: none;
+        opacity: 1;
+    }
+}
+
+@keyframes text-impact {
+    0% {
+        transform: translate(0, -1em) scale(5);
+        opacity: 0;
+    }
+    100% {
+        transform: none;
+        opacity: 1;
+    }
+}
+
+@keyframes text-funky {
+    0% {
+        transform: translate(-2em, -2em) scale(3) rotate(90deg);
+        opacity: 0;
+        color: rgb(255, 255, 141);
+    }
+    80% {
+        transform: none;
+        opacity: 1;
+        color: rgb(255, 255, 141);
+    }
+    100% {
+        color: unset;
+    }
+}
+
+@keyframes text-blur {
+    0% {
+        opacity: 0;
+        filter: blur(16px)
+    }
+    100% {
+        filter: none;
+    }
+}
+
+@keyframes text-shaky {
+    0% {
+        translate: 2em -2em;
+        scale: 5;
+        opacity: 0;
+    }
+    25% {
+        translate: -1.5em -1.5em;
+    }
+    50% {
+        translate: 1em -1em;
+    }
+    75% {
+        translate: -.5 -.5em;
+    }
+    100% {
+        translate: 0;
+        scale: 1;
+        opacity: 1;
+    }
+}
+
+@keyframes text-shaky {
+    0% {
+        translate: 2em -2em;
+        scale: 5;
+        opacity: 0;
+    }
+    25% {
+        translate: -1.5em -1.5em;
+    }
+    50% {
+        translate: 1em -1em;
+    }
+    75% {
+        translate: -.5 -.5em;
+    }
+    100% {
+        translate: 0;
+        scale: 1;
+        opacity: 1;
+    }
+}
+
+@keyframes text-fade-odd {
+    0% {
+        transform: translate(0px, -1em);
+        opacity: 0;
+    }
+    100% {
+        transform: none;
+        opacity: 1;
+    }
+}
+
+@keyframes text-fade-even {
+    0% {
+        transform: translate(0px, 1em);
+        opacity: 0;
+    }
+    100% {
+        transform: none;
+        opacity: 1;
+    }
 }
