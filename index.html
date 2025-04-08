@@ -4,25 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VOIDBEASTS</title>
-    <link rel="stylesheet" src="style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <img src="imgs/backgrounds/minecraft_mountains.png" alt="background" id="background-image">
     <main>
-        <div>
-            <section></section>
-            <section></section>
-            <section></section>
-            
-        </div>
-        <section></section>
-        <nav>
+        <nav id="main-nav">
             <ul>
-                <button type="button"></button>
-                <button type="button"></button>
-                <button type="button"></button>
-                <button type="button"></button>
+                <button type="button" id="playersheet-toggle">Player</button>
+                <button type="button" id="history-toggle">History</button>
             </ul>
         </nav>
+        <section id="center-menu" class="">
+            <button  id="menu-toggle" class="icon"></button>
+            <article id="playersheet"></article>
+            <article id="history"></article>
+        </section>
+        <section id="dialogue-box">
+            <output id="story">Placeholder</output>
+            <output id="choices"></output>
+        </section>
     </main>
+    <script src="script.js"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 let rooms = {};
 let currentRoom;
 let player;
-let gameLoop = true;
+let isGameLoop = true;
 let choicesMade = [];
 
 // Limits a number to be between a min and a max
@@ -82,7 +82,10 @@ class Room {
 }
 
 function gameLoop() {
-    let room = new Room('')
+    let currentRoom = rooms['Example'];
+    // while (isGameLoop) {
+    //     showStory(currentRoom.story);
+    // }
 }
 
 function init() {
@@ -90,6 +93,7 @@ function init() {
 
     let room = new Room('Example');
     room.addStory(`This is test story`);
+    room.addStory(`This is test story continued`);
     room.choices.push({
         name: 'Example choice',
         actions: [{ // actions 
@@ -104,4 +108,7 @@ function init() {
     rooms[room.name] = room;
 }
 
-window.addEventListener('DOMContentLoaded', init)
+window.addEventListener('DOMContentLoaded', () => {
+    init();
+    gameLoop();
+})
