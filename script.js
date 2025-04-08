@@ -10,8 +10,21 @@ function clamp(num, min, max) {
 }
 
 // Pauses for a given amount of time (use async function and do "await sleep(ms)")
-function sleep(ms) {
+function sleep(ms=0) {
     return new Promise(rs => setTimeout(rs, ms));
+}
+
+function random(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// halts until element is clicked
+async function awaitClick(element) {
+    return new Promise(resolve => {
+        element.addEventListener('click', () => {
+          resolve();
+        }, { once: true });
+      });
 }
 
 class Player {
@@ -81,14 +94,54 @@ class Room {
     }
 }
 
-function gameLoop() {
+// types out text (can be skipped by clicking on element)
+async function typeText(text, element, speed=10, variance=0, skippable=true, skipElement=null) {
+    let clickListener;
+    let isWriting = true;
+
+    let skip = () => { isWriting = false; }
+    if (skippable) {
+        skipElement = skipElement ?? element; // the element the user clicks on to trigger skip
+        clickListener = skipElement.addEventListener('click', skip);
+    }
+
+    for (let i = 0; i < text.length; i++) {
+        if (isWriting) {
+            element.textContent = text.substr(0, i)
+            await sleep(speed + random(0, variance));
+        }
+    }
+    
+    isWriting = false;
+    element.textContent = text;
+
+    if (skippable) element.removeEventListener('click', skip);
+    
+}
+
+// diplays each story part to the dialogue box
+async function showStory(story) {
+    const dialogueBox = document.getElementById('dialogue-box');
+    const storyElement = document.getElementById('story');
+    for (const part of story) {
+        await typeText(part, storyElement, 30, 10, true, dialogueBox);
+        await awaitClick(dialogueBox)
+    }
+}
+
+async function gameLoop() {
     let currentRoom = rooms['Example'];
-    // while (isGameLoop) {
-    //     showStory(currentRoom.story);
-    // }
+    while (isGameLoop) {
+        await showStory(currentRoom.story);
+    }
+}
+
+function createEventListeners() {
+
 }
 
 function init() {
+    createEventListeners();
     let player = new Player();
 
     let room = new Room('Example');

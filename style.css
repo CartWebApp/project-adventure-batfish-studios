@@ -24,6 +24,12 @@ main {
 
 button {
     cursor: pointer;
+    user-select: none;
+}
+
+output {
+    overflow-wrap: break-word;
+    display: block;
 }
 
 .hidden {
@@ -82,7 +88,15 @@ button {
     bottom: 3rem;
     transform: translateX(-50%);
     width: clamp(0px, 80%, 1080px);
+    min-height: 7em;
     background-color: rgb(3, 0, 31);
     color: white;
+    z-index: 1;
     transition: 150ms ease;
+}
+
+#story {
+    pointer-events: none;
+    user-select: none;
+    width: 100%;
 }
