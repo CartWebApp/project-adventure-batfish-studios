@@ -94,17 +94,70 @@ class Room {
     }
 }
 
+// parses text for color identifiers, returning clean text and a dictionary of location + color identifiers
+// example color identifier: [c:#0011] for green, or [c:] to reset
+function parseColors(text) {
+    let data = [];
+    while (text.includes('[c:')) {
+        let index = text.indexOf('[c:');
+        let match = text.match(/(\[c:)([^\]]*)(\])/);
+        let color = match[2];
+        data.push({index, color});
+        text = text.substring(0, index) + text.substring(index + match[0].length)
+    }
+    return {text, data}
+}
+
+// returns an element with color formatted text
+function formatText(text, colorData) {
+    colorData = colorData ?? parseColors(text);
+    let colorDataIndex = 0;
+    characterIndex = 0;
+    let formattedElement = document.createElement('span');
+    formattedElement.className = 'finished-text';
+    let currentColor = '';
+    let wordArray = colorData.text.split(' ')
+    for (let word of wordArray) {
+        let wordSpan = document.createElement('span')
+        wordSpan.className = 'transition-word';
+        formattedElement.appendChild(wordSpan)
+        for (let char of word) {
+            if (characterIndex === colorData.data[colorDataIndex]?.index) {
+                currentColor = colorData.data[colorDataIndex].color;
+                colorDataIndex += 1;
+            }
+            let charSpan = document.createElement('span');
+            charSpan.textContent = char;
+            charSpan.className = `transition-character`;
+            charSpan.style.color = currentColor;
+            wordSpan.appendChild(charSpan);
+            characterIndex++;
+        }
+        let space = document.createElement('span');
+        space.textContent = ' ';
+        space.className = `transition-character`;
+        wordSpan.appendChild(space);
+        if (characterIndex === colorData.data[colorDataIndex]?.index) {
+            currentColor = colorData.data[colorDataIndex].color;
+            colorDataIndex += 1;
+        }
+        characterIndex++;
+    }
+    return formattedElement;
+}
+
 // types out text (can be skipped by clicking on element)
 async function typeText(text, element, speed=10, variance=0, skippable=true, skipElement=null, animation='none') {
-    let isWriting = true;
+    let skipped = false;
 
     let skipFunction = () => {
         speed = 0;
+        variance = 0;
         skipElement.addEventListener('click', hardSkipFunction);
         element.removeEventListener('click', skipFunction);
     }
     let hardSkipFunction = () => {
-        isWriting = false;
+        skipped = true;
         element.removeEventListener('click', hardSkipFunction);
     }
     if (skippable) {
@@ -112,35 +165,25 @@ async function typeText(text, element, speed=10, variance=0, skippable=true, ski
         skipElement.addEventListener('click', skipFunction);
     }
 
+    let formattedElement = formatText(text);
     element.innerHTML = `<span class='finished-text'></span>`;
-    for (const word of text.split(' ')) {
-        let wordSpan = document.createElement('span')
-        wordSpan.className = 'transition-word';
+    for (const word of formattedElement.children) {
+        let wordSpan = word.cloneNode(false);
         element.appendChild(wordSpan)
-        for (const textChar of word) {
-            if (!isWriting) break;
-            let charSpan = document.createElement('span');
-            charSpan.textContent = textChar;
-            charSpan.className = `transition-character ${animation}`;
-            wordSpan.appendChild(charSpan);
+        for (const char of word.children) {
+            if (skipped) break;
+            let newChar = char.cloneNode(true);
+            newChar.classList.add(animation);
+            wordSpan.appendChild(newChar);
             await sleep(speed + random(0, variance));
         }
-        if (!isWriting) break;
-        let space = document.createElement('span');
-        space.textContent = ' ';
-        space.className = `transition-character ${animation}`;
-        wordSpan.appendChild(space);
     }
 
-    if (!isWriting) {
-        element.innerHTML = `<span class='finished-text'>${text}</span>`
+    if (skipped) {
+        element.innerHTML = '';
+        element.appendChild(formattedElement);
         return;
     }
-    let lastChar = element.querySelector('.transition-word:last-of-type .transition-character:last-of-type')
-    // sets the dialogue to be just text, no spans
-    lastChar.addEventListener('animationend', () => {
-        element.innerHTML = `<span class='finished-text'>${text}</span>`;
-    })
     
 }
 
@@ -172,12 +215,12 @@ function init() {
     player = new Player();
 
     let room = new Room('Example');
-    room.addStory(`This is test story`);
-    room.addStory(`This is test story continued`, 100, 33, 'impact');
-    room.addStory(`Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, 10, 3, 'funky');
+    room.addStory(`This is a [c:red]test[c:] story`);
+    room.addStory(`This is a [c:red]test[c:] story [c:#00ff00]continued`, 100, 33, 'impact');
+    room.addStory(`[c:#c5c5c5]Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, 10, 3, 'funky');
     room.addStory(`Woah`, 1000, 100, 'shaky');
-    room.addStory(`Cooleo! This is a neat blur effect`, 100, 10, 'blur');
-    room.addStory(`Or maybe try alternating text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, 50, 10, 'fade-alternate');
+    room.addStory(`[c:rgb(0,255,255)]Cooleo![c:] This is a neat blur effect!`, 100, 10, 'blur');
+    room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, 50, 10, 'fade-alternate');
     room.choices.push({
         name: 'Example choice',
         actions: [{ // actions 

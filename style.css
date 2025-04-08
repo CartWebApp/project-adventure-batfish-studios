@@ -59,6 +59,11 @@ output, span, .finished-text {
     transform: translateX(-50%);
 }
 
+#main-nav ul {
+    list-style: none;
+    display: flex;
+}
+
 #center-menu {
     position: absolute;
     padding: 2rem;
@@ -67,9 +72,11 @@ output, span, .finished-text {
     top: 50%;
     width: clamp(0px, 80%, 1080px);
     height: 50%;
+    min-height: 8rem;
     max-height: calc(100% - 20rem);
     transform: translate(-50%, -50%);
     background-color: rgb(3, 0, 31);
+    z-index: 2;
 }
 
 #menu-toggle {
@@ -89,6 +96,8 @@ output, span, .finished-text {
     transform: translateX(-50%);
     width: clamp(0px, 80%, 1080px);
     min-height: 7em;
+    max-height: 35%;
+    overflow-y: auto;
     background-color: rgb(3, 0, 31);
     color: white;
     z-index: 1;
@@ -101,6 +110,11 @@ output, span, .finished-text {
     pointer-events: none;
     user-select: none;
     width: 100%;
+}
+
+.finished-text {
+    display: flex;
+    flex-wrap: wrap;
 }
 
 .transition-word {
