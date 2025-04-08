@@ -3,6 +3,7 @@ let currentRoom;
 let player;
 let isGameLoop = true;
 let choicesMade = [];
+let game;
 
 // Limits a number to be between a min and a max
 function clamp(num, min, max) {
@@ -24,6 +25,17 @@ async function awaitClick(element) {
         element.addEventListener('click', () => {
           resolve();
         }, { once: true });
+      });
+}
+
+// halts until any element in a list of elements is clicked
+async function awaitClickList(elements) {
+    return new Promise(resolve => {
+        for (const element of elements) {
+            element.addEventListener('click', () => {
+              resolve();
+            }, { once: true });
+        }
       });
 }
 
@@ -51,7 +63,10 @@ class Player {
 }
 
 // Holds game logic methods
-class game {
+class Game {
+    constructor() {
+
+    }
 
     // Gives an item to the player's inventory
     getItems(...items) {
@@ -67,11 +82,32 @@ class game {
 
     // Returns whether the player has an item in their inventory
     hasItem(item) {
-        if (player.inventory.contains(item)) {
+        if (player.inventory.includes(item)) {
             return true;
         } else {
+            typeText(`You do not have [[c:yellow]${item}[:]]`, document.getElementById('story'));
             return false;
         }
+    }
+
+}
+
+class Choice {
+    constructor(name, speed=4, variance=1, animation='default') {
+        this.name = name;
+        this.speed = speed;
+        this.variance = variance;
+        this.animation = animation;
+        this.actions = [];
+        this.requirements = [];
+    }
+
+    addAction(type, ...parameters) {
+        this.actions.push({type, parameters})
+    }
+
+    addRequirement(type, ...parameters) {
+        this.requirements.push({type, parameters})
     }
 
 }
@@ -98,7 +134,7 @@ class Room {
 function parseText(text, identifier) {
     let data = [];
     let cleanText = text;
-    let specialMatches = [...text.matchAll(new RegExp(String.raw`(\[)(?!${identifier}:)([^:^\]]*:)([^\]]*)(\])`, 'g'))];
+    let specialMatches = [...text.matchAll(new RegExp(String.raw`(\[)(?!\[)(?!${identifier}:)([^:^\]]*:)([^\]]*)(\])`, 'g'))];
     for (const match of specialMatches.reverse()) {
         let index = match.index;
         cleanText = cleanText.substring(0, index) + cleanText.substring(index + match[0].length)
@@ -108,7 +144,7 @@ function parseText(text, identifier) {
         let index = match.index;
         let value = match[3];
         data.push({index, value});
-        cleanText = cleanText.substring(0, index) + cleanText.substring(index + match[0].length)
+        cleanText = cleanText.substring(0, index) + cleanText.substring(index + match[0].length);
     }
     return {text: cleanText, data}
 }
@@ -235,11 +271,49 @@ async function showStory(story) {
     }
 }
 
+// diplays each choice to the dialogue box
+async function showChoices(choices) {
+    const dialogueBox = document.getElementById('dialogue-box');
+    const choiceContainer = document.getElementById('choices');
+    let choiceElements = [];
+    let selectedChoice;
+    for (let i = 0; i < choices.length; i++) {
+        const choice = choices[i];
+        let choiceElement = document.createElement('button');
+        choiceElement.className = 'choice';
+        choiceElement.id = `choice-${i}`;
+        choiceContainer.appendChild(choiceElement);
+        choiceElement.addEventListener('click', () => {selectedChoice = choice})
+        choiceElements.push(choiceElement);
+        typeText(choice.name, choiceElement, choice.speed, choice.variance, true, dialogueBox, choice.animation);
+    }
+    await awaitClickList(choiceElements);
+    choiceContainer.innerHTML = '';
+    return selectedChoice;
+}
+
+// returns weather all the requirments are met to make a choice
+function checkRequirements(choice) {
+    for (const requirement of choice.requirements) {
+        if (!game[requirement.type](...requirement.parameters)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 // repeats every room
 async function gameLoop() {
     let currentRoom = rooms['Example'];
     while (isGameLoop) {
         await showStory(currentRoom.storyParts);
+        let selectedChoice;
+        let metReqirements = false;
+        while (!metReqirements) {
+            selectedChoice = await showChoices(currentRoom.choices);
+            metReqirements = checkRequirements(selectedChoice);
+        }
     }
 }
 
@@ -251,10 +325,12 @@ function createEventListeners() {
 function init() {
     createEventListeners();
     player = new Player();
+    game = new Game();
     let room = new Room('Example');
+    let choice = new Choice('Example choice');
 
     // add styles to text by doing [identifier: + any valid css color + ]
-    // to reset that style, just do [identifier:]. to reset all styles, do [-:]
+    // to reset that style, just do [identifier:]. to reset all styles, do [:]
     // EX: [c:red] = [c:#ff0000] = [c:rgb(255,0,0)]
     room.addStory(`This is a [an:text-blur .4s ease][c:red]test[c:] story`);
     room.addStory(`This is a [c:red]test[c:] [fi:blur(1px)]story[fi:] [c:#00ff00][ff:'Courier New'][fs:32px]contin[:]ued`, 100, 33, 'impact');
@@ -262,17 +338,11 @@ function init() {
     room.addStory(`Woah`, 1000, 100, 'shaky');
     room.addStory(`[c:rgb(0,255,255)]Cooleo![c:] This is a neat blur effect! I like it so much, I think I will put [c:yellow][fs:24px]more[:] text!`, 100, 10, 'blur');
     room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, 50, 10, 'fade-alternate');
-    room.choices.push({ 
-        name: 'Example choice',
-        actions: [{ // actions 
-            type: 'getItems',
-            parameters: ['item1', 'item2']
-        }],
-        requirements: [{
-            type: 'hasItem',
-            parameters: ['Example Key']
-        }]
-    })
+
+    choice.addAction('getItems', 'item1', 'item2');
+    choice.addRequirement('hasItem', 'Example Key');
+    room.choices.push(choice);
+
     rooms[room.name] = room;
 }
 
