@@ -213,8 +213,10 @@ function createEventListeners() {
 function init() {
     createEventListeners();
     player = new Player();
-
     let room = new Room('Example');
+
+    // add colors to text by doing [c: + any valid css color + ]. To reset color, just do [c:]
+    // EX: [c:red] = [c:#ff0000] = [c:rgb(255,0,0)]
     room.addStory(`This is a [c:red]test[c:] story`);
     room.addStory(`This is a [c:red]test[c:] story [c:#00ff00]continued`, 100, 33, 'impact');
     room.addStory(`[c:#c5c5c5]Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, 10, 3, 'funky');
