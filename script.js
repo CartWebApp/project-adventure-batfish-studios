@@ -3,6 +3,9 @@ let currentRoom;
 let player;
 let isGameLoop = true;
 let choicesMade = [];
+let textController; // makes text writing cancellable
+let textControllerSignal;
+let textCancelled = false;
 let game;
 
 // Limits a number to be between a min and a max
@@ -13,6 +16,18 @@ function clamp(num, min, max) {
 // Pauses for a given amount of time (use async function and do "await sleep(ms)")
 function sleep(ms=0) {
     return new Promise(rs => setTimeout(rs, ms));
+}
+
+// pauses for a set time or until a set condition is met
+ function cancelableSleep(ms=0, signal) {
+    return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(resolve, ms);
+    
+        signal?.addEventListener("abort", () => {
+          clearTimeout(timeoutId);
+          reject(new Error("Sleep aborted"));
+        });
+      });
 }
 
 function random(min, max) {
@@ -221,9 +236,8 @@ function formatText(text) {
 }
 
 // types out text (can be skipped by clicking on element)
-async function typeText(text, element, speed=10, variance=0, skippable=true, skipElement=null, animation='none') {
+async function typeText(text, element, speed=10, variance=0, skippable=true, skipElement=null, animation='none', signal=textControllerSignal) {
     let skipped = false;
-
     let skipFunction = () => {
         speed = 0;
         variance = 0;
@@ -245,15 +259,19 @@ async function typeText(text, element, speed=10, variance=0, skippable=true, ski
         let wordSpan = word.cloneNode(false);
         element.appendChild(wordSpan)
         for (const char of word.children) {
-            if (skipped) break;
+            if (skipped || textCancelled) break;
             let newChar = char.cloneNode(true);
             newChar.classList.add(animation);
             wordSpan.appendChild(newChar);
-            await sleep(speed + random(0, variance));
+            try {
+                await cancelableSleep(speed + random(0, variance), signal);
+            } catch (error) {
+                textCancelled = true;
+            }
         }
     }
 
-    if (skipped) {
+    if (skipped && !textCancelled) {
         element.innerHTML = '';
         element.appendChild(formattedElement);
         return;
@@ -276,7 +294,9 @@ async function showChoices(choices) {
     const dialogueBox = document.getElementById('dialogue-box');
     const choiceContainer = document.getElementById('choices');
     let choiceElements = [];
+    let choiceTexts = [];
     let selectedChoice;
+
     for (let i = 0; i < choices.length; i++) {
         const choice = choices[i];
         let choiceElement = document.createElement('button');
@@ -285,8 +305,10 @@ async function showChoices(choices) {
         choiceContainer.appendChild(choiceElement);
         choiceElement.addEventListener('click', () => {selectedChoice = choice})
         choiceElements.push(choiceElement);
-        typeText(choice.name, choiceElement, choice.speed, choice.variance, true, dialogueBox, choice.animation);
+        choiceTexts.push(choice.name);
+        typeText(choice.name, choiceElement, choice.speed, choice.variance, true, dialogueBox, choice.animation, textControllerSignal);
     }
+
     await awaitClickList(choiceElements);
     choiceContainer.innerHTML = '';
     return selectedChoice;
@@ -312,6 +334,12 @@ async function gameLoop() {
         let metReqirements = false;
         while (!metReqirements) {
             selectedChoice = await showChoices(currentRoom.choices);
+            textCancelled = true;
+            textController?.abort();
+            textController = new AbortController();
+            textControllerSignal = textController.signal;
+            await sleep(10);
+            textCancelled = false;
             metReqirements = checkRequirements(selectedChoice);
         }
     }
