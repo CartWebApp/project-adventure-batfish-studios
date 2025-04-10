@@ -241,16 +241,17 @@ async function typeText(text, element, speed=10, variance=0, skippable=true, ski
     let skipFunction = () => {
         speed = 0;
         variance = 0;
-        skipElement.addEventListener('click', hardSkipFunction);
-        element.removeEventListener('click', skipFunction);
+        textController?.abort();
+        textController = new AbortController();
+        textControllerSignal = textController.signal;
+        skipElement.addEventListener('click', hardSkipFunction, {once: true});
     }
     let hardSkipFunction = () => {
         skipped = true;
-        element.removeEventListener('click', hardSkipFunction);
     }
     if (skippable) {
         skipElement = skipElement ?? element; // the element the user clicks on to trigger skip
-        skipElement.addEventListener('click', skipFunction);
+        skipElement.addEventListener('click', skipFunction, {once: true});
     }
 
     let formattedElement = formatText(text);
@@ -266,15 +267,17 @@ async function typeText(text, element, speed=10, variance=0, skippable=true, ski
             try {
                 await cancelableSleep(speed + random(0, variance), signal);
             } catch (error) {
-                textCancelled = true;
             }
         }
     }
 
+    skipElement.removeEventListener('click', skipFunction);
+    skipElement.removeEventListener('click', hardSkipFunction);
+
     if (skipped && !textCancelled) {
         element.innerHTML = '';
         element.appendChild(formattedElement);
-        return;
+
     }
     
 }
@@ -324,6 +327,15 @@ function checkRequirements(choice) {
     return true;
 }
 
+// cancels the writing of text in the dialogue box
+async function cancelText() {
+    textCancelled = true;
+    textController?.abort();
+    textController = new AbortController();
+    textControllerSignal = textController.signal;
+    await sleep(1);
+    textCancelled = false;
+}
 
 // repeats every room
 async function gameLoop() {
@@ -334,14 +346,13 @@ async function gameLoop() {
         let metReqirements = false;
         while (!metReqirements) {
             selectedChoice = await showChoices(currentRoom.choices);
-            textCancelled = true;
-            textController?.abort();
-            textController = new AbortController();
-            textControllerSignal = textController.signal;
-            await sleep(10);
-            textCancelled = false;
+            await cancelText();
             metReqirements = checkRequirements(selectedChoice);
         }
+        for (const action of selectedChoice.actions) {
+            game[action.type](...action.parameters);
+        }
+        
     }
 }
 
@@ -354,8 +365,9 @@ function init() {
     createEventListeners();
     player = new Player();
     game = new Game();
-    let room = new Room('Example');
-    let choice = new Choice('Example choice');
+    let room;
+    let choice;
+    room = new Room('Example');
 
     // add styles to text by doing [identifier: + any valid css color + ]
     // to reset that style, just do [identifier:]. to reset all styles, do [:]
@@ -367,8 +379,12 @@ function init() {
     room.addStory(`[c:rgb(0,255,255)]Cooleo![c:] This is a neat blur effect! I like it so much, I think I will put [c:yellow][fs:24px]more[:] text!`, 100, 10, 'blur');
     room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, 50, 10, 'fade-alternate');
 
+    choice = new Choice('Example choice');
     choice.addAction('getItems', 'item1', 'item2');
     choice.addRequirement('hasItem', 'Example Key');
+    room.choices.push(choice);
+    choice = new Choice('Example choice 2');
+    choice.addAction('getItems', 'item1', 'item2');
     room.choices.push(choice);
 
     rooms[room.name] = room;
