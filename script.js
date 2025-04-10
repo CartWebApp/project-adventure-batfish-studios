@@ -7,6 +7,8 @@ let textController; // makes text writing cancellable
 let textControllerSignal;
 let textCancelled = false;
 let game;
+let currentEnding = 'unset';
+let endings = {}; // holds the possible ending names and text
 let startingRoom = 'Example Room';
 
 // Limits a number to be between a min and a max
@@ -75,6 +77,18 @@ function checkPropertyValues(array, key, value) {
     return false;
 }
 
+// gets the value of a root property
+function getRootVar(propertyName) {
+    if (window.getComputedStyle(document.documentElement).getPropertyValue('--' + propertyName) != ''){
+        document.documentElement.style.setProperty('--' + propertyName, value);
+    }
+}
+
+// sets the value of a root property
+function setRootVar(propertyName, value) {
+    document.documentElement.style.setProperty('--' + propertyName, value);
+}
+
 class Player {
     constructor() {
         this.inventory = [];
@@ -124,6 +138,29 @@ class Game {
         currentRoom = rooms[room];
     }
 
+    // initiates an ending
+    async ending(endType) {
+        isGameLoop = false;
+        currentEnding = endings[endType];
+        clearDialogueText();
+        await showStory(currentEnding.storyParts);
+        showChoices(currentEnding.choices);
+        await tryChoices(document.getElementById('choices'))
+        for (const choice of currentEnding.choices) {
+            for (const action of choice.actions) {
+                attemptAction(action);
+            }
+        }
+        await sleep(10);
+    }
+
+    restart() {
+        player = new Player();
+        currentRoom = startingRoom;
+        isGameLoop = true;
+        gameLoop();
+    }
+
     // Returns whether the player has an item in their inventory
     hasItem(item, customMessage='') {
         if (player.inventory.includes(item)) {
@@ -149,7 +186,7 @@ class textObject {
         this.animation = animation ?? 'none';
         this.skippable = skippable ?? false;
         this.waits = waits ?? false;
-        this.waitDelay = waitDelay ?? 1000
+        this.waitDelay = waitDelay ?? 0
         this.options = options ?? {};
         transferProperties(this.options, this)
     }
@@ -165,7 +202,7 @@ class Choice extends textObject {
 
     addAction(options, type, parameters) {
         type = options.type ?? type;
-        parameters = options.parameters ?? parameters;
+        parameters = options.parameters ?? parameters ?? [];
         this.actions.push({type, parameters})
     }
 
@@ -173,7 +210,7 @@ class Choice extends textObject {
         mode = options.mode ?? mode;
         type = options.type ?? type;
         inverse = options.inverse ?? inverse; // makes it required to NOT meet the requirement
-        parameters = options.parameters ?? parameters;
+        parameters = options.parameters ?? parameters ?? [];
         this.requirements.push({mode, type, inverse, parameters})
     }
 
@@ -202,8 +239,17 @@ class Room {
     }
 
     // adds a story line to the room
-    addStory(text, options, speed=20, variance=5, animation='default', waits=true, waitDelay=1500, skippable=true) {
+    addStory(text, options, speed=20, variance=5, animation='default', waits=true, waitDelay=0, skippable=true) {
         this.storyParts.push(new textObject(text, options, speed, variance, animation, skippable, waits, waitDelay));
+    }
+}
+
+class Ending extends Room {
+    constructor(name) {
+        super(name);
+        let choice = new Choice('restart');
+        choice.addAction({type: 'restart'})
+        this.addChoice(choice);
     }
 }
 
@@ -432,12 +478,40 @@ async function cancelText() {
     textCancelled = false;
 }
 
+// waits for user to pick a choice
 async function selectChoice(choiceContainer) {
     let selectedChoice;
     for (const choiceElement of choiceContainer.children) {
         choiceElement.addEventListener('click', () => {selectedChoice = choiceElement.object})
     }
     await awaitClickList(choiceContainer.children);
+    return selectedChoice;
+}
+
+// tries to run an action
+function attemptAction(action) {
+    // if the function is within the game object, or is a global function
+    if (typeof game[action.type] === 'function') {
+        return game[action.type](...action.parameters);
+    } else  if (typeof window[action.type] === 'function') {
+        return window?.[action.type](...action.parameters);
+    }
+}
+
+// loops until a choice is selected that has all requirements met
+async function tryChoices(choiceContainer) {
+    let selectedChoice;
+    let metReqirements = false;
+    while (!metReqirements) {
+        selectedChoice = await selectChoice(choiceContainer);
+        await cancelText();
+        clearText(document.getElementById('action-output'));
+        let requirementsResult = checkRequirements(selectedChoice, 'use');
+        metReqirements = requirementsResult.metRequirements;
+        for (const message of requirementsResult.messages) {
+            typeText(message, document.getElementById('action-output'));
+        }
+    }
     return selectedChoice;
 }
 
@@ -448,31 +522,14 @@ async function gameLoop() {
         let thisRoom = currentRoom;
         clearDialogueText();
         await showStory(currentRoom.storyParts);
-        while (thisRoom === currentRoom) {
+        while (isGameLoop && thisRoom === currentRoom) {
             showChoices(currentRoom.choices);
-            let metReqirements = false;
-            let selectedChoice;
             const choiceContainer = document.getElementById('choices');
-            while (!metReqirements) {
-                selectedChoice = await selectChoice(choiceContainer);
-                await cancelText();
-                clearText(document.getElementById('action-output'));
-                let requirementsResult = checkRequirements(selectedChoice, 'use');
-                metReqirements = requirementsResult.metRequirements;
-                for (const message of requirementsResult.messages) {
-                    typeText(message, document.getElementById('action-output'));
-                }
-            }
+            let selectedChoice = await tryChoices(choiceContainer);
             choicesMade.push(selectedChoice);
             clearDialogueText();
             for (const action of selectedChoice.actions) {
-                let actionResult;
-                // if the function is within the game object, or is a global function
-                if (typeof game[action.type] === 'function') {
-                    actionResult = game[action.type](...action.parameters);
-                } else  if (typeof window[action.type] === 'function') {
-                    actionResult = window?.[action.type](...action.parameters);
-                }
+                let actionResult = attemptAction(action);
                 if (actionResult && actionResult?.messages) {
                     for (const message of actionResult.messages) {
                         typeText(message, document.getElementById('action-output'));
@@ -483,9 +540,10 @@ async function gameLoop() {
     }
 }
 
+
 //initializes the event listeners in on the page
 function createEventListeners() {
-
+    
 }
 
 // initializes the rooms and player
@@ -493,8 +551,19 @@ function init() {
     createEventListeners();
     player = new Player();
     game = new Game();
-    let room;
-    room = new Room('Example Room');
+    generateAllRooms();
+    generateEndings();
+}
+
+// generates all the rooms
+function generateAllRooms() {
+    generateExampleRooms();
+    generateStartingRooms();
+}
+
+// generates the example rooms
+function generateExampleRooms() {
+    let room = new Room('Example Room');
 
     // add styles to text by doing [identifier: + any valid css color + ]
     // to reset that style, just do [identifier:]. to reset all styles, do [:]
@@ -506,7 +575,7 @@ function init() {
     room.addStory(`[ts:2px 2px 2px white][c:#c5c5c5]Lorem [rt:90deg]ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et [rt:180deg]dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure [rt:270deg]dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui [rt:]officia deserunt mollit anim id est laborum.`, {speed: 10, variance: 3, animation: 'funky'});
     room.addStory(`Woah`, {speed: 500, variance: 100, animation: 'shaky'});
     room.addStory(`[c:rgb(0,255,255)]Cooleo![c:] This is a neat blur effect! I like it so much, I think I will put [c:yellow][fs:24px]more[:] text!`, {speed: 100, variance: 10, animation: 'blur'});
-    room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, {speed: 50, variance: 10, animation: 'fade-alternate'});
+    room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(59, 107, 77)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, {speed: 50, variance: 10, animation: 'fade-alternate'});
     room.addStory("Let's have some choices now!", {waits: false, waitDelay: 0});
     let choice1 = new Choice('Open door');
     choice1.addAction({type: 'changeRoom', parameters: ['Example Room 2']});
@@ -515,7 +584,7 @@ function init() {
     choice1.addRequirement({mode: 'use', type: 'hasItem', parameters: ['Example Expendable Key']});
     room.addChoice(choice1);
     let choice2 = new Choice('Pick up key');
-    choice2.addAction({type: 'getItems', parameters: [['Example Reusable Key'], "yoyo, you got ye an Example key yo! Also, this is a [an:text-glow 1s ease infinite alternate][c:cyan]custom action message!"]});
+    choice2.addAction({type: 'getItems', parameters: [['Example Reusable Key'], "yoyo, you got ye an [[c:yellow]Example Reusable Key[c:]] yo! Also, this is a [an:text-glow 1s ease infinite alternate][c:cyan]custom action message!"]});
     choice2.addRequirement({mode: 'show', type: 'madeChoice', inverse: true, parameters: [room.getChoiceId(2)]});
     room.addChoice(choice2);
     let choice3 = new Choice('Pick up another key');
@@ -532,6 +601,32 @@ function init() {
     room.addChoice(choice1);
     rooms[room.name] = room;
 }
+
+function generateStartingRooms() {
+    let room = new Room('b-1'); // beginning-1
+    room.addStory(`This is the part where there is big disaster`);
+    room.addStory(`Do you cryosleep?`, {waits: false});
+    let choice1 = new Choice("Aw yea! I am having none of this funky disaster stuff!");
+    choice1.addAction({type: 'changeRoom', parameters: ['b-2']});
+    room.addChoice(choice1);
+    let choice2 = new Choice("Noooo, I must stick with it till the end!");
+    choice2.addAction({type: 'ending', parameters: ['stayed behind']});
+    room.addChoice(choice2);
+    rooms[room.name] = room;
+
+    room = new Room('b-2'); // beginning-2
+    room.addStory(`yay! 3 choices! (WIP)`);
+    rooms[room.name] = room;
+}
+
+function generateEndings() {
+    endings = {};
+    let ending = new Ending('stayed behind');
+    ending.addStory('You stayed behind to face the big calamity');
+    ending.addStory('In other words, you died', {waits: false});
+    endings[ending.name] = ending;
+}
+
 
 window.addEventListener('DOMContentLoaded', () => {
     init();

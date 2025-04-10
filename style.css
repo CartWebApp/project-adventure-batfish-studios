@@ -1,4 +1,9 @@
 
+:root {
+    --choice-color: rgb(0, 255, 247);
+}
+
+
 * {
     box-sizing: border-box;
 }
@@ -31,6 +36,11 @@ output, span {
     overflow-wrap: anywhere;
     display: block;
     font-family: 'Oxanium';
+}
+
+button {
+    font-family: 'Oxanium';
+    font-size: 1em;
 }
 
 .hidden {
@@ -94,7 +104,7 @@ output, span {
     padding: 2rem;
     border: solid 3px rgb(255, 255, 255);
     left: 50%;
-    bottom: 3rem;
+    bottom: clamp(1rem, 3rem, 5vh);
     transform: translateX(-50%);
     width: clamp(0px, 80%, 1080px);
     min-height: 7em;
@@ -124,7 +134,7 @@ output, span {
     padding: 0;
     background: none;
     border: none;
-    color: yellow;
+    color: var(--choice-color);
     width: fit-content
 }
 
