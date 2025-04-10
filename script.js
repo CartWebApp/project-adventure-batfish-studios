@@ -7,6 +7,7 @@ let textController; // makes text writing cancellable
 let textControllerSignal;
 let textCancelled = false;
 let game;
+let startingRoom = 'Example Room';
 
 // Limits a number to be between a min and a max
 function clamp(num, min, max) {
@@ -84,35 +85,53 @@ class Game {
     }
 
     // Gives an item to the player's inventory
-    getItems(...items) {
+    getItems(items, customMessage='') {
         for (const item of items) {
             player.addItem(item);
+            typeText(customMessage || `Obtained [[c:yellow]${item}[:]]`, document.getElementById('action-output'));
         }
     }
 
     // Removes an item from the player's inventory
-    takeItem(item) {
+    removeItem(item) {
         player.removeItem(item);
     }
 
     // Returns whether the player has an item in their inventory
-    hasItem(item) {
+    hasItem(item, customMessage='') {
         if (player.inventory.includes(item)) {
             return true;
         } else {
-            typeText(`You do not have [[c:yellow]${item}[:]]`, document.getElementById('story'));
+            typeText(customMessage || `You do not have [[c:yellow]${item}[:]]`, document.getElementById('action-output'));
             return false;
         }
     }
 
+    // changes the current room to a new room
+    changeRoom(room) {
+        currentRoom = rooms[room];
+    }
+
 }
 
-class Choice {
-    constructor(name, speed=4, variance=1, animation='default') {
-        this.name = name;
-        this.speed = speed;
-        this.variance = variance;
-        this.animation = animation;
+// default text object for writing to the page
+class textObject {
+    constructor(text, speed, variance, animation, skippable, waits, waitDelay) {
+        this.text = text ?? '';
+        this.speed = speed ?? 0;
+        this.variance = variance ?? 0;
+        this.animation = animation ?? 'none';
+        this.skippable = skippable ?? false;
+        this.waits = waits ?? false;
+        this.waitDelay = waitDelay ?? 1000
+    }
+}
+
+class Choice extends textObject {
+    constructor(text, onetime=false, hidden=false, speed=4, variance=1, animation='default', skippable=true) {
+        super(text, speed, variance, animation, skippable, true, 0);
+        this.hidden = hidden;
+        this.onetime = onetime;
         this.actions = [];
         this.requirements = [];
     }
@@ -123,6 +142,10 @@ class Choice {
 
     addRequirement(type, ...parameters) {
         this.requirements.push({type, parameters})
+    }
+
+    hide() {
+        this.hidden = true;
     }
 
 }
@@ -140,8 +163,8 @@ class Room {
     }
 
     // adds a story line to the room
-    addStory(story, speed=30, variance=30, animation='default') {
-        this.storyParts.push({text: story, speed, variance, animation});
+    addStory(text, speed=20, variance=5, animation='default', waits=true, waitDelay=1500, skippable=true) {
+        this.storyParts.push(new textObject(text, speed, variance, animation, skippable, waits, waitDelay));
     }
 }
 
@@ -177,8 +200,7 @@ function formatText(text) {
         {name: 'textShadow', identifier: 'ts'}, // example text shadow identifier: [ts:4px,4px,3px,yellow], or [ts:] to reset
         {name: 'animation', identifier: 'an'}, // example animation identifier: [an:text-blur 1s ease], or [an:] to reset
         {name: 'filter', identifier: 'fi'}, // example filter identifier: [fi:blur(6px)], or [fi:] to reset
-    ]
-
+    ]   
     for (const style of textStyles) {
         let parsedData = parseText(text, style.identifier);
         style.data = parsedData.data;
@@ -189,9 +211,9 @@ function formatText(text) {
     let cleanText = parseText(text, 'This returns the clean text because nothing matches this.').text;
     characterIndex = 0;
     let formattedElement = document.createElement('span');
-    formattedElement.className = 'finished-text';
     let wordArray = cleanText.split(' ')
-    for (let word of wordArray) {
+    for (let i = 0; i < wordArray.length; i++) {
+        let word = wordArray[i];
         let wordSpan = document.createElement('span')
         wordSpan.className = 'transition-word';
         formattedElement.appendChild(wordSpan)
@@ -229,14 +251,28 @@ function formatText(text) {
             }
             space.style[style.name] = style.currentValue;
         }
-        wordSpan.appendChild(space);
-        characterIndex++;
+        if (i != wordArray.length - 1) {
+            wordSpan.appendChild(space);
+            characterIndex++;
+        }
     }
     return formattedElement;
 }
 
+// clears the text in an element
+function clearText(element) {
+    element.innerHTML = '';
+}
+
+// clears the text in all of the dialogue elements
+function clearDialogueText() {
+    clearText(document.getElementById('story'));
+    clearText(document.getElementById('action-output'));
+    clearText(document.getElementById('choices'));
+}
+
 // types out text (can be skipped by clicking on element)
-async function typeText(text, element, speed=10, variance=0, skippable=true, skipElement=null, animation='none', signal=textControllerSignal) {
+async function typeText(text, element, speed=10, variance=0, skippable=true, skipElement=null, animation='none', signal=textControllerSignal, waits=false, waitDelay=0) {
     let skipped = false;
     let skipFunction = () => {
         speed = 0;
@@ -253,12 +289,13 @@ async function typeText(text, element, speed=10, variance=0, skippable=true, ski
         skipElement = skipElement ?? element; // the element the user clicks on to trigger skip
         skipElement.addEventListener('click', skipFunction, {once: true});
     }
-
+    let textLine = document.createElement('span');
+    textLine.className = 'text-line';
+    element.appendChild(textLine);
     let formattedElement = formatText(text);
-    element.innerHTML = `<span class='finished-text'></span>`;
     for (const word of formattedElement.children) {
         let wordSpan = word.cloneNode(false);
-        element.appendChild(wordSpan)
+        textLine.appendChild(wordSpan)
         for (const char of word.children) {
             if (skipped || textCancelled) break;
             let newChar = char.cloneNode(true);
@@ -267,17 +304,24 @@ async function typeText(text, element, speed=10, variance=0, skippable=true, ski
             try {
                 await cancelableSleep(speed + random(0, variance), signal);
             } catch (error) {
+                let test = null;
             }
         }
     }
 
     skipElement.removeEventListener('click', skipFunction);
     skipElement.removeEventListener('click', hardSkipFunction);
-
     if (skipped && !textCancelled) {
-        element.innerHTML = '';
-        element.appendChild(formattedElement);
+        textLine.innerHTML = '';
+        for (const word of formattedElement.children) {
+            textLine.appendChild(word.cloneNode(true));
+        }
+    }
 
+    if (waits && !textCancelled) {
+        await awaitClick(skipElement)
+    } else if (!textCancelled) {
+        await sleep(waitDelay);
     }
     
 }
@@ -287,8 +331,8 @@ async function showStory(story) {
     const dialogueBox = document.getElementById('dialogue-box');
     const storyElement = document.getElementById('story');
     for (const part of story) {
-        await typeText(part.text, storyElement, part.speed, part.variance, true, dialogueBox, part.animation);
-        await awaitClick(dialogueBox)
+        clearText(storyElement);
+        await typeText(part.text, storyElement, part.speed, part.variance, true, dialogueBox, part.animation, textControllerSignal, part.waits, part.waitDelay);
     }
 }
 
@@ -298,23 +342,19 @@ async function showChoices(choices) {
     const choiceContainer = document.getElementById('choices');
     let choiceElements = [];
     let choiceTexts = [];
-    let selectedChoice;
 
     for (let i = 0; i < choices.length; i++) {
         const choice = choices[i];
+        if (choice.hidden) continue;
         let choiceElement = document.createElement('button');
         choiceElement.className = 'choice';
         choiceElement.id = `choice-${i}`;
+        choiceElement.object = choice;
         choiceContainer.appendChild(choiceElement);
-        choiceElement.addEventListener('click', () => {selectedChoice = choice})
         choiceElements.push(choiceElement);
-        choiceTexts.push(choice.name);
-        typeText(choice.name, choiceElement, choice.speed, choice.variance, true, dialogueBox, choice.animation, textControllerSignal);
+        choiceTexts.push(choice.text);
+        typeText(choice.text, choiceElement, choice.speed, choice.variance, true, dialogueBox, choice.animation, textControllerSignal);
     }
-
-    await awaitClickList(choiceElements);
-    choiceContainer.innerHTML = '';
-    return selectedChoice;
 }
 
 // returns weather all the requirments are met to make a choice
@@ -337,25 +377,48 @@ async function cancelText() {
     textCancelled = false;
 }
 
+async function selectChoice(choiceContainer) {
+    let selectedChoice;
+    for (const choiceElement of choiceContainer.children) {
+        choiceElement.addEventListener('click', () => {selectedChoice = choiceElement.object})
+    }
+    await awaitClickList(choiceContainer.children);
+    return selectedChoice;
+}
+
 // repeats every room
 async function gameLoop() {
-    let currentRoom = rooms['Example'];
+    currentRoom = rooms[startingRoom];
     while (isGameLoop) {
+        let thisRoom = currentRoom;
+        clearDialogueText();
         await showStory(currentRoom.storyParts);
-        let selectedChoice;
-        let metReqirements = false;
-        while (!metReqirements) {
-            selectedChoice = await showChoices(currentRoom.choices);
-            await cancelText();
-            metReqirements = checkRequirements(selectedChoice);
+        while (thisRoom === currentRoom) {
+            showChoices(currentRoom.choices);
+            let metReqirements = false;
+            let selectedChoice;
+            const choiceContainer = document.getElementById('choices');
+            while (!metReqirements) {
+                selectedChoice = await selectChoice(choiceContainer);
+                await cancelText();
+                clearText(document.getElementById('action-output'));
+                metReqirements = checkRequirements(selectedChoice);
+            }
+            clearDialogueText();
+            for (const action of selectedChoice.actions) {
+                // if the function is within the game object, or is a global function
+                if (typeof game[action.type] === 'function') {
+                    game[action.type](...action.parameters);
+                } else  if (typeof window[action.type] === 'function') {
+                    window?.[action.type](...action.parameters);
+                }
+            }
+            if (selectedChoice.onetime) selectedChoice.hide();
         }
-        for (const action of selectedChoice.actions) {
-            game[action.type](...action.parameters);
-        }
-        
     }
 }
 
+//initializes the event listeners in on the page
 function createEventListeners() {
 
 }
@@ -366,27 +429,35 @@ function init() {
     player = new Player();
     game = new Game();
     let room;
-    let choice;
-    room = new Room('Example');
+    room = new Room('Example Room');
 
     // add styles to text by doing [identifier: + any valid css color + ]
     // to reset that style, just do [identifier:]. to reset all styles, do [:]
     // EX: [c:red] = [c:#ff0000] = [c:rgb(255,0,0)]
+    // EX: [fi:blur(1px)] gives the text the filter: blur(1px) style
+    // current identifiers: [c: color][ff: fontFamily][fs: fontSize][rt: rotate][ts: textShadow][an: animation][fi: filter]
     room.addStory(`This is a [an:text-blur .4s ease][c:red]test[c:] story`);
     room.addStory(`This is a [c:red]test[c:] [fi:blur(1px)]story[fi:] [c:#00ff00][ff:'Courier New'][fs:32px]contin[:]ued`, 100, 33, 'impact');
     room.addStory(`[ts:2px 2px 2px white][c:#c5c5c5]Lorem [rt:90deg]ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et [rt:180deg]dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure [rt:270deg]dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui [rt:]officia deserunt mollit anim id est laborum.`, 10, 3, 'funky');
     room.addStory(`Woah`, 1000, 100, 'shaky');
     room.addStory(`[c:rgb(0,255,255)]Cooleo![c:] This is a neat blur effect! I like it so much, I think I will put [c:yellow][fs:24px]more[:] text!`, 100, 10, 'blur');
     room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, 50, 10, 'fade-alternate');
+    room.addStory("Let's have some choices now!", null, null, null, false, 0);
+    let choice1 = new Choice('Open door');
+    choice1.addAction('changeRoom', 'Example Room 2');
+    choice1.addAction('removeItem', 'Example Key');
+    choice1.addRequirement('hasItem', 'Example Key');
+    room.choices.push(choice1);
+    let choice2 = new Choice('Pick up key', true);
+    choice2.addAction('getItems', ['Example Key']);
+    room.choices.push(choice2);
+    rooms[room.name] = room;
 
-    choice = new Choice('Example choice');
-    choice.addAction('getItems', 'item1', 'item2');
-    choice.addRequirement('hasItem', 'Example Key');
-    room.choices.push(choice);
-    choice = new Choice('Example choice 2');
-    choice.addAction('getItems', 'item1', 'item2');
-    room.choices.push(choice);
-
+    room = new Room('Example Room 2');
+    room.addStory('You made it into room 2! [fs:32px][an:text-impact 1000ms ease-in][fw:bold][c:yellow]YAY!', null, null, null, false, 0)
+    choice1 = new Choice('[c:green]Go back');
+    choice1.addAction('changeRoom', 'Example Room');
+    room.choices.push(choice1);
     rooms[room.name] = room;
 }
 
