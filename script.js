@@ -31,8 +31,9 @@ function sleep(ms=0) {
       });
 }
 
-function random(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+// returns a random number between 2 numbers, rounded to a given number of decimals
+function random(min, max, places=0) {
+    return Math.floor(Math.random() * (max - min + 1) * 10**places) / 10**places + min;
 }
 
 // halts until element is clicked
@@ -53,6 +54,25 @@ async function awaitClickList(elements) {
             }, { once: true });
         }
       });
+}
+
+// copies an object's properties to another object
+function transferProperties(transferFrom, transferTo) {
+    for( [key, value] of Object.entries(transferFrom)) {
+        transferTo[key] = value;
+    }
+}
+
+// checks if a key-value pair exists in an array of objects
+// ex: checkPropertyValues([{id: 1}, {id: 2}], 'id', 2) -> true
+// ex: checkPropertyValues([{id: 1}, {id: 2}], 'id', 3) -> false
+function checkPropertyValues(array, key, value) {
+    for (const object of array) {
+        if (object[key] && object[key] === value) {
+            return true;
+        }
+    }
+    return false;
 }
 
 class Player {
@@ -86,10 +106,12 @@ class Game {
 
     // Gives an item to the player's inventory
     getItems(items, customMessage='') {
+        let messages = []
         for (const item of items) {
             player.addItem(item);
-            typeText(customMessage || `Obtained [[c:yellow]${item}[:]]`, document.getElementById('action-output'));
+            messages.push(customMessage || `Obtained [[c:yellow]${item}[:]]`)
         }
+        return {messages}
     }
 
     // Removes an item from the player's inventory
@@ -97,26 +119,30 @@ class Game {
         player.removeItem(item);
     }
 
+    // changes the current room to a new room
+    changeRoom(room) {
+        currentRoom = rooms[room];
+    }
+
     // Returns whether the player has an item in their inventory
     hasItem(item, customMessage='') {
         if (player.inventory.includes(item)) {
             return true;
         } else {
-            typeText(customMessage || `You do not have [[c:yellow]${item}[:]]`, document.getElementById('action-output'));
-            return false;
+            let message = customMessage || `You do not have [[c:yellow]${item}[:]]`;
+            return {result: false, message};
         }
     }
 
-    // changes the current room to a new room
-    changeRoom(room) {
-        currentRoom = rooms[room];
+    madeChoice(choiceId) {
+        return checkPropertyValues(choicesMade, 'id', choiceId);
     }
 
 }
 
 // default text object for writing to the page
 class textObject {
-    constructor(text, speed, variance, animation, skippable, waits, waitDelay) {
+    constructor(text, options, speed, variance, animation, skippable, waits, waitDelay) {
         this.text = text ?? '';
         this.speed = speed ?? 0;
         this.variance = variance ?? 0;
@@ -124,24 +150,31 @@ class textObject {
         this.skippable = skippable ?? false;
         this.waits = waits ?? false;
         this.waitDelay = waitDelay ?? 1000
+        this.options = options ?? {};
+        transferProperties(this.options, this)
     }
 }
 
 class Choice extends textObject {
-    constructor(text, onetime=false, hidden=false, speed=4, variance=1, animation='default', skippable=true) {
-        super(text, speed, variance, animation, skippable, true, 0);
+    constructor(text, options={}, hidden=false, speed=4, variance=1, animation='default', skippable=true) {
+        super(text, options, speed, variance, animation, skippable, true, 0);
         this.hidden = hidden;
-        this.onetime = onetime;
         this.actions = [];
         this.requirements = [];
     }
 
-    addAction(type, ...parameters) {
+    addAction(options, type, parameters) {
+        type = options.type ?? type;
+        parameters = options.parameters ?? parameters;
         this.actions.push({type, parameters})
     }
 
-    addRequirement(type, ...parameters) {
-        this.requirements.push({type, parameters})
+    addRequirement(options, mode, type, parameters, inverse=false) {
+        mode = options.mode ?? mode;
+        type = options.type ?? type;
+        inverse = options.inverse ?? inverse; // makes it required to NOT meet the requirement
+        parameters = options.parameters ?? parameters;
+        this.requirements.push({mode, type, inverse, parameters})
     }
 
     hide() {
@@ -160,11 +193,17 @@ class Room {
     // adds a choice to the room
     addChoice(choice) {
         this.choices.push(choice);
+        choice.id = this.getChoiceId(this.choices.length)
+    }
+
+    // returns the id of a choice given the choice number
+    getChoiceId(choiceNumber) {
+        return `${this.name}-${choiceNumber}`;
     }
 
     // adds a story line to the room
-    addStory(text, speed=20, variance=5, animation='default', waits=true, waitDelay=1500, skippable=true) {
-        this.storyParts.push(new textObject(text, speed, variance, animation, skippable, waits, waitDelay));
+    addStory(text, options, speed=20, variance=5, animation='default', waits=true, waitDelay=1500, skippable=true) {
+        this.storyParts.push(new textObject(text, options, speed, variance, animation, skippable, waits, waitDelay));
     }
 }
 
@@ -345,7 +384,7 @@ async function showChoices(choices) {
 
     for (let i = 0; i < choices.length; i++) {
         const choice = choices[i];
-        if (choice.hidden) continue;
+        if (choice.hidden || !checkRequirements(choice, 'show').metRequirements) continue;
         let choiceElement = document.createElement('button');
         choiceElement.className = 'choice';
         choiceElement.id = `choice-${i}`;
@@ -358,13 +397,29 @@ async function showChoices(choices) {
 }
 
 // returns weather all the requirments are met to make a choice
-function checkRequirements(choice) {
+function checkRequirements(choice, mode='use') {
+    let metRequirements = true;
+    let messages = [];
+    let result;
     for (const requirement of choice.requirements) {
-        if (!game[requirement.type](...requirement.parameters)) {
-            return false;
+        if (requirement.mode != mode) continue;
+        if (typeof game[requirement.type] === 'function') {
+            result = game[requirement.type](...requirement.parameters)
+        } else if (typeof window[requirement.type] === 'function') {
+            result = window?.[requirement.type](...requirement.parameters);
+        }
+        if (typeof result != "object") {
+            result = {result};
+        }
+        if (requirement.inverse) {
+            result.result = !result.result;
+        }
+        metRequirements = result.result && metRequirements;
+        if (result.message) {
+            messages.push(result.message)
         }
     }
-    return true;
+    return {metRequirements, messages};
 }
 
 // cancels the writing of text in the dialogue box
@@ -402,18 +457,28 @@ async function gameLoop() {
                 selectedChoice = await selectChoice(choiceContainer);
                 await cancelText();
                 clearText(document.getElementById('action-output'));
-                metReqirements = checkRequirements(selectedChoice);
-            }
-            clearDialogueText();
-            for (const action of selectedChoice.actions) {
-                // if the function is within the game object, or is a global function
-                if (typeof game[action.type] === 'function') {
-                    game[action.type](...action.parameters);
-                } else  if (typeof window[action.type] === 'function') {
-                    window?.[action.type](...action.parameters);
+                let requirementsResult = checkRequirements(selectedChoice, 'use');
+                metReqirements = requirementsResult.metRequirements;
+                for (const message of requirementsResult.messages) {
+                    typeText(message, document.getElementById('action-output'));
                 }
             }
-            if (selectedChoice.onetime) selectedChoice.hide();
+            choicesMade.push(selectedChoice);
+            clearDialogueText();
+            for (const action of selectedChoice.actions) {
+                let actionResult;
+                // if the function is within the game object, or is a global function
+                if (typeof game[action.type] === 'function') {
+                    actionResult = game[action.type](...action.parameters);
+                } else  if (typeof window[action.type] === 'function') {
+                    actionResult = window?.[action.type](...action.parameters);
+                }
+                if (actionResult && actionResult?.messages) {
+                    for (const message of actionResult.messages) {
+                        typeText(message, document.getElementById('action-output'));
+                    }
+                }
+            }
         }
     }
 }
@@ -436,28 +501,35 @@ function init() {
     // EX: [c:red] = [c:#ff0000] = [c:rgb(255,0,0)]
     // EX: [fi:blur(1px)] gives the text the filter: blur(1px) style
     // current identifiers: [c: color][ff: fontFamily][fs: fontSize][rt: rotate][ts: textShadow][an: animation][fi: filter]
-    room.addStory(`This is a [an:text-blur .4s ease][c:red]test[c:] story`);
-    room.addStory(`This is a [c:red]test[c:] [fi:blur(1px)]story[fi:] [c:#00ff00][ff:'Courier New'][fs:32px]contin[:]ued`, 100, 33, 'impact');
-    room.addStory(`[ts:2px 2px 2px white][c:#c5c5c5]Lorem [rt:90deg]ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et [rt:180deg]dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure [rt:270deg]dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui [rt:]officia deserunt mollit anim id est laborum.`, 10, 3, 'funky');
-    room.addStory(`Woah`, 1000, 100, 'shaky');
-    room.addStory(`[c:rgb(0,255,255)]Cooleo![c:] This is a neat blur effect! I like it so much, I think I will put [c:yellow][fs:24px]more[:] text!`, 100, 10, 'blur');
-    room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, 50, 10, 'fade-alternate');
-    room.addStory("Let's have some choices now!", null, null, null, false, 0);
+    room.addStory(`This is a [an:text-blur 1s ease][c:red]test[c:] story`);
+    room.addStory(`This is a [an:text-glow 1s ease infinite alternate][c:red]test[c:] [fi:blur(1px)]story[fi:] [c:#00ff00][ff:'Doto'][fs:24px]continued[:]!`, {speed: 100, variance: 33, animation: 'impact'});
+    room.addStory(`[ts:2px 2px 2px white][c:#c5c5c5]Lorem [rt:90deg]ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et [rt:180deg]dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure [rt:270deg]dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui [rt:]officia deserunt mollit anim id est laborum.`, {speed: 10, variance: 3, animation: 'funky'});
+    room.addStory(`Woah`, {speed: 500, variance: 100, animation: 'shaky'});
+    room.addStory(`[c:rgb(0,255,255)]Cooleo![c:] This is a neat blur effect! I like it so much, I think I will put [c:yellow][fs:24px]more[:] text!`, {speed: 100, variance: 10, animation: 'blur'});
+    room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, {speed: 50, variance: 10, animation: 'fade-alternate'});
+    room.addStory("Let's have some choices now!", {waits: false, waitDelay: 0});
     let choice1 = new Choice('Open door');
-    choice1.addAction('changeRoom', 'Example Room 2');
-    choice1.addAction('removeItem', 'Example Key');
-    choice1.addRequirement('hasItem', 'Example Key');
-    room.choices.push(choice1);
-    let choice2 = new Choice('Pick up key', true);
-    choice2.addAction('getItems', ['Example Key']);
-    room.choices.push(choice2);
+    choice1.addAction({type: 'changeRoom', parameters: ['Example Room 2']});
+    choice1.addAction({type: 'removeItem', parameters: ['Example Expendable Key']});
+    choice1.addRequirement({mode: 'use', type: 'hasItem', parameters: ['Example Reusable Key']});
+    choice1.addRequirement({mode: 'use', type: 'hasItem', parameters: ['Example Expendable Key']});
+    room.addChoice(choice1);
+    let choice2 = new Choice('Pick up key');
+    choice2.addAction({type: 'getItems', parameters: [['Example Reusable Key'], "yoyo, you got ye an Example key yo! Also, this is a [an:text-glow 1s ease infinite alternate][c:cyan]custom action message!"]});
+    choice2.addRequirement({mode: 'show', type: 'madeChoice', inverse: true, parameters: [room.getChoiceId(2)]});
+    room.addChoice(choice2);
+    let choice3 = new Choice('Pick up another key');
+    choice3.addAction({type: 'getItems', parameters: [['Example Expendable Key']]});
+    choice3.addRequirement({mode: 'show', type: 'madeChoice', parameters: [room.getChoiceId(2)]});
+    choice3.addRequirement({mode: 'show', type: 'hasItem', inverse: true, parameters: ['Example Expendable Key']});
+    room.addChoice(choice3);
     rooms[room.name] = room;
 
     room = new Room('Example Room 2');
-    room.addStory('You made it into room 2! [fs:32px][an:text-impact 1000ms ease-in][fw:bold][c:yellow]YAY!', null, null, null, false, 0)
+    room.addStory('You made it into room 2! [fs:32px][an:text-impact 1000ms ease-in][fw:bold][c:yellow]YAY!', {waitDelay: 0, waits: false})
     choice1 = new Choice('[c:green]Go back');
-    choice1.addAction('changeRoom', 'Example Room');
-    room.choices.push(choice1);
+    choice1.addAction({type: 'changeRoom', parameters: ['Example Room']});
+    room.addChoice(choice1);
     rooms[room.name] = room;
 }
 

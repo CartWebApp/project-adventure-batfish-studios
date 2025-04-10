@@ -30,6 +30,7 @@ button {
 output, span {
     overflow-wrap: anywhere;
     display: block;
+    font-family: 'Oxanium';
 }
 
 .hidden {
@@ -104,6 +105,7 @@ output, span {
     z-index: 1;
     scrollbar-width: none;
     transition: 150ms ease;
+    font-variation-settings: "";
 }
 
 .text {
@@ -143,8 +145,8 @@ output, span {
 
 .transition-character {
     width: fit-content;
+    height: fit-content;
     white-space: pre;
-    height: fit-content
 }
 
 .transition-character.default {
@@ -289,5 +291,14 @@ output, span {
     100% {
         transform: none;
         opacity: 1;
+    }
+}
+
+@keyframes text-glow {
+    0% {
+        text-shadow: 0 0 2px;
+    }
+    100% {
+        text-shadow: 0 0 5px;
     }
 }
