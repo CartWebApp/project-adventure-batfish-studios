@@ -1,4 +1,5 @@
 let rooms = {};
+
 let currentRoom;
 let player;
 let isGameLoop = true;
@@ -9,7 +10,7 @@ let textCancelled = false;
 let game;
 let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
-let startingRoom = 'Example Room';
+let startingRoom = 'b-start';
 
 // Limits a number to be between a min and a max
 function clamp(num, min, max) {
@@ -123,7 +124,7 @@ class Game {
         let messages = []
         for (const item of items) {
             player.addItem(item);
-            messages.push(customMessage || `Obtained [[c:yellow]${item}[:]]`)
+            messages.push(customMessage || `Obtained [[c:var(--item-color)]${item}[:]]`)
         }
         return {messages}
     }
@@ -603,27 +604,28 @@ function generateExampleRooms() {
 }
 
 function generateStartingRooms() {
-    let room = new Room('b-1'); // beginning-1
-    room.addStory(`This is the part where there is big disaster`);
-    room.addStory(`Do you cryosleep?`, {waits: false});
-    let choice1 = new Choice("Aw yea! I am having none of this funky disaster stuff!");
-    choice1.addAction({type: 'changeRoom', parameters: ['b-2']});
+    let room = new Room('b-start'); // beginning-1
+    room.addStory(`Danger is imminent. You, among two others, were the only ones smart enough to take precautions. Now, you stand before your cryopod, ready to bid your conciousness farewell.`);
+    room.addStory(`Step into the pod?`, {waits: false});
+    let choice1 = new Choice("Enter.");
+    choice1.addAction({type: 'changeRoom', parameters: ['b-3-hallways']});
     room.addChoice(choice1);
-    let choice2 = new Choice("Noooo, I must stick with it till the end!");
+    let choice2 = new Choice("Chicken out.");
     choice2.addAction({type: 'ending', parameters: ['stayed behind']});
     room.addChoice(choice2);
     rooms[room.name] = room;
 
-    room = new Room('b-2'); // beginning-2
-    room.addStory(`yay! 3 choices! (WIP)`);
+    room = new Room('b-3-hallways'); // beginning-2
+    room.addStory(`And so you let yourself fade away...`, {waits: false, waitDelay: 3000, speed: 70, animation: 'blur'});
+    room.addStory(`...until [fs:98px][ff:Rubik Glitch][an:text-glow 1s ease infinite alternate][c: red]now.`);
     rooms[room.name] = room;
 }
 
 function generateEndings() {
     endings = {};
     let ending = new Ending('stayed behind');
-    ending.addStory('You stayed behind to face the big calamity');
-    ending.addStory('In other words, you died', {waits: false});
+    ending.addStory('[c:#bf1b1b][an:text-shiver .25s ease-in-out infinite alternate]Your loss,[:] I guess.');
+    ending.addStory(`You didn't live long enough to tell the story.`, {waits: false});
     endings[ending.name] = ending;
 }
 

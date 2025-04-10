@@ -1,6 +1,7 @@
 
 :root {
     --choice-color: rgb(0, 255, 247);
+    --item-color: rgb(255, 251, 0);
 }
 
 
@@ -310,5 +311,14 @@ button {
     }
     100% {
         text-shadow: 0 0 5px;
+    }
+}
+
+@keyframes text-shiver {
+    0% {
+        translate: 0 -10%;
+    }
+    100% {
+        translate: 0 10%;
     }
 }
