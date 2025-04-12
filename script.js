@@ -616,8 +616,14 @@ function generateStartingRooms() {
     rooms[room.name] = room;
 
     room = new Room('b-3-hallways'); // beginning-2
-    room.addStory(`And so you let yourself fade away...`, {waits: false, waitDelay: 3000, speed: 70, animation: 'blur'});
-    room.addStory(`...until [fs:98px][ff:Rubik Glitch][an:text-glow 1s ease infinite alternate][c: red]now.`);
+    room.addStory(`And so you let yourself fade away, no longer within the world...`, {waits: false, waitDelay: 3000, speed: 70, animation: 'blur'});
+    room.addStory(`...until [fs:98px][ff:Rubik Glitch][an:text-glow 1s ease infinite alternate][c: red]now.`, {speed: 100, waits: false, waitDelay: 3500});
+    room.addStory(`Your hearing is the first of your senses to return. Alarms blare in your ears, followed by the whoosh of air and a soft click.`);
+    room.addStory(`Next comes your sight. Once the steam clears, the cryopod door creaks open to the now run-down lab. Red lights are flashing through the room, presumably the whole building as well.`);
+    room.addStory(`Stepping out of the pod, it appears that yours was the only one to be well-maintained. The other two pods are rusty and broken, with the glass shattered and labels long faded.`);
+    room.addStory(`In fact, you can barely make out your own name on the scratchy, old label.`);
+    room.addStory(`[c:#0330fc]"Gali."`, {waits: false, waitDelay: 3500, speed: 50});
+
     rooms[room.name] = room;
 }
 
