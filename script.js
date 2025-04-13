@@ -10,7 +10,7 @@ let textCancelled = false;
 let game;
 let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
-let startingRoom = 'b-start';
+let startingRoom = 'Example Room'; // [ 'Example Room' ][ 'b-start' ]
 
 // Limits a number to be between a min and a max
 function clamp(num, min, max) {
@@ -165,6 +165,8 @@ class Game {
         player = new Player();
         currentRoom = startingRoom;
         isGameLoop = true;
+        choicesMade = [];
+        clearDialogueText();
         gameLoop();
     }
 
@@ -195,16 +197,23 @@ class textObject {
         this.waits = waits ?? false;
         this.waitDelay = waitDelay ?? 0
         this.options = options ?? {};
-        transferProperties(this.options, this)
+        transferProperties(this.options, this);
     }
 }
 
 class Choice extends textObject {
-    constructor(text, options={}, hidden=false, speed=4, variance=1, animation='default', skippable=true) {
+    constructor(text, options={}, repeatable=false, speed=4, variance=1, animation='default', skippable=true, room=undefined, id='') {
         super(text, options, speed, variance, animation, skippable, true, 0);
-        this.hidden = hidden;
+        this.hidden = false;
+        this.repeatable = repeatable;
+        this.room = room;
+        this.id = id;
         this.actions = [];
         this.requirements = [];
+        transferProperties(this.options, this);
+        if (!this.repeatable && this.room) {
+            this.addRequirement({mode: 'show', type: 'madeChoice', inverse: true, parameters: [this.id]})
+        }
     }
 
     addAction(options, type, parameters) {
@@ -228,16 +237,33 @@ class Choice extends textObject {
 }
 
 class Room {
-    constructor(name) {
+    constructor(name, bg) {
         this.name = name;
+        this.bg = bg;
         this.choices = [];
         this.storyParts = []; // gets displayed when entering a room
+        this.actions = [];
+        this.queuelist = []; // holds the order that everything in the room should happen
+        if (this.bg) { this.addAction({type: 'changeBG', parameters: [this.bg]}) }
     }
 
     // adds a choice to the room
     addChoice(choice) {
         this.choices.push(choice);
-        choice.id = this.getChoiceId(this.choices.length)
+        const lastInQueue = this.queuelist[this.queuelist.length - 1]
+        if (lastInQueue && lastInQueue.type === 'choicelist') {
+            lastInQueue.value.push(choice)
+        } else {
+            this.queuelist.push({type: 'choicelist', value: [choice]});
+        }
+    }
+
+    // creates a choice
+    createChoice(text, options, repeatable, speed, variance, animation, skippable) {
+        const id = this.getChoiceId(this.choices.length + 1);
+        const choice = new Choice(text, options, repeatable, speed, variance, animation, skippable, this, id);
+        this.addChoice(choice);
+        return choice;
     }
 
     // returns the id of a choice given the choice number
@@ -247,17 +273,41 @@ class Room {
 
     // adds a story line to the room
     addStory(text, options, speed=20, variance=5, animation='default', waits=true, waitDelay=0, skippable=true) {
-        this.storyParts.push(new textObject(text, options, speed, variance, animation, skippable, waits, waitDelay));
+        let storyObject = new textObject(text, options, speed, variance, animation, skippable, waits, waitDelay);
+        this.storyParts.push(storyObject);
+        this.queuelist.push({type: 'story', value: storyObject});
+
+    }
+
+    // adds an action for a room
+    addAction(options, type, parameters) {
+        type = options.type ?? type;
+        parameters = options.parameters ?? parameters ?? [];
+        const action = {type, parameters};
+        this.actions.push(action);
+
+        const lastInQueue = this.queuelist[this.queuelist.length - 1]
+        if (lastInQueue && lastInQueue.type === 'actionlist') {
+            lastInQueue.value.push(action)
+        } else {
+            this.queuelist.push({type: 'actionlist', value: [action]});
+        }
     }
 }
 
 class Ending extends Room {
-    constructor(name) {
-        super(name);
-        let choice = new Choice('restart');
+    constructor(name, bg) {
+        super(name, bg);
+        let choice = this.createChoice('Restart');
         choice.addAction({type: 'restart'})
-        this.addChoice(choice);
     }
+}
+
+// creates a room and adds it to rooms
+function createRoom(name, bg) {
+    const newRoom = new Room(name, bg);
+    rooms[newRoom.name] = newRoom;
+    return newRoom;
 }
 
 // parses text for identifiers, returning clean text and a dictionary of location + identifier values
@@ -428,6 +478,17 @@ async function showStory(story) {
     }
 }
 
+// returns the choices that are displayed
+function getShownChoices(choices) {
+    let shownChoices = []
+    for (const choice of choices) {
+        if (!choice.hidden && checkRequirements(choice, 'show').metRequirements) {
+            shownChoices.push(choice);
+        }
+    }
+    return shownChoices;
+}
+
 // diplays each choice to the dialogue box
 async function showChoices(choices) {
     const dialogueBox = document.getElementById('dialogue-box');
@@ -505,6 +566,19 @@ function attemptAction(action) {
     }
 }
 
+// tries to run a list of actions or an action
+function attemptActionsWithText(actions) {
+    if (Object.prototype.toString.call(actions) != '[object Array]') actions = [actions];
+    for (const action of actions) {
+        let actionResult = attemptAction(action);
+        if (actionResult && actionResult?.messages) {
+            for (const message of actionResult.messages) {
+                typeText(message, document.getElementById('action-output'));
+            }
+        }
+    }
+}
+
 // loops until a choice is selected that has all requirements met
 async function tryChoices(choiceContainer) {
     let selectedChoice;
@@ -525,24 +599,28 @@ async function tryChoices(choiceContainer) {
 // repeats every room
 async function gameLoop() {
     currentRoom = rooms[startingRoom];
+    const choiceContainer = document.getElementById('choices');
     while (isGameLoop) {
         let thisRoom = currentRoom;
-        clearDialogueText();
-        await showStory(currentRoom.storyParts);
-        while (isGameLoop && thisRoom === currentRoom) {
-            showChoices(currentRoom.choices);
-            const choiceContainer = document.getElementById('choices');
-            let selectedChoice = await tryChoices(choiceContainer);
-            choicesMade.push(selectedChoice);
-            clearDialogueText();
-            for (const action of selectedChoice.actions) {
-                let actionResult = attemptAction(action);
-                if (actionResult && actionResult?.messages) {
-                    for (const message of actionResult.messages) {
-                        typeText(message, document.getElementById('action-output'));
-                    }
+        for (const item of currentRoom.queuelist) {
+            if (item.type === 'story') {
+                clearText(document.getElementById('story'));
+                await showStory([item.value]);
+                clearText(document.getElementById('action-output'));
+            } else if (item.type === 'choicelist') {
+                while (isGameLoop && getShownChoices(item.value).length > 0 && thisRoom === currentRoom) {
+                    showChoices(item.value);
+                    let selectedChoice = await tryChoices(choiceContainer);
+                    choicesMade.push(selectedChoice);
+                    clearText(document.getElementById('action-output'))
+                    clearText(document.getElementById('choices'))
+                    attemptActionsWithText(selectedChoice.actions);
                 }
+            } else if (item.type === 'actionlist') {
+                attemptActionsWithText(item.value);
             }
+
+            if (thisRoom != currentRoom || !isGameLoop) { break }
         }
     }
 }
@@ -570,68 +648,71 @@ function generateAllRooms() {
 
 // generates the example rooms
 function generateExampleRooms() {
-    let room = new Room('Example Room');
-
+    
     // add styles to text by doing [identifier: + any valid css color + ]
     // to reset that style, just do [identifier:]. to reset all styles, do [:]
     // EX: [c:red] = [c:#ff0000] = [c:rgb(255,0,0)]
     // EX: [fi:blur(1px)] gives the text the filter: blur(1px) style
     // current identifiers: [c: color][ff: fontFamily][fs: fontSize][rt: rotate][ts: textShadow][an: animation][fi: filter]
+
+    let room = createRoom('Example Room', 'neutralBG.jpeg');
     room.addStory(`This is a [an:text-blur 1s ease][c:red]test[c:] story`);
     room.addStory(`This is a [an:text-glow 1s ease infinite alternate][c:red]test[c:] [fi:blur(1px)]story[fi:] [c:#00ff00][ff:'Doto'][fs:24px]continued[:]!`, {speed: 100, variance: 33, animation: 'impact'});
     room.addStory(`[ts:2px 2px 2px white][c:#c5c5c5]Lorem [rt:90deg]ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et [rt:180deg]dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure [rt:270deg]dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui [rt:]officia deserunt mollit anim id est laborum.`, {speed: 10, variance: 3, animation: 'funky'});
+    let choice1 = room.createChoice('Pick up item');
+    choice1.addAction({type: 'getItems', parameters: [['Example Item']]});
     room.addStory(`Woah`, {speed: 500, variance: 100, animation: 'shaky'});
     room.addStory(`[c:rgb(0,255,255)]Cooleo![c:] This is a neat blur effect! I like it so much, I think I will put [c:yellow][fs:24px]more[:] text!`, {speed: 100, variance: 10, animation: 'blur'});
     room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(59, 107, 77)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, {speed: 50, variance: 10, animation: 'fade-alternate'});
     room.addStory("Let's have some choices now!", {waits: false, waitDelay: 0});
-    let choice1 = new Choice('Open door');
-    choice1.addAction({type: 'changeRoom', parameters: ['Example Room 2']});
-    choice1.addAction({type: 'removeItem', parameters: ['Example Expendable Key']});
-    choice1.addRequirement({mode: 'use', type: 'hasItem', parameters: ['Example Reusable Key']});
-    choice1.addRequirement({mode: 'use', type: 'hasItem', parameters: ['Example Expendable Key']});
-    room.addChoice(choice1);
-    let choice2 = new Choice('Pick up key');
-    choice2.addAction({type: 'getItems', parameters: [['Example Reusable Key'], "yoyo, you got ye an [[c:yellow]Example Reusable Key[c:]] yo! Also, this is a [an:text-glow 1s ease infinite alternate][c:cyan]custom action message!"]});
-    choice2.addRequirement({mode: 'show', type: 'madeChoice', inverse: true, parameters: [room.getChoiceId(2)]});
-    room.addChoice(choice2);
-    let choice3 = new Choice('Pick up another key');
-    choice3.addAction({type: 'getItems', parameters: [['Example Expendable Key']]});
-    choice3.addRequirement({mode: 'show', type: 'madeChoice', parameters: [room.getChoiceId(2)]});
-    choice3.addRequirement({mode: 'show', type: 'hasItem', inverse: true, parameters: ['Example Expendable Key']});
-    room.addChoice(choice3);
-    rooms[room.name] = room;
+    let choice2 = room.createChoice('Open door', {repeatable: true});
+    choice2.addAction({type: 'changeRoom', parameters: ['Example Room 2']});
+    choice2.addAction({type: 'removeItem', parameters: ['Example Expendable Key']});
+    choice2.addRequirement({mode: 'use', type: 'hasItem', parameters: ['Example Reusable Key']});
+    choice2.addRequirement({mode: 'use', type: 'hasItem', parameters: ['Example Expendable Key']});
+    let choice3 = room.createChoice('Pick up key');
+    choice3.addAction({type: 'getItems', parameters: [['Example Reusable Key'], "yoyo, you got ye an [[c:yellow]Example Reusable Key[c:]] yo! Also, this is a [an:text-glow 1s ease infinite alternate][c:cyan]custom action message!"]});
+    choice3.addRequirement({mode: 'show', type: 'madeChoice', inverse: true, parameters: [room.getChoiceId(3)]});
+    let choice4 = room.createChoice('Pick up another key', {repeatable: true});
+    choice4.addAction({type: 'getItems', parameters: [['Example Expendable Key']]});
+    choice4.addRequirement({mode: 'show', type: 'madeChoice', parameters: [room.getChoiceId(3)]});
+    choice4.addRequirement({mode: 'show', type: 'hasItem', inverse: true, parameters: ['Example Expendable Key']});
 
-    room = new Room('Example Room 2');
-    room.addStory('You made it into room 2! [fs:32px][an:text-impact 1000ms ease-in][fw:bold][c:yellow]YAY!', {waitDelay: 0, waits: false})
-    choice1 = new Choice('[c:green]Go back');
+    room = createRoom('Example Room 2', 'saviorBG.jpeg');
+    room.addStory('You made it into room 2! [fs:32px][an:text-impact 1000ms ease-in][fw:bold][c:yellow]YAY!');
+    room.addStory('This room will auto advance to the next room without any choices!');
+    room.addStory('In 3...', {waitDelay: 1000, waits: false});
+    room.addStory('2...', {waitDelay: 1000, waits: false});
+    room.addStory('1...', {waitDelay: 1000, waits: false});
+    room.addAction({type: 'changeRoom', parameters: ['Example Room 3']});
+    room.addAction({type: 'changeBG', parameters: ['escapeBG.jpeg']});
+    
+    room = createRoom('Example Room 3');
+    room.addStory('Yay! You are now in room 3!', {waitDelay: 500, waits: false});
+    choice1 = room.createChoice('[c:green]Restart', {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['Example Room']});
-    room.addChoice(choice1);
-    rooms[room.name] = room;
 }
 
 function generateStartingRooms() {
-    let room = new Room('b-start'); // beginning-1
+    let room = createRoom('b-start'); // beginning-1
     room.addStory(`Danger is imminent. You, among two others, were the only ones smart enough to take precautions. Now, you stand before your cryopod, ready to bid your conciousness farewell.`);
     room.addStory(`Step into the pod?`, {waits: false});
-    let choice1 = new Choice("Enter.");
+    let choice1 = room.createChoice("Enter.");
     choice1.addAction({type: 'changeRoom', parameters: ['b-3-hallways']});
-    choice1.addAction({type: 'changeBG', parameters: ['escapeBG.jpeg']});
-    room.addChoice(choice1);
-    let choice2 = new Choice("Chicken out.");
+    let choice2 = room.createChoice("Chicken out.");
     choice2.addAction({type: 'ending', parameters: ['stayed behind']});
-    room.addChoice(choice2);
-    rooms[room.name] = room;
-
-    room = new Room('b-3-hallways'); // beginning-2
+    
+    room = createRoom('b-3-hallways'); // beginning-2
+    room.addAction({type: 'changeBG', parameters: ['neutralBG.jpeg']});
     room.addStory(`And so you let yourself fade away, no longer within the world...`, {waits: false, waitDelay: 3000, speed: 70, animation: 'blur'});
-    room.addStory(`...until [fs:98px][ff:Rubik Glitch][an:text-glow 1s ease infinite alternate][c: red]now.`, {speed: 100, waits: false, waitDelay: 3500});
+    room.addStory(`...until [fw:bold][an:text-glow 1s ease infinite alternate][c: red]now.`, {speed: 100, waits: false, waitDelay: 2000});
+    room.addAction({type: 'changeBG', parameters: ['escapeBG.jpeg']});
     room.addStory(`Your hearing is the first of your senses to return. Alarms blare in your ears, followed by the whoosh of air and a soft click.`);
     room.addStory(`Next comes your sight. Once the steam clears, the cryopod door creaks open to the now run-down lab. Red lights are flashing through the room, presumably the whole building as well.`);
     room.addStory(`Stepping out of the pod, it appears that yours was the only one to be well-maintained. The other two pods are rusty and broken, with the glass shattered and labels long faded.`);
     room.addStory(`In fact, you can barely make out your own name on the scratchy, old label.`);
     room.addStory(`[c:#0330fc]"Gali."`, {waits: false, waitDelay: 3500, speed: 50});
 
-    rooms[room.name] = room;
 }
 
 function generateEndings() {
