@@ -10,7 +10,20 @@ let textCancelled = false;
 let game;
 let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
-let startingRoom = 'Example Room'; // [ 'Example Room' ][ 'b-start' ]
+let startingRoom = 'b-start'; // [ 'Example Room' ][ 'b-start' ]
+
+const parsableStyles = [
+    {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
+    {name: 'color', identifier: 'c'}, // example: [c:#0011] for green, or [c:] to reset
+    {name: 'fontFamily', identifier: 'ff'}, // example: [ff:'Courier New'], or [ff:] to reset
+    {name: 'fontSize', identifier: 'fs'}, // example: [fs:32px], or [fs:] to reset
+    {name: 'rotate', identifier: 'rt'}, // example: [rt:180deg], or [rt:] to reset
+    {name: 'textShadow', identifier: 'ts'}, // example: [ts:4px,4px,3px,yellow], or [ts:] to reset
+    {name: 'animation', identifier: 'an'}, // example: [an:text-blur 1s ease], or [an:] to reset
+    {name: 'filter', identifier: 'fi'}, // example: [fi:blur(6px)], or [fi:] to reset
+    {name: 'scale', identifier: 'sc'}, // example: [sc:1.5], or [sc:] to reset
+    {name: 'opacity', identifier: 'op'}, // example: [op:0.5], or [op:] to reset
+]  
 
 // Limits a number to be between a min and a max
 function clamp(num, min, max) {
@@ -56,6 +69,15 @@ async function awaitClickList(elements) {
               resolve();
             }, { once: true });
         }
+      });
+}
+
+// waits for an animation to end
+async function awaitAnimation(element) {
+    return new Promise(resolve => {
+        element.addEventListener('animationend', () => {
+            resolve();
+        }, { once: true });
       });
 }
 
@@ -141,8 +163,33 @@ class Game {
 
     // changes the background
     // ex: changeBG('escapeBG.jpg');
-    changeBG(name) {
-        document.getElementById('background-image').src = `imgs/backgrounds/${name}`
+    async changeBG(name, transition={}) {
+        transition.out = transition.out ?? '[an:fade-out .5s ease]';
+        transition.in = transition.in ?? '[an:fade-in .5s ease]';
+        transition.waitsOut = transition.waitsOut ?? false;
+        transition.waitsIn = transition.waitsIn ?? false;
+        clearDialogueText();
+        const background = document.getElementById('background-image');
+        if (transition.out && transition.waitsOut) {
+            game.styleBG(transition.out)
+            await awaitAnimation(background);
+        } else if (transition.out && !transition.waitsOut) {
+            game.styleBG(transition.out)
+        }
+        if (name) {
+            background.src = `imgs/backgrounds/${name}`;
+        }
+        if (transition.in && transition.waitsIn) {
+            game.styleBG(transition.in)
+            await awaitAnimation(background);
+        } else if (transition.in && !transition.waitsIn) {
+            game.styleBG(transition.in)
+        }
+    }
+
+    // applies styles given by a string of style identifiers to the background
+    styleBG(string) {
+        applyStyle(document.getElementById('background-image'), generateStyleList(string));
     }
 
     // initiates an ending
@@ -150,23 +197,43 @@ class Game {
         isGameLoop = false;
         currentEnding = endings[endType];
         clearDialogueText();
-        await showStory(currentEnding.storyParts);
-        showChoices(currentEnding.choices);
-        await tryChoices(document.getElementById('choices'))
-        for (const choice of currentEnding.choices) {
-            for (const action of choice.actions) {
-                attemptAction(action);
+        for (const item of currentEnding.queuelist) {
+            if (item.type === 'story') {
+                clearText(document.getElementById('story'));
+                await showStory([item.value]);
+                clearText(document.getElementById('action-output'));
+            } else if (item.type === 'choicelist') {
+                while (getShownChoices(item.value).length > 0) {
+                    showChoices(item.value);
+                    let selectedChoice = await tryChoices(document.getElementById('choices'));
+                    choicesMade.push(selectedChoice);
+                    clearText(document.getElementById('action-output'))
+                    clearText(document.getElementById('choices'))
+                    if (selectedChoice.text === 'Restart') {
+                        attemptActionsWithText(selectedChoice.actions);
+                    } else {
+                        await attemptActionsWithText(selectedChoice.actions);
+                    }
+                }
+            } else if (item.type === 'actionlist') {
+                await attemptActionsWithText(item.value);
             }
         }
+        clearDialogueText();
         await sleep(10);
     }
 
-    restart() {
+        
+    
+
+    async restart() {
         player = new Player();
         currentRoom = startingRoom;
         isGameLoop = true;
         choicesMade = [];
+        await sleep(10);
         clearDialogueText();
+        document.getElementById('background-image').src = 'imgs/backgrounds/transparent.png'
         gameLoop();
     }
 
@@ -216,10 +283,11 @@ class Choice extends textObject {
         }
     }
 
-    addAction(options, type, parameters) {
+    addAction(options, type, parameters, waits) {
         type = options.type ?? type;
         parameters = options.parameters ?? parameters ?? [];
-        this.actions.push({type, parameters})
+        waits = options.waits ?? false;
+        this.actions.push({type, parameters, waits})
     }
 
     addRequirement(options, mode, type, parameters, inverse=false) {
@@ -239,12 +307,14 @@ class Choice extends textObject {
 class Room {
     constructor(name, bg) {
         this.name = name;
-        this.bg = bg;
+        this.bg = bg ?? {};
+        this.bg.transition = this.bg.transition ?? {out: '[an:fade-out .5s ease]', in: '[an:fade-in .5s ease]', waitsOut: true, waitsIn: false}
+        this.bg.transition.waitsOut = this.bg.transition.waitsOut ?? true;
         this.choices = [];
         this.storyParts = []; // gets displayed when entering a room
         this.actions = [];
         this.queuelist = []; // holds the order that everything in the room should happen
-        if (this.bg) { this.addAction({type: 'changeBG', parameters: [this.bg]}) }
+        if (this.bg) { this.addAction({type: 'changeBG', parameters: [this.bg.name, this.bg.transition]}) }
     }
 
     // adds a choice to the room
@@ -298,8 +368,6 @@ class Room {
 class Ending extends Room {
     constructor(name, bg) {
         super(name, bg);
-        let choice = this.createChoice('Restart');
-        choice.addAction({type: 'restart'})
     }
 }
 
@@ -310,8 +378,15 @@ function createRoom(name, bg) {
     return newRoom;
 }
 
-// parses text for identifiers, returning clean text and a dictionary of location + identifier values
-function parseText(text, identifier) {
+// creates an ending and adds it to endings
+function createEnding(name, bg) {
+    const newEnding = new Ending(name, bg);
+    endings[newEnding.name] = newEnding;
+    return newEnding;
+}
+
+// parses a string for style identifiers, returning clean text and a dictionary of location + identifier values
+function parseStyles(text, identifier) {
     let data = [];
     let cleanText = text;
     let specialMatches = [...text.matchAll(new RegExp(String.raw`(\[)(?!\[)(?!${identifier}:)([^:^\]]*:)([^\]]*)(\])`, 'g'))];
@@ -329,28 +404,39 @@ function parseText(text, identifier) {
     return {text: cleanText, data}
 }
 
-
-// returns an element with color formatted text
-function formatText(text) {
-    //to add a style, just put a valid css style in the name and add an identifier
-    let textStyles = [
-        {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
-        {name: 'color', identifier: 'c'}, // example color identifier: [c:#0011] for green, or [c:] to reset
-        {name: 'fontFamily', identifier: 'ff'}, // example font families identifier: [ff:'Courier New'], or [ff:] to reset
-        {name: 'fontSize', identifier: 'fs'}, // example font sizes identifier: [fs:32px], or [fs:] to reset
-        {name: 'rotate', identifier: 'rt'}, // example rotation identifier: [rt:180deg], or [rt:] to reset
-        {name: 'textShadow', identifier: 'ts'}, // example text shadow identifier: [ts:4px,4px,3px,yellow], or [ts:] to reset
-        {name: 'animation', identifier: 'an'}, // example animation identifier: [an:text-blur 1s ease], or [an:] to reset
-        {name: 'filter', identifier: 'fi'}, // example filter identifier: [fi:blur(6px)], or [fi:] to reset
-    ]   
-    for (const style of textStyles) {
-        let parsedData = parseText(text, style.identifier);
+function generateStyleList(string) {
+    let styleList = JSON.parse(JSON.stringify(parsableStyles));
+    for (const style of styleList) {
+        let parsedData = parseStyles(string, style.identifier);
         style.data = parsedData.data;
         style.dataIndex = 0;
         style.currentValue = style.currentValue ?? '';
     }
+    return styleList;
+}
 
-    let cleanText = parseText(text, 'This returns the clean text because nothing matches this.').text;
+// applies a parsed styleList to an element
+function applyStyle(element, styleList, characterIndex) {
+    for (const style of styleList) {
+        if (style.data[0] && (characterIndex === undefined || characterIndex === style.data[style.dataIndex]?.index)) {
+            style.currentValue = style.data[style.dataIndex].value;
+            style.dataIndex += 1;
+            if (style.name === 'reset') {
+                for (const style of styleList) {
+                    style.currentValue = '';
+                }
+            }
+        }
+        element.style[style.name] = style.currentValue;
+    }
+}
+
+// returns an element with color formatted text
+function formatText(text) {
+    //to add a style, just put a valid css style in the name and add an identifier
+    let textStyles = generateStyleList(text);
+
+    let cleanText = parseStyles(text, 'This returns the clean text because nothing matches this.').text;
     characterIndex = 0;
     let formattedElement = document.createElement('span');
     let wordArray = cleanText.split(' ')
@@ -363,36 +449,14 @@ function formatText(text) {
             let charSpan = document.createElement('span');
             charSpan.textContent = char;
             charSpan.className = `transition-character`;
-            for (const style of textStyles) {
-                if (characterIndex === style.data[style.dataIndex]?.index) {
-                    style.currentValue = style.data[style.dataIndex].value;
-                    style.dataIndex += 1;
-                    if (style.name === 'reset') {
-                        for (const style of textStyles) {
-                            style.currentValue = '';
-                        }
-                    }
-                }
-                charSpan.style[style.name] = style.currentValue;
-            }
+            applyStyle(charSpan, textStyles, characterIndex);
             wordSpan.appendChild(charSpan);
             characterIndex++;
         }
         let space = document.createElement('span');
         space.textContent = ' ';
         space.className = `transition-character`;
-        for (const style of textStyles) {
-            if (characterIndex === style.data[style.dataIndex]?.index) {
-                style.currentValue = style.data[style.dataIndex].value;
-                style.dataIndex += 1;
-                if (style.name === 'reset') {
-                    for (const style of textStyles) {
-                        style.currentValue = '';
-                    }
-                }
-            }
-            space.style[style.name] = style.currentValue;
-        }
+        applyStyle(space, textStyles, characterIndex);
         if (i != wordArray.length - 1) {
             wordSpan.appendChild(space);
             characterIndex++;
@@ -453,6 +517,11 @@ async function typeText(text, element, speed=10, variance=0, skippable=true, ski
 
     skipElement.removeEventListener('click', skipFunction);
     skipElement.removeEventListener('click', hardSkipFunction);
+
+    if (textCancelled) {
+        return
+    }
+
     if (skipped && !textCancelled) {
         textLine.innerHTML = '';
         for (const word of formattedElement.children) {
@@ -460,9 +529,12 @@ async function typeText(text, element, speed=10, variance=0, skippable=true, ski
         }
     }
 
-    if (waits && !textCancelled) {
-        await awaitClick(skipElement)
-    } else if (!textCancelled) {
+    
+    if (waits && waitDelay) {
+        await Promise.race([awaitClick(skipElement), sleep(waitDelay)])
+    } else if (waits && !waitDelay) {
+        await awaitClick(skipElement);
+    } else if (!waits && waitDelay) {
         await sleep(waitDelay);
     }
     
@@ -557,20 +629,31 @@ async function selectChoice(choiceContainer) {
 }
 
 // tries to run an action
-function attemptAction(action) {
-    // if the function is within the game object, or is a global function
-    if (typeof game[action.type] === 'function') {
-        return game[action.type](...action.parameters);
-    } else  if (typeof window[action.type] === 'function') {
-        return window?.[action.type](...action.parameters);
+async function attemptAction(action) {
+    if (action.waits) {
+        
+        // if the function is within the game object, or is a global function
+        if (typeof game[action.type] === 'function') {
+            return await game[action.type](...action.parameters);
+        } else  if (typeof window[action.type] === 'function') {
+            return await window?.[action.type](...action.parameters);
+        }
+    } else {
+
+        // if the function is within the game object, or is a global function
+        if (typeof game[action.type] === 'function') {
+            return game[action.type](...action.parameters);
+        } else  if (typeof window[action.type] === 'function') {
+            return window?.[action.type](...action.parameters);
+        }
     }
 }
 
 // tries to run a list of actions or an action
-function attemptActionsWithText(actions) {
+async function attemptActionsWithText(actions) {
     if (Object.prototype.toString.call(actions) != '[object Array]') actions = [actions];
     for (const action of actions) {
-        let actionResult = attemptAction(action);
+        let actionResult = await attemptAction(action);
         if (actionResult && actionResult?.messages) {
             for (const message of actionResult.messages) {
                 typeText(message, document.getElementById('action-output'));
@@ -614,13 +697,16 @@ async function gameLoop() {
                     choicesMade.push(selectedChoice);
                     clearText(document.getElementById('action-output'))
                     clearText(document.getElementById('choices'))
-                    attemptActionsWithText(selectedChoice.actions);
+                    await attemptActionsWithText(selectedChoice.actions);
                 }
             } else if (item.type === 'actionlist') {
-                attemptActionsWithText(item.value);
+                await attemptActionsWithText(item.value);
             }
 
             if (thisRoom != currentRoom || !isGameLoop) { break }
+        }
+        if (thisRoom === currentRoom) {
+            await showStory([new textObject('You have hit a dead end. Please add an ending or a way to change rooms here.', {waits: true, waitDelay: 30000})]);
         }
     }
 }
@@ -655,7 +741,7 @@ function generateExampleRooms() {
     // EX: [fi:blur(1px)] gives the text the filter: blur(1px) style
     // current identifiers: [c: color][ff: fontFamily][fs: fontSize][rt: rotate][ts: textShadow][an: animation][fi: filter]
 
-    let room = createRoom('Example Room', 'neutralBG.jpeg');
+    let room = createRoom('Example Room', {name: 'neutralBG.jpeg'});
     room.addStory(`This is a [an:text-blur 1s ease][c:red]test[c:] story`);
     room.addStory(`This is a [an:text-glow 1s ease infinite alternate][c:red]test[c:] [fi:blur(1px)]story[fi:] [c:#00ff00][ff:'Doto'][fs:24px]continued[:]!`, {speed: 100, variance: 33, animation: 'impact'});
     room.addStory(`[ts:2px 2px 2px white][c:#c5c5c5]Lorem [rt:90deg]ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et [rt:180deg]dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure [rt:270deg]dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui [rt:]officia deserunt mollit anim id est laborum.`, {speed: 10, variance: 3, animation: 'funky'});
@@ -663,7 +749,7 @@ function generateExampleRooms() {
     choice1.addAction({type: 'getItems', parameters: [['Example Item']]});
     room.addStory(`Woah`, {speed: 500, variance: 100, animation: 'shaky'});
     room.addStory(`[c:rgb(0,255,255)]Cooleo![c:] This is a neat blur effect! I like it so much, I think I will put [c:yellow][fs:24px]more[:] text!`, {speed: 100, variance: 10, animation: 'blur'});
-    room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(59, 107, 77)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, {speed: 50, variance: 10, animation: 'fade-alternate'});
+    room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, {speed: 50, variance: 10, animation: 'fade-alternate'});
     room.addStory("Let's have some choices now!", {waits: false, waitDelay: 0});
     let choice2 = room.createChoice('Open door', {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['Example Room 2']});
@@ -678,23 +764,26 @@ function generateExampleRooms() {
     choice4.addRequirement({mode: 'show', type: 'madeChoice', parameters: [room.getChoiceId(3)]});
     choice4.addRequirement({mode: 'show', type: 'hasItem', inverse: true, parameters: ['Example Expendable Key']});
 
-    room = createRoom('Example Room 2', 'saviorBG.jpeg');
+    room = createRoom('Example Room 2', {name: 'saviorBG.jpeg'});
     room.addStory('You made it into room 2! [fs:32px][an:text-impact 1000ms ease-in][fw:bold][c:yellow]YAY!');
     room.addStory('This room will auto advance to the next room without any choices!');
+    room.addAction({type: 'styleBG', parameters: ['[fi:grayscale(.2) blur(1px)]']});
     room.addStory('In 3...', {waitDelay: 1000, waits: false});
+    room.addAction({type: 'styleBG', parameters: ['[fi:grayscale(.4) blur(4px)]']});
     room.addStory('2...', {waitDelay: 1000, waits: false});
+    room.addAction({type: 'styleBG', parameters: ['[fi:grayscale(.6) blur(8px)]']});
     room.addStory('1...', {waitDelay: 1000, waits: false});
     room.addAction({type: 'changeRoom', parameters: ['Example Room 3']});
-    room.addAction({type: 'changeBG', parameters: ['escapeBG.jpeg']});
+    room.addAction({type: 'changeBG', parameters: ['escapeBG.jpeg', {waitsOut: true}]});
     
-    room = createRoom('Example Room 3');
+    room = createRoom('Example Room 3', {transition: {out: '', in: ''}});
     room.addStory('Yay! You are now in room 3!', {waitDelay: 500, waits: false});
     choice1 = room.createChoice('[c:green]Restart', {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['Example Room']});
 }
 
 function generateStartingRooms() {
-    let room = createRoom('b-start'); // beginning-1
+    let room = createRoom('b-start', {name: 'escapeBG.jpeg'}); // beginning-1
     room.addStory(`Danger is imminent. You, among two others, were the only ones smart enough to take precautions. Now, you stand before your cryopod, ready to bid your conciousness farewell.`);
     room.addStory(`Step into the pod?`, {waits: false});
     let choice1 = room.createChoice("Enter.");
@@ -702,25 +791,27 @@ function generateStartingRooms() {
     let choice2 = room.createChoice("Chicken out.");
     choice2.addAction({type: 'ending', parameters: ['stayed behind']});
     
-    room = createRoom('b-3-hallways'); // beginning-2
-    room.addAction({type: 'changeBG', parameters: ['neutralBG.jpeg']});
-    room.addStory(`And so you let yourself fade away, no longer within the world...`, {waits: false, waitDelay: 3000, speed: 70, animation: 'blur'});
-    room.addStory(`...until [fw:bold][an:text-glow 1s ease infinite alternate][c: red]now.`, {speed: 100, waits: false, waitDelay: 2000});
-    room.addAction({type: 'changeBG', parameters: ['escapeBG.jpeg']});
+    room = createRoom('b-3-hallways', {transition: {out: '', in: ''}}); // beginning-2
+    room.addAction({type: 'styleBG', parameters: ['[an:blur-out 5s ease-out,fade-out 5s ease-out][fi:blur(16px)][op:0]']});
+    room.addStory(`And so you let yourself fade away, no longer within the world...`, {waits: false, waitDelay: 2000, speed: 70, animation: 'blur'});
+    room.addAction({type: 'styleBG', parameters: ['[an:blur-in 2s ease-out,fade-in 2s ease-out][fi:][op:]']});
+    room.addAction({type: 'changeBG', parameters: ['neutralBG.jpeg', {out: '', in: ''}]});
+    room.addStory(`...until [fw:bold][an:text-glow 1s ease infinite alternate][c: red]now.`, {speed: 100, waits: false, waitDelay: 1000});
     room.addStory(`Your hearing is the first of your senses to return. Alarms blare in your ears, followed by the whoosh of air and a soft click.`);
     room.addStory(`Next comes your sight. Once the steam clears, the cryopod door creaks open to the now run-down lab. Red lights are flashing through the room, presumably the whole building as well.`);
     room.addStory(`Stepping out of the pod, it appears that yours was the only one to be well-maintained. The other two pods are rusty and broken, with the glass shattered and labels long faded.`);
     room.addStory(`In fact, you can barely make out your own name on the scratchy, old label.`);
-    room.addStory(`[c:#0330fc]"Gali."`, {waits: false, waitDelay: 3500, speed: 50});
+    room.addStory(`[c:rgb(0, 60, 255)]"Gali."`, {waits: false, waitDelay: 1500, speed: 50});
 
 }
 
 function generateEndings() {
-    endings = {};
-    let ending = new Ending('stayed behind');
+    let ending = createEnding('stayed behind', {name: 'destructionBG.jpeg', transition: {out: '[an:fade-out .5s ease-out][op:0]', in: '[an:fade-in .3s ease-out][fi:grayscale(.6)][sc: 1.5]', waitsOut: true, waitsIn: true}});
+    ending.addAction({type: 'styleBG', parameters: ['[an:shrink 30s ease-out][fi:grayscale(.6)]']});
     ending.addStory('[c:#bf1b1b][an:text-shiver .25s ease-in-out infinite alternate]Your loss,[:] I guess.');
     ending.addStory(`You didn't live long enough to tell the story.`, {waits: false});
-    endings[ending.name] = ending;
+    let restartChoice = ending.createChoice('Restart');
+    restartChoice.addAction({type: 'restart'})
 }
 
 
