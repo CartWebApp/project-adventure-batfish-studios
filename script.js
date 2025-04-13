@@ -139,6 +139,12 @@ class Game {
         currentRoom = rooms[room];
     }
 
+    // changes the background
+    // ex: changeBG('escapeBG.jpg');
+    changeBG(name) {
+        document.getElementById('background-image').src = `imgs/backgrounds/${name}`
+    }
+
     // initiates an ending
     async ending(endType) {
         isGameLoop = false;
@@ -609,6 +615,7 @@ function generateStartingRooms() {
     room.addStory(`Step into the pod?`, {waits: false});
     let choice1 = new Choice("Enter.");
     choice1.addAction({type: 'changeRoom', parameters: ['b-3-hallways']});
+    choice1.addAction({type: 'changeBG', parameters: ['escapeBG.jpeg']});
     room.addChoice(choice1);
     let choice2 = new Choice("Chicken out.");
     choice2.addAction({type: 'ending', parameters: ['stayed behind']});
