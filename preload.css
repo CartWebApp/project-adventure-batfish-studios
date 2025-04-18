@@ -1,0 +1,10 @@
+#preloadedImages
+{
+    width: 0px;
+    height: 0px;
+    display: inline;
+    background-image: url(imgs/backgrounds/destructionBG.jpeg),
+                      url(imgs/backgrounds/escapeBG.jpeg),
+                      url(imgs/backgrounds/neutralBG.jpeg),
+                      url(imgs/backgrounds/saviorBG.jpeg),
+}
