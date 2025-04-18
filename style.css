@@ -15,6 +15,8 @@ body, html {
     height: 100%;
     overflow: hidden;
     background-color: black;
+    color: white;
+    font-family: 'Oxanium';
 }
 
 ul {
@@ -34,10 +36,9 @@ button {
     user-select: none;
 }
 
-output, span {
+span {
     overflow-wrap: anywhere;
     display: block;
-    font-family: 'Oxanium';
 }
 
 button {
@@ -53,6 +54,18 @@ button {
     background-color: transparent;
     border: none;
     aspect-ratio: 1 / 1;
+}
+
+.story-history {
+    color: white;
+}
+
+.choice-history {
+    color: var(--choice-color);
+}
+
+.action-history {
+    color: yellow;
 }
 
 #background-image {
@@ -79,17 +92,42 @@ button {
 
 #center-menu {
     position: absolute;
-    padding: 2rem;
+    padding: 2rem 1rem 2rem 2rem;
     border: solid 3px rgb(255, 255, 255);
     left: 50%;
-    top: 50%;
-    width: clamp(0px, 80%, 1080px);
-    height: 50%;
+    top: clamp(7rem, 20vh, 50vh);
+    width: clamp(0px, 85%, 1180px);
+    height: clamp(50%,50%,50rem);
     min-height: 8rem;
-    max-height: calc(100% - 20rem);
-    transform: translate(-50%, -50%);
+    max-height: calc(100% - 10rem);
+    transform: translate(-50%, 0);
     background-color: rgb(3, 0, 31);
     z-index: 2;
+    user-select: none;
+}
+
+#center-menu .menu-content {
+    overflow: hidden;
+    height: 100%;
+    position: relative;
+}
+
+#center-menu article {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 0
+}
+
+#history-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    overflow: auto;
+    scrollbar-width: none;
 }
 
 #menu-toggle {

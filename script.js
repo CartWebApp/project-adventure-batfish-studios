@@ -112,6 +112,15 @@ function setRootVar(propertyName, value) {
     document.documentElement.style.setProperty('--' + propertyName, value);
 }
 
+// toggles which is the visible child element of a container (only 1 can be visible)
+function setVisibleChild(activeChild, parent) {
+    for (const child of parent.children) {
+        if (child != activeChild) {
+            child.style.display = 'none';
+        }
+    }
+    activeChild.style.display = '';
+}
 class Player {
     constructor() {
         this.inventory = [];
@@ -231,6 +240,7 @@ class Game {
         currentRoom = startingRoom;
         isGameLoop = true;
         choicesMade = [];
+        document.getElementById('history-content').innerHTML = '';
         await sleep(10);
         clearDialogueText();
         document.getElementById('background-image').src = 'imgs/backgrounds/transparent.png'
@@ -537,7 +547,6 @@ async function typeText(text, element, speed=10, variance=0, skippable=true, ski
     } else if (!waits && waitDelay) {
         await sleep(waitDelay);
     }
-    
 }
 
 // diplays each story part to the dialogue box
@@ -547,6 +556,11 @@ async function showStory(story) {
     for (const part of story) {
         clearText(storyElement);
         await typeText(part.text, storyElement, part.speed, part.variance, true, dialogueBox, part.animation, textControllerSignal, part.waits, part.waitDelay);
+        const cleanText = parseStyles(part.text, 'This returns the clean text because nothing matches this.').text;
+        let textLine = document.createElement('div');
+        textLine.textContent = cleanText;
+        textLine.classList.add('story-history');
+        document.getElementById('history-content').appendChild(textLine);
     }
 }
 
@@ -657,6 +671,11 @@ async function attemptActionsWithText(actions) {
         if (actionResult && actionResult?.messages) {
             for (const message of actionResult.messages) {
                 typeText(message, document.getElementById('action-output'));
+                const cleanText = parseStyles(message, 'This returns the clean text because nothing matches this.').text;
+                let textLine = document.createElement('div');
+                textLine.textContent = cleanText;
+                textLine.classList.add('action-history');
+                document.getElementById('history-content').appendChild(textLine);
             }
         }
     }
@@ -674,8 +693,18 @@ async function tryChoices(choiceContainer) {
         metReqirements = requirementsResult.metRequirements;
         for (const message of requirementsResult.messages) {
             typeText(message, document.getElementById('action-output'));
+            const cleanText = parseStyles(message, 'This returns the clean text because nothing matches this.').text;
+            let textLine = document.createElement('div');
+            textLine.textContent = cleanText;
+            textLine.classList.add('action-history');
+            document.getElementById('history-content').appendChild(textLine);
         }
     }
+    const cleanText = parseStyles(selectedChoice.text, 'This returns the clean text because nothing matches this.').text;
+    let textLine = document.createElement('div');
+    textLine.textContent = cleanText;
+    textLine.classList.add('choice-history');
+    document.getElementById('history-content').appendChild(textLine);
     return selectedChoice;
 }
 
@@ -712,9 +741,26 @@ async function gameLoop() {
 }
 
 
-//initializes the event listeners in on the page
+// initializes the event listeners in on the page
 function createEventListeners() {
-    
+
+    // x button for center menu
+    document.getElementById('menu-toggle').addEventListener('click', e => {
+        document.getElementById('center-menu').classList.add('hidden');
+    })
+
+    document.querySelectorAll('#main-nav button').forEach(button => {
+        const toggledElement = document.getElementById(button.id.substring(0, button.id.indexOf('-toggle')));
+        const menu = document.getElementById('center-menu');
+        button.addEventListener('click', ()=> {
+            if (toggledElement.style.display != 'none' && !menu.classList.contains('hidden')) {
+                menu.classList.add('hidden');
+            } else {
+                menu.classList.remove('hidden');
+            }
+            setVisibleChild(toggledElement, document.querySelector('#center-menu .menu-content'));
+        });
+    })
 }
 
 // initializes the rooms and player
