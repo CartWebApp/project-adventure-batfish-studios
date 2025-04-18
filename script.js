@@ -171,7 +171,7 @@ class Game {
     }
 
     // changes the background
-    // ex: changeBG('escapeBG.jpg');
+    // ex: changeBG('escape.jpg');
     async changeBG(name, transition={}) {
         transition.out = transition.out ?? '[an:fade-out .5s ease]';
         transition.in = transition.in ?? '[an:fade-in .5s ease]';
@@ -765,6 +765,7 @@ function createEventListeners() {
 
 // initializes the rooms and player
 function init() {
+    preloadImages();
     createEventListeners();
     player = new Player();
     game = new Game();
@@ -787,7 +788,7 @@ function generateExampleRooms() {
     // EX: [fi:blur(1px)] gives the text the filter: blur(1px) style
     // current identifiers: [c: color][ff: fontFamily][fs: fontSize][rt: rotate][ts: textShadow][an: animation][fi: filter]
 
-    let room = createRoom('Example Room', {name: 'neutralBG.jpeg'});
+    let room = createRoom('Example Room', {name: 'neutral.jpeg'});
     room.addStory(`This is a [an:text-blur 1s ease][c:red]test[c:] story`);
     room.addStory(`This is a [an:text-glow 1s ease infinite alternate][c:red]test[c:] [fi:blur(1px)]story[fi:] [c:#00ff00][ff:'Doto'][fs:24px]continued[:]!`, {speed: 100, variance: 33, animation: 'impact'});
     room.addStory(`[ts:2px 2px 2px white][c:#c5c5c5]Lorem [rt:90deg]ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et [rt:180deg]dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure [rt:270deg]dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui [rt:]officia deserunt mollit anim id est laborum.`, {speed: 10, variance: 3, animation: 'funky'});
@@ -810,7 +811,7 @@ function generateExampleRooms() {
     choice4.addRequirement({mode: 'show', type: 'madeChoice', parameters: [room.getChoiceId(3)]});
     choice4.addRequirement({mode: 'show', type: 'hasItem', inverse: true, parameters: ['Example Expendable Key']});
 
-    room = createRoom('Example Room 2', {name: 'saviorBG.jpeg'});
+    room = createRoom('Example Room 2', {name: 'savior.jpeg'});
     room.addStory('You made it into room 2! [fs:32px][an:text-impact 1000ms ease-in][fw:bold][c:yellow]YAY!');
     room.addStory('This room will auto advance to the next room without any choices!');
     room.addAction({type: 'styleBG', parameters: ['[fi:grayscale(.2) blur(1px)]']});
@@ -820,7 +821,7 @@ function generateExampleRooms() {
     room.addAction({type: 'styleBG', parameters: ['[fi:grayscale(.6) blur(8px)]']});
     room.addStory('1...', {waitDelay: 1000, waits: false});
     room.addAction({type: 'changeRoom', parameters: ['Example Room 3']});
-    room.addAction({type: 'changeBG', parameters: ['escapeBG.jpeg', {waitsOut: true}]});
+    room.addAction({type: 'changeBG', parameters: ['escape.jpeg', {waitsOut: true}]});
     
     room = createRoom('Example Room 3', {transition: {out: '', in: ''}});
     room.addStory('Yay! You are now in room 3!', {waitDelay: 500, waits: false});
@@ -829,7 +830,7 @@ function generateExampleRooms() {
 }
 
 function generateStartingRooms() {
-    let room = createRoom('b-start', {name: 'escapeBG.jpeg'}); // beginning-1
+    let room = createRoom('b-start', {name: 'escape.jpeg'}); // beginning-1
     room.addStory(`Danger is imminent. You, among two others, were the only ones smart enough to take precautions. Now, you stand before your cryopod, ready to bid your conciousness farewell.`);
     room.addStory(`Step into the pod?`, {waits: false});
     let choice1 = room.createChoice("Enter.");
@@ -841,7 +842,7 @@ function generateStartingRooms() {
     room.addAction({type: 'styleBG', parameters: ['[an:blur-out 5s ease-out,fade-out 5s ease-out][fi:blur(16px)][op:0]']});
     room.addStory(`And so you let yourself fade away, no longer within the world...`, {waits: false, waitDelay: 2000, speed: 70, animation: 'blur'});
     room.addAction({type: 'styleBG', parameters: ['[an:blur-in 2s ease-out,fade-in 2s ease-out][fi:][op:]']});
-    room.addAction({type: 'changeBG', parameters: ['neutralBG.jpeg', {out: '', in: ''}]});
+    room.addAction({type: 'changeBG', parameters: ['neutral.jpeg', {out: '', in: ''}]});
     room.addStory(`...until [fw:bold][an:text-glow 1s ease infinite alternate][c: red]now.`, {speed: 100, waits: false, waitDelay: 1000});
     room.addStory(`Your hearing is the first of your senses to return. Alarms blare in your ears, followed by the whoosh of air and a soft click.`);
     room.addStory(`Next comes your sight. Once the steam clears, the cryopod door creaks open to the now run-down lab. Red lights are flashing through the room, presumably the whole building as well.`);
@@ -852,12 +853,25 @@ function generateStartingRooms() {
 }
 
 function generateEndings() {
-    let ending = createEnding('stayed behind', {name: 'destructionBG.jpeg', transition: {out: '[an:fade-out .5s ease-out][op:0]', in: '[an:fade-in .3s ease-out][fi:grayscale(.6)][sc: 1.5]', waitsOut: true, waitsIn: true}});
+    let ending = createEnding('stayed behind', {name: 'destruction.jpeg', transition: {out: '[an:fade-out .5s ease-out][op:0]', in: '[an:fade-in .3s ease-out][fi:grayscale(.6)][sc: 1.5]', waitsOut: true, waitsIn: true}});
     ending.addAction({type: 'styleBG', parameters: ['[an:shrink 30s ease-out][fi:grayscale(.6)]']});
     ending.addStory('[c:#bf1b1b][an:text-shiver .25s ease-in-out infinite alternate]Your loss,[:] I guess.');
     ending.addStory(`You didn't live long enough to tell the story.`, {waits: false});
     let restartChoice = ending.createChoice('Restart');
     restartChoice.addAction({type: 'restart'})
+}
+
+// preloads images
+function preloadImages() {
+    preloadImage('imgs/backgrounds/destruction.jpeg');
+    preloadImage('imgs/backgrounds/escape.jpeg');
+    preloadImage('imgs/backgrounds/neutral.jpeg');
+    preloadImage('imgs/backgrounds/savior.jpeg');
+}
+
+function preloadImage(src) {
+    let img = new Image();
+    img.src = src;
 }
 
 
