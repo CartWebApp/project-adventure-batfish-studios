@@ -853,7 +853,7 @@ function generateStartingRooms() {
     choice1 = room.createChoice("Leave the lab.");
     choice1.addAction({type: 'changeRoom', parameters: ['b-3-hallways']});
 
-    room = createRoom('b-3-hallways', {name:'escape.jpeg', transition: {out: '', in: ''}}); // beginning-3
+    room = createRoom('b-3-hallways', {name:'', transition: {out: '', in: ''}}); // beginning-3
     room.addStory(`After just a bit of effort, the doors (usually automatic, you remember) give way, leading you to three different corridors.`);
     room.addStory(`Unfortunately, your memory of the layout is hazy at best. To be fair, you HAD been quite nervous at the time, keeping your gaze lowered throughout the walk. If only you had paid more attention...`)
     room.addStory(`[c:var(--escape-color)]Left, [c:var(--destruction-color)]right, [c:]or [c:var(--savior-color)]straight ahead?`)
@@ -864,7 +864,7 @@ function generateStartingRooms() {
     choice3 = room.createChoice("Go straight.");
     choice3.addAction({type: 'changeRoom', parameters: ['s-start']}); //savior route
 
-    room = createRoom('e-start', {transition: {out: '', in: ''}});
+    room = createRoom('e-start', {name: 'escape.jpeg', transition: {out: '', in: ''}});
     room.addAction({type: 'styleBG', parameters: ['[an:fade-out 5s ease-out][op:0]']});
 }
 
