@@ -830,15 +830,15 @@ function generateExampleRooms() {
 }
 
 function generateStartingRooms() {
-    let room = createRoom('b-start', {name: 'escape.jpeg'}); // beginning-1
+    let room = createRoom('b-start', {name: 'neutral.jpeg'}); // beginning-1
     room.addStory(`Danger is imminent. You, among two others, were the only ones smart enough to take precautions. Now, you stand before your cryopod, ready to bid your conciousness farewell.`);
     room.addStory(`Step into the pod?`, {waits: false});
     let choice1 = room.createChoice("Enter.");
-    choice1.addAction({type: 'changeRoom', parameters: ['b-3-hallways']});
+    choice1.addAction({type: 'changeRoom', parameters: ['b-2-pods']});
     let choice2 = room.createChoice("Chicken out.");
     choice2.addAction({type: 'ending', parameters: ['stayed behind']});
     
-    room = createRoom('b-3-hallways', {transition: {out: '', in: ''}}); // beginning-2
+    room = createRoom('b-2-pods', {transition: {out: '', in: ''}}); // beginning-2
     room.addAction({type: 'styleBG', parameters: ['[an:blur-out 5s ease-out,fade-out 5s ease-out][fi:blur(16px)][op:0]']});
     room.addStory(`And so you let yourself fade away, no longer within the world...`, {waits: false, waitDelay: 2000, speed: 70, animation: 'blur'});
     room.addAction({type: 'styleBG', parameters: ['[an:blur-in 2s ease-out,fade-in 2s ease-out][fi:][op:]']});
@@ -849,7 +849,23 @@ function generateStartingRooms() {
     room.addStory(`Stepping out of the pod, it appears that yours was the only one to be well-maintained. The other two pods are rusty and broken, with the glass shattered and labels long faded.`);
     room.addStory(`In fact, you can barely make out your own name on the scratchy, old label.`);
     room.addStory(`[c:rgb(0, 60, 255)]"Gali."`, {waits: false, waitDelay: 1500, speed: 50});
+    room.addStory(`There doesn't seem to be much left to do or see. Anything that once was is long gone.`, {waits: false,});
+    choice1 = room.createChoice("Leave the lab.");
+    choice1.addAction({type: 'changeRoom', parameters: ['b-3-hallways']});
 
+    room = createRoom('b-3-hallways', {name:'escape.jpeg', transition: {out: '', in: ''}}); // beginning-3
+    room.addStory(`After just a bit of effort, the doors (usually automatic, you remember) give way, leading you to three different corridors.`);
+    room.addStory(`Unfortunately, your memory of the layout is hazy at best. To be fair, you HAD been quite nervous at the time, keeping your gaze lowered throughout the walk. If only you had paid more attention...`)
+    room.addStory(`[c:var(--escape-color)]Left, [c:var(--destruction-color)]right, [c:]or [c:var(--savior-color)]straight ahead?`)
+    choice1 = room.createChoice("Go left.");
+    choice1.addAction({type: 'changeRoom', parameters: ['e-start']}); //escape route
+    choice2 = room.createChoice("Go right.");
+    choice2.addAction({type: 'changeRoom', parameters: ['d-start']}); //destruction route
+    choice3 = room.createChoice("Go straight.");
+    choice3.addAction({type: 'changeRoom', parameters: ['s-start']}); //savior route
+
+    room = createRoom('e-start', {transition: {out: '', in: ''}});
+    room.addAction({type: 'styleBG', parameters: ['[an:fade-out 5s ease-out][op:0]']});
 }
 
 function generateEndings() {
