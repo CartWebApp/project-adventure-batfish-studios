@@ -56,6 +56,14 @@ span {
     display: block;
 }
 
+p {
+    margin: 0;
+}
+
+.flex {
+    display: flex;
+}
+
 .hidden {
     display: none;
 }
@@ -152,7 +160,7 @@ span {
     position: relative;
 }
 
-#center-menu article {
+#center-menu section {
     height: 100%;
     width: 100%;
     display: flex;
@@ -228,6 +236,18 @@ span {
     overflow-wrap: anywhere;
 }
 
+.item-count {
+    color: yellow;
+}
+
+.green {
+    color: rgb(0, 199, 0);
+}
+
+.text-glow {
+    animation: text-glow 1s ease infinite alternate;
+}
+
 .transition-word {
     display: flex;
     align-items: center;
@@ -241,10 +261,6 @@ span {
 
 .transition-character.default {
     animation: text-default 150ms ease;
-}
-
-.transition-character.none {
-    animation: none;
 }
 
 .transition-character.impact {

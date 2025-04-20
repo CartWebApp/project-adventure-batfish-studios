@@ -1,5 +1,7 @@
-let rooms = {};
 
+import { Reactor } from './Reactor.js';
+
+let rooms = {};
 let currentRoom;
 let player;
 let isGameLoop = true;
@@ -14,6 +16,7 @@ let startingRoom = 'b-start'; // [ 'Example Room' ][ 'b-start' ]
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
+    {name: 'class', identifier: 'class'}, // example: [class:item-count], or [class:] to reset
     {name: 'color', identifier: 'c'}, // example: [c:#0011] for green, or [c:] to reset
     {name: 'fontFamily', identifier: 'ff'}, // example: [ff:'Courier New'], or [ff:] to reset
     {name: 'fontSize', identifier: 'fs'}, // example: [fs:32px], or [fs:] to reset
@@ -83,7 +86,8 @@ async function awaitAnimation(element) {
 
 // copies an object's properties to another object
 function transferProperties(transferFrom, transferTo) {
-    for( [key, value] of Object.entries(transferFrom)) {
+    for (const key of Object.keys(transferFrom)) {
+        const value = transferFrom[key];
         transferTo[key] = value;
     }
 }
@@ -123,19 +127,64 @@ function setVisibleChild(activeChild, parent) {
 }
 class Player {
     constructor() {
-        this.inventory = [];
         this.maxHP = 100;
         this.hp = this.maxHP;
+        this._inventory = new Reactor({});
+        this._inventory.subscribe(()=>this.refreshInventory(this));
+    }
+
+    // returns the players inventory
+    get inventory() {
+        return this._inventory.value;
+    }
+
+    // returns the players inventory
+    set inventory(newValue) {
+        this._inventory.value = newValue;
     }
 
     // Adds an item to the players inventory
-    addItem(item) {
-        this.inventory.push(item);
+    addItem(itemName, count=1, style='') {
+        let newInv = this._inventory.value;
+        if (!newInv[itemName]) {
+            newInv[itemName] = {name: itemName, count, style}
+        } else {
+            newInv[itemName].count += count;
+        }
+        this._inventory.value = newInv;
     }
 
     // Adds an item to the players inventory
-    removeItem(item) {
-        this.inventory.splice(this.inventory.indexOf(item), 1);
+    removeItem(itemName, count=1) {
+        let newInv = this._inventory.value;
+        if (!newInv[itemName]) {
+            return
+        }
+        newInv[itemName].count -= count;
+        if (newInv[itemName].count <= 0) delete newInv[itemName];
+        this._inventory.value = newInv;
+    }
+
+    // refreshes the elements representing the player's inventory
+    refreshInventory(object) {
+        const inventory = document.getElementById('inventory');
+        inventory.innerHTML = '';
+        for (const item of Object.values(object.inventory)) {
+            const itemElement = document.createElement('p');
+            itemElement.className = 'item-container flex';
+            const nameElement = document.createElement('output');
+            nameElement.className = 'item-name';
+            const formattedText = formatText(item.style + item.name);
+            formattedText.className = 'flex';
+            nameElement.appendChild(formattedText);
+            itemElement.appendChild(nameElement);
+            if (item.count > 1) {
+                const countElement = document.createElement('output');
+                itemElement.appendChild(countElement);
+                countElement.outerHTML = `[<output class="item-count">${item.count}</output>]`;
+            }
+            inventory.appendChild(itemElement);
+        }
     }
 
     // Changes the players hp
@@ -151,18 +200,21 @@ class Game {
     }
 
     // Gives an item to the player's inventory
-    getItems(items, customMessage='') {
-        let messages = []
-        for (const item of items) {
-            player.addItem(item);
-            messages.push(customMessage || `Obtained [[c:var(--item-color)]${item}[:]]`)
+    getItem(itemName, count, style='', customMessage='') {
+        let messages = [];
+        style = style || '[c:var(--item-color)]';
+        player.addItem(itemName, count, style);
+        if (count > 1) {
+            messages.push(customMessage || `Obtained [${style + itemName}[:]] X ${count}`);
+        } else {
+            messages.push(customMessage || `Obtained [${style + itemName}[:]]`);
         }
-        return {messages}
+        return {messages};
     }
 
     // Removes an item from the player's inventory
-    removeItem(item) {
-        player.removeItem(item);
+    removeItem(item, count) {
+        player.removeItem(item, count);
     }
 
     // changes the current room to a new room
@@ -232,14 +284,12 @@ class Game {
         await sleep(10);
     }
 
-        
-    
-
     async restart() {
         player = new Player();
         currentRoom = startingRoom;
         isGameLoop = true;
         choicesMade = [];
+        player.inventory = {};
         document.getElementById('history-content').innerHTML = '';
         await sleep(10);
         clearDialogueText();
@@ -248,13 +298,13 @@ class Game {
     }
 
     // Returns whether the player has an item in their inventory
-    hasItem(item, customMessage='') {
-        if (player.inventory.includes(item)) {
-            return true;
-        } else {
-            let message = customMessage || `You do not have [[c:yellow]${item}[:]]`;
+    hasItem(itemName, minCount=1, customMessage='') {
+            for (const invItem of Object.values(player.inventory)) {
+                if (invItem.name === itemName && invItem.count >= minCount)
+                return true;
+            }
+            let message = customMessage || `You do not have [[c:yellow]${itemName}[:]]`;
             return {result: false, message};
-        }
     }
 
     madeChoice(choiceId) {
@@ -360,10 +410,11 @@ class Room {
     }
 
     // adds an action for a room
-    addAction(options, type, parameters) {
+    addAction(options, type, parameters, waits) {
         type = options.type ?? type;
         parameters = options.parameters ?? parameters ?? [];
-        const action = {type, parameters};
+        waits = options.waits ?? waits ?? false;
+        const action = {type, parameters, waits};
         this.actions.push(action);
 
         const lastInQueue = this.queuelist[this.queuelist.length - 1]
@@ -437,7 +488,11 @@ function applyStyle(element, styleList, characterIndex) {
                 }
             }
         }
-        element.style[style.name] = style.currentValue;
+        if (style.name === 'class' && style.currentValue) {
+            element.className += ' ' + style.currentValue
+        } else {
+            element.style[style.name] = style.currentValue;
+        }
     }
 }
 
@@ -447,7 +502,7 @@ function formatText(text) {
     let textStyles = generateStyleList(text);
 
     let cleanText = parseStyles(text, 'This returns the clean text because nothing matches this.').text;
-    characterIndex = 0;
+    let characterIndex = 0;
     let formattedElement = document.createElement('span');
     let wordArray = cleanText.split(' ')
     for (let i = 0; i < wordArray.length; i++) {
@@ -793,7 +848,7 @@ function generateExampleRooms() {
     room.addStory(`This is a [an:text-glow 1s ease infinite alternate][c:red]test[c:] [fi:blur(1px)]story[fi:] [c:#00ff00][ff:'Doto'][fs:24px]continued[:]!`, {speed: 100, variance: 33, animation: 'impact'});
     room.addStory(`[ts:2px 2px 2px white][c:#c5c5c5]Lorem [rt:90deg]ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et [rt:180deg]dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure [rt:270deg]dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui [rt:]officia deserunt mollit anim id est laborum.`, {speed: 10, variance: 3, animation: 'funky'});
     let choice1 = room.createChoice('Pick up item');
-    choice1.addAction({type: 'getItems', parameters: [['Example Item']]});
+    choice1.addAction({type: 'getItem', parameters: ['Example Item', 4]});
     room.addStory(`Woah`, {speed: 500, variance: 100, animation: 'shaky'});
     room.addStory(`[c:rgb(0,255,255)]Cooleo![c:] This is a neat blur effect! I like it so much, I think I will put [c:yellow][fs:24px]more[:] text!`, {speed: 100, variance: 10, animation: 'blur'});
     room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, {speed: 50, variance: 10, animation: 'fade-alternate'});
@@ -804,10 +859,10 @@ function generateExampleRooms() {
     choice2.addRequirement({mode: 'use', type: 'hasItem', parameters: ['Example Reusable Key']});
     choice2.addRequirement({mode: 'use', type: 'hasItem', parameters: ['Example Expendable Key']});
     let choice3 = room.createChoice('Pick up key');
-    choice3.addAction({type: 'getItems', parameters: [['Example Reusable Key'], "yoyo, you got ye an [[c:yellow]Example Reusable Key[c:]] yo! Also, this is a [an:text-glow 1s ease infinite alternate][c:cyan]custom action message!"]});
+    choice3.addAction({type: 'getItem', parameters: ['Example Reusable Key', 1, '[class:text-glow green]', "yoyo, you got ye an [[class:text-glow green]Example Reusable Key[class:]] yo! Also, this is a [an:text-glow 1s ease infinite alternate][c:cyan]custom action message!"]});
     choice3.addRequirement({mode: 'show', type: 'madeChoice', inverse: true, parameters: [room.getChoiceId(3)]});
     let choice4 = room.createChoice('Pick up another key', {repeatable: true});
-    choice4.addAction({type: 'getItems', parameters: [['Example Expendable Key']]});
+    choice4.addAction({type: 'getItem', parameters: ['Example Expendable Key']});
     choice4.addRequirement({mode: 'show', type: 'madeChoice', parameters: [room.getChoiceId(3)]});
     choice4.addRequirement({mode: 'show', type: 'hasItem', inverse: true, parameters: ['Example Expendable Key']});
 
@@ -820,13 +875,14 @@ function generateExampleRooms() {
     room.addStory('2...', {waitDelay: 1000, waits: false});
     room.addAction({type: 'styleBG', parameters: ['[fi:grayscale(.6) blur(8px)]']});
     room.addStory('1...', {waitDelay: 1000, waits: false});
-    room.addAction({type: 'changeRoom', parameters: ['Example Room 3']});
     room.addAction({type: 'changeBG', parameters: ['escape.jpeg', {waitsOut: true}]});
+    room.addAction({type: 'ending', parameters: ['Example Ending']});
     
-    room = createRoom('Example Room 3', {transition: {out: '', in: ''}});
-    room.addStory('Yay! You are now in room 3!', {waitDelay: 500, waits: false});
-    choice1 = room.createChoice('[c:green]Restart', {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['Example Room']});
+
+    let ending = createEnding('Example Ending', {transition: {out: '', in: ''}});
+    ending.addStory('Yay! You reached the end!', {waitDelay: 500, waits: false});
+    let restartChoice = ending.createChoice('Restart');
+    restartChoice.addAction({type: 'restart'})
 }
 
 function generateStartingRooms() {
@@ -861,7 +917,7 @@ function generateStartingRooms() {
     choice1.addAction({type: 'changeRoom', parameters: ['e-start']}); //escape route
     choice2 = room.createChoice("Go right.");
     choice2.addAction({type: 'changeRoom', parameters: ['d-start']}); //destruction route
-    choice3 = room.createChoice("Go straight.");
+    let choice3 = room.createChoice("Go straight.");
     choice3.addAction({type: 'changeRoom', parameters: ['s-start']}); //savior route
 
     room = createRoom('e-start', {name: 'escape.jpeg', transition: {out: '', in: ''}});

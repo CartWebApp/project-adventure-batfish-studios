@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VOIDBEASTS</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="preload.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Agu+Display&family=Doto:wght,ROND@100..900,100&family=Edu+AU+VIC+WA+NT+Arrows:wght@400..700&family=Jersey+10&family=Montserrat+Underline:ital,wght@0,100..900;1,100..900&family=Oxanium:wght@200..800&family=Pixelify+Sans:wght@400..700&family=Rubik+Glitch&family=Tilt+Prism:XROT,YROT@-45..45,-45..45&family=Tourney:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
@@ -24,24 +23,30 @@
                 </li>
             </ul>
         </nav>
-        <section id="center-menu" class="hidden">
+        <div id="center-menu" class="hidden">
             <button id="menu-toggle" class="icon" type="button"></button>
             <div class="menu-content">
-                <article id="playersheet">
+                <section id="playersheet">
                     <h2>Player</h2>
-                </article>
-                <article id="history">
+                    <div id="inventory-container">
+                        <h3>Inventory</h3>
+                        <div id="inventory">
+                            <p></p>
+                        </div>
+                    </div>
+                </section>
+                <section id="history">
                     <h2>History</h2>
                     <div id="history-content"></div>
-                </article>
+                </section>
             </div>
-        </section>
+        </div>
         <section id="dialogue-box">
             <output class='text' id="story"></output>
             <output class='text' id="action-output"></output>
             <output class='text' id="choices"></output>
         </section>
     </main>
-    <script src="script.js"></script>
+    <script src="script.js" type="module"></script>
 </body>
 </html>
