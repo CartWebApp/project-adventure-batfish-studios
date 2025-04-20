@@ -20,6 +20,20 @@ export class Reactor {
     // adds a function to be run every time the value gets changed
     subscribe(func) {
         this._subscribers.add(func);
-        // func(this._value);
+        func(this._value);
+    }
+
+    //binds this to a DOM element via querySelector
+    bindQuery(query, attribute='textContent') {
+        this.subscribe(()=> {
+            document.querySelector(query)[attribute] = this.value;
+        })
+    }
+
+    //binds this to a DOM element directly
+    bindElement(element, attribute='textContent') {
+        this.subscribe(()=> {
+            element[attribute] = this.value;
+        })
     }
 }

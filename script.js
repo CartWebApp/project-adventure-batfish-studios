@@ -127,9 +127,11 @@ function setVisibleChild(activeChild, parent) {
 }
 class Player {
     constructor() {
-        this.maxHP = 100;
-        this.hp = this.maxHP;
+        this.maxHP = new Reactor(100);
+        this.hp = new Reactor(this.maxHP.value);
         this._inventory = new Reactor({});
+        this.maxHP.bindQuery('#stat-maxHP');
+        this.hp.bindQuery('#stat-hp');
         this._inventory.subscribe(()=>this.refreshInventory(this));
     }
 
@@ -174,15 +176,13 @@ class Player {
             itemElement.className = 'item-container flex';
             const nameElement = document.createElement('output');
             nameElement.className = 'item-name';
-            const formattedText = formatText(item.style + item.name);
+            const formattedText = formatText(item.style + ' ' + item.name);
             formattedText.className = 'flex';
             nameElement.appendChild(formattedText);
+            const countElement = document.createElement('output');
+            itemElement.appendChild(countElement);
+            countElement.outerHTML = `[<output class="item-count">${item.count}</output>]`;
             itemElement.appendChild(nameElement);
-            if (item.count > 1) {
-                const countElement = document.createElement('output');
-                itemElement.appendChild(countElement);
-                countElement.outerHTML = `[<output class="item-count">${item.count}</output>]`;
-            }
             inventory.appendChild(itemElement);
         }
     }
@@ -289,7 +289,6 @@ class Game {
         currentRoom = startingRoom;
         isGameLoop = true;
         choicesMade = [];
-        player.inventory = {};
         document.getElementById('history-content').innerHTML = '';
         await sleep(10);
         clearDialogueText();
