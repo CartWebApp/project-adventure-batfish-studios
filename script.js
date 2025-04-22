@@ -1,6 +1,8 @@
 
 import { Reactor } from './Reactor.js';
 
+let devMode = false;
+
 let rooms = {};
 let currentRoom;
 let player;
@@ -12,7 +14,7 @@ let textCancelled = false;
 let game;
 let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
-let startingRoom = 'b-start'; // [ 'Example Room' ][ 'b-start' ]
+let startingRoom = 'Example Room'; // [ 'Example Room' ][ 'b-start' ]
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
@@ -544,6 +546,9 @@ function clearDialogueText() {
 // types out text (can be skipped by clicking on element)
 async function typeText(text, element, speed=10, variance=0, skippable=true, skipElement=null, animation='none', signal=textControllerSignal, waits=false, waitDelay=0) {
     let skipped = false;
+
+    if (devMode) waitDelay = 0;
+
     let skipFunction = () => {
         speed = 0;
         variance = 0;
@@ -840,7 +845,7 @@ function generateExampleRooms() {
     // to reset that style, just do [identifier:]. to reset all styles, do [:]
     // EX: [c:red] = [c:#ff0000] = [c:rgb(255,0,0)]
     // EX: [fi:blur(1px)] gives the text the filter: blur(1px) style
-    // current identifiers: [c: color][ff: fontFamily][fs: fontSize][rt: rotate][ts: textShadow][an: animation][fi: filter]
+    // current identifiers: [c: color][ff: fontFamily][fs: fontSize][rt: rotate][ts: textShadow][an: animation][fi: filter][class: class]
 
     let room = createRoom('Example Room', {name: 'neutral.jpeg'});
     room.addStory(`This is a [an:text-blur 1s ease][c:red]test[c:] story`);
@@ -896,22 +901,22 @@ function generateStartingRooms() {
     room = createRoom('b-2-pods', {transition: {out: '', in: ''}}); // beginning-2
     room.addAction({type: 'styleBG', parameters: ['[an:blur-out 5s ease-out,fade-out 5s ease-out][fi:blur(16px)][op:0]']});
     room.addStory(`And so you let yourself fade away, no longer within the world...`, {waits: false, waitDelay: 2000, speed: 70, animation: 'blur'});
+    room.addAction({type: 'changeBG', parameters: ['destruction.jpeg', {out: '', in: ''}]});
     room.addAction({type: 'styleBG', parameters: ['[an:blur-in 2s ease-out,fade-in 2s ease-out][fi:][op:]']});
-    room.addAction({type: 'changeBG', parameters: ['neutral.jpeg', {out: '', in: ''}]});
     room.addStory(`...until [fw:bold][an:text-glow 1s ease infinite alternate][c: red]now.`, {speed: 100, waits: false, waitDelay: 1000});
     room.addStory(`Your hearing is the first of your senses to return. Alarms blare in your ears, followed by the whoosh of air and a soft click.`);
     room.addStory(`Next comes your sight. Once the steam clears, the cryopod door creaks open to the now run-down lab. Red lights are flashing through the room, presumably the whole building as well.`);
     room.addStory(`Stepping out of the pod, it appears that yours was the only one to be well-maintained. The other two pods are rusty and broken, with the glass shattered and labels long faded.`);
     room.addStory(`In fact, you can barely make out your own name on the scratchy, old label.`);
-    room.addStory(`[c:rgb(0, 60, 255)]"Gali."`, {waits: false, waitDelay: 1500, speed: 50});
+    room.addStory(`[c:var(--Gali)]"Gali."`, {waits: false, waitDelay: 1500, speed: 50});
     room.addStory(`There doesn't seem to be much left to do or see. Anything that once was is long gone.`, {waits: false,});
     choice1 = room.createChoice("Leave the lab.");
     choice1.addAction({type: 'changeRoom', parameters: ['b-3-hallways']});
 
     room = createRoom('b-3-hallways', {name:'', transition: {out: '', in: ''}}); // beginning-3
     room.addStory(`After just a bit of effort, the doors (usually automatic, you remember) give way, leading you to three different corridors.`);
-    room.addStory(`Unfortunately, your memory of the layout is hazy at best. To be fair, you HAD been quite nervous at the time, keeping your gaze lowered throughout the walk. If only you had paid more attention...`)
-    room.addStory(`[c:var(--escape-color)]Left, [c:var(--destruction-color)]right, [c:]or [c:var(--savior-color)]straight ahead?`)
+    room.addStory(`Unfortunately, your memory of the layout is hazy at best. To be fair, you HAD been quite nervous at the time, keeping your gaze lowered throughout the walk. If only you had paid more attention...`);
+    room.addStory(`[c:var(--escape-color)]Left, [c:var(--destruction-color)]right, [c:]or [c:var(--savior-color)]straight ahead?`);
     choice1 = room.createChoice("Go left.");
     choice1.addAction({type: 'changeRoom', parameters: ['e-start']}); //escape route
     choice2 = room.createChoice("Go right.");
@@ -919,8 +924,12 @@ function generateStartingRooms() {
     let choice3 = room.createChoice("Go straight.");
     choice3.addAction({type: 'changeRoom', parameters: ['s-start']}); //savior route
 
-    room = createRoom('e-start', {name: 'escape.jpeg', transition: {out: '', in: ''}});
-    room.addAction({type: 'styleBG', parameters: ['[an:fade-out 5s ease-out][op:0]']});
+    room = createRoom('e-start', {name: 'escape.jpeg'});
+    room.addStory(`Heading to the [c:var(--escape-color)]left, [c:]you don't seem to recognize much of the place. It's completely trashed.`);
+    room.addStory(`Everything here has been ransacked. Any cabinets that used to be here are rusted and broken down. One's even melted, leaning to its side.`);
+    room.addStory(`It doesn't seem like there's much in the room that's worth—`, {waits: false, waitDelay: 2000});
+    room.addAction({type: 'styleBG', parameters: ['[an:shake 70ms 9 linear alternate][sc:1.2]']});
+    
 }
 
 function generateEndings() {
