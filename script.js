@@ -14,7 +14,7 @@ let textCancelled = false;
 let game;
 let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
-let startingRoom = 'Example Room'; // [ 'Example Room' ][ 'b-start' ]
+let startingRoom = 'b-start'; // [ 'Example Room' ][ 'b-start' ]
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
