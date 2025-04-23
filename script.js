@@ -14,7 +14,7 @@ let textCancelled = false;
 let game;
 let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
-let startingRoom = 'b-start'; // [ 'Example Room' ][ 'b-start' ]
+let startingRoom = 'e-ship'; // [ 'Example Room' ][ 'b-start' ]
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
@@ -22,6 +22,7 @@ const parsableStyles = [
     {name: 'color', identifier: 'c'}, // example: [c:#0011] for green, or [c:] to reset
     {name: 'fontFamily', identifier: 'ff'}, // example: [ff:'Courier New'], or [ff:] to reset
     {name: 'fontSize', identifier: 'fs'}, // example: [fs:32px], or [fs:] to reset
+    {name: 'fontStyle', identifier: 'fst'},
     {name: 'rotate', identifier: 'rt'}, // example: [rt:180deg], or [rt:] to reset
     {name: 'textShadow', identifier: 'ts'}, // example: [ts:4px,4px,3px,yellow], or [ts:] to reset
     {name: 'animation', identifier: 'an'}, // example: [an:text-blur 1s ease], or [an:] to reset
@@ -927,9 +928,46 @@ function generateStartingRooms() {
     room = createRoom('e-start', {name: 'escape.jpeg'});
     room.addStory(`Heading to the [c:var(--escape-color)]left, [c:]you don't seem to recognize much of the place. It's completely trashed.`);
     room.addStory(`Everything here has been ransacked. Any cabinets that used to be here are rusted and broken down. One's even melted, leaning to its side.`);
-    room.addStory(`It doesn't seem like there's much in the room that's worth—`, {waits: false, waitDelay: 2000});
+    room.addStory(`It doesn't seem like there's much in the room that's worth—`, {waits: false, waitDelay: 1000});
     room.addAction({type: 'styleBG', parameters: ['[an:shake 70ms 9 linear alternate][sc:1.2]']});
-    
+    room.addStory(`[fst:italic][c:var(--dialogue)]"Rgh—!!"`);
+    room.addStory(`[c:''][fst:'']...Is [c:var(--character)]someone [c:'']here?`);
+    room.addStory(`[fst:italic][c:var(--noises)](Rustle, rustle...)`, {animation: 'fade-alternate'});
+    room.addStory(`You whip your head around just in time to catch [c:var(--character)]the figure of another person, [c:]currently leaping through the broken window across the room.`);
+    room.addStory(`Another survivor?`);
+    choice1 = room.createChoice(`After them!`);
+    choice1.addAction({type: `changeRoom`, parameters: ['e-outside']});
+
+    room = createRoom('e-outside');
+    room.addStory(`Minding the glass, you hop through the hole in the wall, dashing to catch up with the mystery figure.`);
+    room.addStory(`They stop just up ahead, regrouping with about four to five others.`);
+    room.addStory(`And off to the side, they...`);
+    room.addStory(`Woah.`);
+    room.addStory(`That's a [c:var(--Gali)]whole spaceship.`);
+    room.addStory(`Is that theirs, or has that always been there?`);
+    choice1 = room.createChoice(`Run towards the ship.`);
+    choice1.addAction({type: `changeRoom`, parameters: [`e-ship`]});
+    choice2 = room.createChoice(`Approach the group.`);
+    choice2.addAction({type: `changeRoom`, parameters: [`e-goodFaction`]});
+
+    room = createRoom(`e-ship`, {name: `escape.jpeg`});
+    room.addStory(`Luckily, the ship's doors appear to be unlocked.`);
+    room.addStory(`It's quite roomy for the amount of people that you've previously seen. Some of the interior's wiring is exposed, as if they'd run out of scrap metal midway through building the thing.`);
+    choice1 = room.createChoice(`Have a look around.`);
+    room.addStory(`Oh, neat! It appears they have a nice little storage rack set up in the corner. There's plenty of new, futuristic (at least, on your end) foods at your disposal.`);
+    room.addStory(`And yeah, it doesn't belong to you, but...`);
+    choice1.addAction({type: `getItem`, parameters: [`Astrostew`, 2, ]});
+    room.addStory(`In your defense, you've been starving for decades...`);
+    choice1 = room.createChoice(`Quit being nosy.`);
+    room.addStory(`Perhaps it is best if you leave.`);
+    room.addStory(`You turn around, stuffing your pockets—`);
+    room.addStory(`[fst:italic][c:var(--noises)](Whoosh!)`);
+    room.addAction({type: 'styleBG', parameters: ['[an:shake 50ms 7 linear alternate][sc:1.2]']});
+    room.addStory(`[fst:italic][c:var(--noises)](DONK!)`);
+    room.addStory(`[an:text-shiver .4s ease-in-out infinite alternate]Your head hurts...`, {animation: `blur`});
+
+    room = createRoom(`e-goodFaction`);
+    room.addStory(``);
 }
 
 function generateEndings() {
