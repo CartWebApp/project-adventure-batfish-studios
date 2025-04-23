@@ -89,6 +89,24 @@ p {
     color: yellow;
 }
 
+.buffer-container {
+    position: absolute;
+    height: 64px;
+    width: 64px;
+    z-index: 100;
+}
+
+.buffer-img {
+    position: absolute;
+    height: 100%;
+    left: 50%;
+    top: 0;
+    translate: -50%;
+    background-position: top;
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
 #background-image {
     position: absolute;
     object-fit: cover;
@@ -329,7 +347,6 @@ p {
     animation: text-fade-even 300ms ease;
 }
 
-
 @keyframes fade-out {
     from {opacity: unset;}
     to {opacity: 0;}
@@ -432,28 +449,6 @@ p {
     }
     100% {
         filter: none;
-    }
-}
-
-@keyframes text-shaky {
-    0% {
-        translate: 2em -2em;
-        scale: 5;
-        opacity: 0;
-    }
-    25% {
-        translate: -1.5em -1.5em;
-    }
-    50% {
-        translate: 1em -1em;
-    }
-    75% {
-        translate: -.5 -.5em;
-    }
-    100% {
-        translate: 0;
-        scale: 1;
-        opacity: 1;
     }
 }
 

@@ -433,6 +433,34 @@ class Ending extends Room {
     }
 }
 
+// creates an element for a loading buffer
+function createLoadingBuffer(count=8, duration=1000, image='circle_white.png', imageSize=16, radius=120) {
+    const keyframes = [
+        { transform: "translateY(0px)" },
+        { transform: `translateY(${-imageSize}px)` },
+      ];
+      
+    let bufferContainer = document.createElement('div');
+    bufferContainer.height = `${radius}px`;
+    bufferContainer.className = `buffer-container`;
+    for (let i = 0; i < count; i++) {
+        const imageElement = document.createElement('span');
+        imageElement.style.width = `${imageSize}px`;
+        imageElement.style.backgroundImage = `url(imgs/icons/${image})`;
+        imageElement.className = `buffer-img`;
+        imageElement.style.rotate = `${360 / count * i}deg`;
+        bufferContainer.appendChild(imageElement);
+        let timing = {
+            duration: duration,
+            iterations: Infinity,
+            delay: duration/count * i,
+            direction: 'alternate'
+          };
+        imageElement.animate(keyframes, timing)
+    }
+    document.getElementById('loading-buffer').appendChild(bufferContainer)
+}
+
 // creates a room and adds it to rooms
 function createRoom(name, bg) {
     const newRoom = new Room(name, bg);
@@ -825,6 +853,7 @@ function createEventListeners() {
 // initializes the rooms and player
 function init() {
     preloadImages();
+    createLoadingBuffer();
     createEventListeners();
     player = new Player();
     game = new Game();
