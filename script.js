@@ -434,14 +434,21 @@ class Ending extends Room {
 }
 
 // creates an element for a loading buffer
-function createLoadingBuffer(count=8, duration=1000, image='circle_white.png', imageSize=16, radius=120) {
-    const keyframes = [
-        { transform: "translateY(0px)" },
-        { transform: `translateY(${-imageSize}px)` },
+function createLoadingBuffer(count=8, duration=2000, animatedNumber=1, image='circle_white.png', imageSize=16, radius=120, keyframes=null, timing=null) {
+    keyframes = keyframes ?? [
+        { transform: "translateY(0px)"},
+        { transform: `translateY(${-imageSize/2}px)`, offset: 1/count },
       ];
+
+    timing = timing ?? {
+        easing: 'ease',
+      };
+    timing.duration = duration/animatedNumber;
+    timing.iterations = Infinity
       
     let bufferContainer = document.createElement('div');
-    bufferContainer.height = `${radius}px`;
+    bufferContainer.style.height = `${radius}px`;
+    bufferContainer.style.width = `${radius}px`;
     bufferContainer.className = `buffer-container`;
     for (let i = 0; i < count; i++) {
         const imageElement = document.createElement('span');
@@ -450,12 +457,7 @@ function createLoadingBuffer(count=8, duration=1000, image='circle_white.png', i
         imageElement.className = `buffer-img`;
         imageElement.style.rotate = `${360 / count * i}deg`;
         bufferContainer.appendChild(imageElement);
-        let timing = {
-            duration: duration,
-            iterations: Infinity,
-            delay: duration/count * i,
-            direction: 'alternate'
-          };
+        timing.delay = duration/count * i / 1,
         imageElement.animate(keyframes, timing)
     }
     document.getElementById('loading-buffer').appendChild(bufferContainer)
@@ -853,7 +855,10 @@ function createEventListeners() {
 // initializes the rooms and player
 function init() {
     preloadImages();
-    createLoadingBuffer();
+    createLoadingBuffer(8,2000,1,undefined,20,128, [
+        { opacity: 1},
+        { opacity: 0, offset: 1 },
+      ]);
     createEventListeners();
     player = new Player();
     game = new Game();
