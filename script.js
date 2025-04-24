@@ -925,6 +925,7 @@ function generateStartingRooms() {
     let choice3 = room.createChoice("Go straight.");
     choice3.addAction({type: 'changeRoom', parameters: ['s-start']}); //savior route
 
+    // Escape
     room = createRoom('e-start', {name: 'escape.jpeg'});
     room.addStory(`Heading to the [c:var(--escape-color)]left, [c:]you don't seem to recognize much of the place. It's completely trashed.`);
     room.addStory(`Everything here has been ransacked. Any cabinets that used to be here are rusted and broken down. One's even melted, leaning to its side.`);
@@ -952,22 +953,37 @@ function generateStartingRooms() {
 
     room = createRoom(`e-ship`, {name: `escape.jpeg`});
     room.addStory(`Luckily, the ship's doors appear to be unlocked.`);
-    room.addStory(`It's quite roomy for the amount of people that you've previously seen. Some of the interior's wiring is exposed, as if they'd run out of scrap metal midway through building the thing.`);
+    room.addStory(`It's quite roomy for the amount of people that you've previously seen. Some of the interior's wiring is exposed, as if they'd run out of material midway through building the thing.`);
     choice1 = room.createChoice(`Have a look around.`);
     room.addStory(`Oh, neat! It appears they have a nice little storage rack set up in the corner. There's plenty of new, futuristic (at least, on your end) foods at your disposal.`);
     room.addStory(`And yeah, it doesn't belong to you, but...`);
-    choice1.addAction({type: `getItem`, parameters: [`Astrostew`, 2, ]});
     room.addStory(`In your defense, you've been starving for decades...`);
+    room.addAction({type: `getItem`, parameters: [`Astrostew`, 2, ]});
     choice1 = room.createChoice(`Quit being nosy.`);
     room.addStory(`Perhaps it is best if you leave.`);
     room.addStory(`You turn around, stuffing your pockets—`);
     room.addStory(`[fst:italic][c:var(--noises)](Whoosh!)`);
     room.addAction({type: 'styleBG', parameters: ['[an:shake 50ms 7 linear alternate][sc:1.2]']});
     room.addStory(`[fst:italic][c:var(--noises)](DONK!)`);
-    room.addStory(`[an:text-shiver .4s ease-in-out infinite alternate]Your head hurts...`, {animation: `blur`});
+    room.addAction({type: 'styleBG', parameters: ['[an:blur-out 3s ease-out,fade-out 5s ease-out][fi:blur(10px)][op:0][sc:1.2]']});
+    room.addStory(`[an:text-shiver .3s ease-in-out infinite alternate]Your head hurts...`, {waits: false, waitDelay: 4500});
+    room.addAction({type: 'changeRoom', parameters: ['e-goodFaction']})
 
-    room = createRoom(`e-goodFaction`);
-    room.addStory(``);
+    room = createRoom(`e-goodFaction`, {name: `escape.jpeg`});
+    room.addStory(`In front of you stands a small, inter-species group of survivors.`);
+    room.addStory(`They all raise their weapons, which are crudely built from scraps and duct taped together.`);
+    room.addStory(`Their [c:var(--character)]leader, [c:]a tall, cloaked figure, steps forward. The faintest glimpse of purple peeks out from under their burlap hood, glimmering in the Viremian sunlight.`);
+    room.addStory(`[c:var(--dialogue)][fst:italic][fs:20px]"You."`);
+    room.addStory(`Their spear is pointed towards your chest.`);
+    room.addStory(`[c:var(--dialogue)]"Where did you come from? Why are you following me? Who sent you here?"`);
+    room.addStory(`The other four continue to circle around you, gazes intense. It's like they're throwing daggers straight into you with their eyes.`);
+    choice1 = room.createChoice(`Stay calm and explain yourself.`);
+    choice1.addAction({type: 'changeRoom', parameters:['e-gfCareful']});
+    choice2 = room.createChoice(`Refuse to be intimidated by this riff-raff.`)
+    choice2.addAction({type: 'changeRoom,', parameters: ['e-gfSarcastic']});
+
+    room = createRoom(`e-gfSarcastic`, {name: 'escape.jpeg'});
+    room.addStory(``)
 }
 
 function generateEndings() {
