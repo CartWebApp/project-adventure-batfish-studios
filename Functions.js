@@ -96,3 +96,19 @@ export function setVisibleChild(activeChild, parent) {
     }
     activeChild.style.display = '';
 }
+
+// deep copies an object
+export function deepClone(obj) {
+    if (typeof obj !== "object" || obj === null) {
+        return obj; // Return primitive values directly
+    }
+
+    let copy = Array.isArray(obj) ? [] : {};
+
+    for (let key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            copy[key] = deepClone(obj[key]); // Recursively clone nested objects
+        }
+    }
+    return copy;
+}

@@ -22,7 +22,8 @@ let game;
 let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
-let startingRoom = 'b-start'; // [ 'Example Room' ][ 'b-start' ]
+let leaveChoices = false;
+let startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
@@ -148,6 +149,11 @@ class Game {
         return { messages };
     }
 
+    // leaves the current choice block
+    leaveChoice() {
+        leaveChoices = true;
+    }
+
     // changes the players health
     changeHP(min, max, cause='default', customMessage = '') {
         max = max ?? min;
@@ -229,11 +235,21 @@ class Game {
 
     // changes the background particle speed
     changeParticleSpeed(speed) {
-        particleHandler.speed = speed;
+        particleHandler.speed += speed;
     }
 
     // changes the background particle strength
     changeParticleStrength(strength) {
+        particleHandler.strength += strength;
+    }
+
+    // sets the background particle speed
+    setParticleSpeed(speed) {
+        particleHandler.speed = speed;
+    }
+
+    // sets the background particle strength
+    setParticleStrength(strength) {
         particleHandler.strength = strength;
     }
 
@@ -836,7 +852,8 @@ async function gameLoop() {
                 await showStory([item.value]);
                 clearText(document.getElementById('action-output'));
             } else if (item.type === 'choicelist') {
-                while (isGameLoop && getShownChoices(item.value).length > 0 && thisRoom === currentRoom) {
+                while (isGameLoop && getShownChoices(item.value).length > 0 && thisRoom === currentRoom && !leaveChoices) {
+                    leaveChoices = false;
                     if (player.hp <= 0) {
                         game.ending(currentEnding);
                         return;
@@ -851,7 +868,6 @@ async function gameLoop() {
             } else if (item.type === 'actionlist') {
                 await attemptActionsWithText(item.value);
             }
-
             if (thisRoom != currentRoom || !isGameLoop) { break }
         }
         if (player.hp <= 0) {
@@ -953,7 +969,13 @@ function generateExampleRooms() {
     // EX: [fi:blur(1px)] gives the text the filter: blur(1px) style
     // current identifiers: [c: color][ff: fontFamily][fs: fontSize][rt: rotate][ts: textShadow][an: animation][fi: filter][class: class]
 
-    let room = createRoom('Example Room', { name: 'neutral.jpeg' });
+    let room = createRoom('Example Hub', { name: 'neutral.jpeg' });
+    room.createChoice('Example Rooms')
+        .addAction({type: 'changeRoom', parameters: ['Example Room']});
+    room.createChoice('Particle Testing')
+        .addAction({type: 'changeRoom', parameters: ['Example Room Particles']});
+
+    room = createRoom('Example Room', { name: 'neutral.jpeg' });
     room.addStory(`This is a [an:text-blur 1s ease][c:red]test[c:] story`);
     room.addStory(`This is a [an:text-glow 1s ease infinite alternate][c:red]test[c:] [fi:blur(1px)]story[fi:] [c:#00ff00][ff:'Doto'][fs:24px]continued[:]!`, { speed: 100, variance: 33, animation: 'impact' });
     room.addStory(`[ts:2px 2px 2px white][c:#c5c5c5]Lorem [rt:90deg]ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et [rt:180deg]dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure [rt:270deg]dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui [rt:]officia deserunt mollit anim id est laborum.`, { speed: 10, variance: 3, animation: 'funky' });
@@ -971,10 +993,10 @@ function generateExampleRooms() {
     choice2.addRequirement({ mode: 'use', type: 'hasItem', parameters: ['Example Expendable Key'] });
     let choice3 = room.createChoice('Pick up key');
     choice3.addAction({ type: 'getItem', parameters: ['Example Reusable Key', 1, 1, '[class:text-glow green]', "yoyo, you got ye an [[class:text-glow green]Example Reusable Key[class:]] yo! Also, this is a [an:text-glow 1s ease infinite alternate][c:cyan]custom action message!"] });
-    choice3.addRequirement({ mode: 'show', type: 'madeChoice', inverse: true, parameters: [room.getChoiceId(3)] });
+    choice3.addRequirement({ mode: 'show', type: 'madeChoice', inverse: true, parameters: [choice3.id] });
     let choice4 = room.createChoice('Pick up another key', { repeatable: true });
     choice4.addAction({ type: 'getItem', parameters: ['Example Expendable Key'] });
-    choice4.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [room.getChoiceId(3)] });
+    choice4.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [choice3.id] });
     choice4.addRequirement({ mode: 'show', type: 'hasItem', inverse: true, parameters: ['Example Expendable Key'] });
     // choice5, with different syntax (not using a variable)
     room.createChoice('Touch spike')
@@ -997,6 +1019,25 @@ function generateExampleRooms() {
     room.addAction({ type: 'changeBG', parameters: ['escape.jpeg', { waitsOut: true }] });
     room.addAction({ type: 'ending', parameters: ['Example Ending'] });
 
+    // particle testing
+    room = createRoom('Example Room Particles', { name: 'neutral.jpeg' });
+    room.addAction({type: 'changeParticleAnimation', parameters: ['fog', 1, 1]});
+    room.addStory('Lets try out some particles!');
+    room.createChoice('Speed Up', {repeatable: true})
+    .addAction({type: 'changeParticleSpeed', parameters: [.5]});
+    room.createChoice('Slow Down', {repeatable: true})
+    .addAction({type: 'changeParticleSpeed', parameters: [-.5]});
+    room.createChoice('Strengthen', {repeatable: true})
+    .addAction({type: 'changeParticleStrength', parameters: [.5]});
+    room.createChoice('Weaken', {repeatable: true})
+    .addAction({type: 'changeParticleStrength', parameters: [-.5]});
+    let ashes = room.createChoice('Next Animation')
+    ashes.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 1, 1]});
+    let smoke = room.createChoice('Next Animation')
+    smoke.addAction({type: 'changeParticleAnimation', parameters: ['smoke top', 1, 1]});
+    smoke.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [ashes.id] })
+
+    room.addStory('El fin');
 
     let ending = createEnding('Example Ending', { transition: { out: '', in: '' } });
     ending.addStory('Yay! You reached the end!', { waitDelay: 500, waits: false });
@@ -1016,12 +1057,9 @@ function generateStartingRooms() {
     room.addStory(`And so you let yourself fade away, no longer within the world...`, { waits: false, waitDelay: 2000, speed: 70, animation: 'blur' });
     room.addAction({ type: 'changeBG', parameters: ['destruction.jpeg', { out: '', in: '' }] });
     room.addAction({ type: 'styleBG', parameters: ['[an:blur-in 2s ease-out,fade-in 2s ease-out][fi:][op:]'] });
-    room.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 1, 1]});
     room.addStory(`...until [fw:bold][an:text-glow 1s ease infinite alternate][c: red]now.`, { speed: 100, waits: false, waitDelay: 1000 });
     room.addStory(`Your hearing is the first of your senses to return. Alarms blare in your ears, followed by the whoosh of air and a soft click.`);
-    room.addAction({type: 'changeParticleSpeed', parameters: [4]});
     room.addStory(`Next comes your sight. Once the steam clears, the cryopod door creaks open to the now run-down lab. Red lights are flashing through the room, presumably the whole building as well.`);
-    room.addAction({type: 'changeParticleStrength', parameters: [7]});
     room.addStory(`Stepping out of the pod, it appears that yours was the only one to be well-maintained. The other two pods are rusty and broken, with the glass shattered and labels long faded.`);
     room.addStory(`In fact, you can barely make out your own name on the scratchy, old label.`);
     room.addStory(`[c:var(--Gali)]"Gali."`, { waits: false, waitDelay: 1500, speed: 50 });

@@ -31,11 +31,14 @@ export class CanvasHandler {
             particle.despawnFunction();
         }
         await sleep(this.transitionDuration);
+        this.looping = false
+        await sleep(2);
         this.particles = []
         this.currentAnimation = this.animations[animationName];
-        if (this.currentAnimation.init) {
-            this.currentAnimation.init(this);
+        if (this.currentAnimation.generatorOptions) {
+            this.generateParticles(this.currentAnimation.generatorOptions);
         }
+        this.looping = true;
         this.loop();
     }
 
@@ -46,8 +49,8 @@ export class CanvasHandler {
             this.ctx.clearRect(0, 0, this.width, this.height);
         }
 
-        if (this.currentAnimation.loop) {
-            this.currentAnimation.loop(this);
+        if (this.currentAnimation.loopOptions) {
+            this.generateParticles(this.currentAnimation.loopOptions);
         }
 
         for (let i = 0; i < this.particles.length; i++) {
@@ -61,51 +64,104 @@ export class CanvasHandler {
         }
     }
 
+    generateParticles(options) {
+        let {getCount, getX, getY, getColor, getRadius, getVelX, getVelY, getAccelX, getAccelY, getTick, getModFn, getSpawnFn, getDespawnFn, getDespawnReq} = options
+        if (!getCount) getCount = () => 100 * this.strength;
+        if (!getX) getX = () => random(0,this.width);
+        if (!getY) getY = () => random(0,this.height);
+        if (!getColor) getColor = () => ({r: 255, g: 255, b: 255, a: 1});
+        if (!getRadius) getRadius = () => random(2, 4);
+        if (!getVelX) getVelX = () => 0;
+        if (!getVelY) getVelY = () => 0;
+        if (!getAccelX) getAccelX = () => 0;
+        if (!getAccelY) getAccelY = () => 0;
+        if (!getTick) getTick = () => 0;
+        if (!getModFn) getModFn = () => undefined;
+        if (!getSpawnFn) getSpawnFn = () => undefined;
+        if (!getDespawnFn) getDespawnFn = () => undefined;
+        if (!getDespawnReq) getDespawnReq = () => undefined;
+        while (this.particles.length < getCount()) {
+            const color = getColor();
+            let ball = new Ball(
+                this,
+                getX(), 
+                getY(),
+                getRadius(),
+                color.r, color.g, color.b, color.a,
+                getVelX(),
+                getVelY(),
+                getAccelX(),
+                getAccelY(),
+                getTick(),
+                getModFn(),
+                getSpawnFn(),
+                getDespawnFn(),
+                getDespawnReq(),
+
+            );
+            this.particles.push(ball);
+        }
+    }
+
     createAnimations() {
         let animator = this.animations;
         animator['none'] = new Animation();
-        animator['ashes'] = new Animation();
-        let reusableFn = (getX, getY) => {
-            getX = getX ?? (() => random(-100,this.width))
-            getY = getY ?? (() => random(-100,this.height))
-            while (this.particles.length < 100 * this.strength) {
-                let color = random(20, 230)
-                let ball = new Ball(
-                    this, 
-                    getX(), 
-                    getY(),
-                    random(2, 4),
-                    color, color, color, random(.5, .8, 1),
-                    random(.2, .5, 3),
-                    0,
-                    0,
-                    0,
-                    random(0, 1),
-                    (particle) => {
-                        particle.velY += (Math.sin(particle.tick / 100) + .3) / 1000;
-                    }, undefined, undefined,
-                    (particle) => {
-                        return (particle.x + particle.radius < -200 
-                            || particle.x - particle.radius > particle.controller.width 
-                            || particle.y + particle.radius < -200 
-                            || particle.y - particle.radius > particle.controller.height)
-                    }
-                );
-                this.particles.push(ball);
+        let reusableParams = {
+                getX: () => random(-100,this.width),
+                getY: () => random(-100,this.height),
+                getColor: () => {
+                    const randomColor = random(20, 230);
+                    return{r: randomColor, g: randomColor, b: randomColor, a: random(.5, .8, 1)}
+                },
+                getVelX: () => random(.2, .5, 3),
+                getTick: () => random(0, 1),
+                getModFn: () => (particle) => {
+                    particle.velY += (Math.sin(particle.tick / 100) + .3) / 1000;
+                },
+                getDespawnReq: () => (particle) => {
+                    return (particle.x + particle.radius < -this.width 
+                        || particle.x - particle.radius > particle.controller.width 
+                        || particle.y + particle.radius < -this.height 
+                        || particle.y - particle.radius > particle.controller.height)
+                },
             }
-            for (const particle of this.particles) {
-                
-            }
+        animator['ashes'] = new Animation(deepClone(reusableParams));
+        
+        reusableParams = {
+            getX: () => random(-this.height/4,this.width),
+            getY: () => random(this.height/1.5,this.height),
+            getAccelX: () => .1,
+            getRadius: () => random(50, this.height/4),
+            getColor: () => {
+                const randomColor = random(150, 230);
+                return{r: randomColor, g: randomColor, b: randomColor, a: random(.1, .4, 1)}
+            },
+            getVelX: () => random(.2, .5, 3),
+            getDespawnReq: () => (particle) => {
+                return (particle.x + particle.radius < -this.width 
+                    || particle.x - particle.radius > particle.controller.width 
+                    || particle.y + particle.radius < -this.height 
+                    || particle.y - particle.radius > particle.controller.height)
+            },
         }
-        animator['ashes'].init = () => reusableFn();
-        animator['ashes'].loop = () => reusableFn();
+        animator['fog'] = new Animation(deepClone(reusableParams));
+
+        reusableParams.getY = () => random(-100,this.height/3)
+        reusableParams.getColor = () => {
+            const randomColor = random(50, 220);
+            return{r: randomColor, g: randomColor, b: randomColor, a: random(.1, .4, 1)}
+        }
+        animator['smoke top'] = new Animation(deepClone(reusableParams));
     }
 }
 
 class Animation {
-    constructor(generator, loop) {
-        this.generator = generator;
-        this.loop = loop;
+    constructor(generatorOptions, loopOptions) {
+        this.generatorOptions = generatorOptions;
+        this.loopOptions = loopOptions;
+        if (!this.loopOptions) {
+            this.loopOptions = generatorOptions;
+        }
     }
 }
 
