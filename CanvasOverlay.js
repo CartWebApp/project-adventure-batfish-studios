@@ -1,0 +1,197 @@
+import * as functionExports from './Functions.js';
+Object.entries(functionExports).forEach(([name, exported]) => window[name] = exported);
+
+export class CanvasHandler {
+    constructor(canvas, container, strength=1, speed=1, transitionDuration=1000) {
+        this.canvas = canvas;
+        this.container = container ?? document.getElementsByTagName('body')[0];
+        this.strength = strength;
+        this.speed = speed;
+        this.transitionDuration = transitionDuration;
+        this.ctx = canvas.getContext("2d");
+        this.width = this.canvas.width = this.container.clientWidth;
+        this.height = this.canvas.height = this.container.clientHeight;
+        this.particles = [];
+        this.animations = {};
+        this.createAnimations();
+        this.currentAnimation = this.animations['ashes'];
+        this.looping = true;
+        
+        // enables canvas to respond to size changes
+        window.addEventListener('resize', ()=>this.handleResize())
+    }
+
+    handleResize() {
+        this.width = this.canvas.width = this.container.clientWidth;
+        this.height = this.canvas.height = this.container.clientHeight;
+    }
+
+    async changeAnimation(animationName) {
+        for (const particle of this.particles) {
+            particle.despawnFunction();
+        }
+        await sleep(this.transitionDuration);
+        this.particles = []
+        this.currentAnimation = this.animations[animationName];
+        if (this.currentAnimation.init) {
+            this.currentAnimation.init(this);
+        }
+        this.loop();
+    }
+
+    async loop() {
+        if (this.currentAnimation.background) {
+            this.currentAnimation.background(this);
+        } else {
+            this.ctx.clearRect(0, 0, this.width, this.height);
+        }
+
+        if (this.currentAnimation.loop) {
+            this.currentAnimation.loop(this);
+        }
+
+        for (let i = 0; i < this.particles.length; i++) {
+            this.particles[i]?.update();
+            this.particles[i]?.draw();
+            this.particles[i]?.checkForDeletion();
+        }
+
+        if (this.looping) {
+            requestAnimationFrame(()=>this.loop());
+        }
+    }
+
+    createAnimations() {
+        let animator = this.animations;
+        animator['none'] = new Animation();
+        animator['ashes'] = new Animation();
+        let reusableFn = (getX, getY) => {
+            getX = getX ?? (() => random(-100,this.width))
+            getY = getY ?? (() => random(-100,this.height))
+            while (this.particles.length < 100 * this.strength) {
+                let color = random(20, 230)
+                let ball = new Ball(
+                    this, 
+                    getX(), 
+                    getY(),
+                    random(2, 4),
+                    color, color, color, random(.5, .8, 1),
+                    random(.2, .5, 3),
+                    0,
+                    0,
+                    0,
+                    random(0, 1),
+                    (particle) => {
+                        particle.velY += (Math.sin(particle.tick / 100) + .3) / 1000;
+                    }, undefined, undefined,
+                    (particle) => {
+                        return (particle.x + particle.radius < -200 
+                            || particle.x - particle.radius > particle.controller.width 
+                            || particle.y + particle.radius < -200 
+                            || particle.y - particle.radius > particle.controller.height)
+                    }
+                );
+                this.particles.push(ball);
+            }
+            for (const particle of this.particles) {
+                
+            }
+        }
+        animator['ashes'].init = () => reusableFn();
+        animator['ashes'].loop = () => reusableFn();
+    }
+}
+
+class Animation {
+    constructor(generator, loop) {
+        this.generator = generator;
+        this.loop = loop;
+    }
+}
+
+class Ball {
+    constructor(controller, x, y, radius, r, g, b, a, velX, velY, accelX, accelY, tick, updateMod, spawnFunction, despawnFunction, despawnCondition) {
+        this.controller = controller;
+        this.ctx = controller.ctx;
+        this.x = x ?? 0;
+        this.y = y ?? 0;
+        this.velX = velX ?? 0;
+        this.velY = velY ?? 0;
+        this.accelX = accelX ?? 0;
+        this.accelY = accelY ?? 0;
+        this.color = {};
+        this.color.r = r ?? 255
+        this.color.g = g ?? 255
+        this.color.b = b ?? 255
+        this.color.a = a ?? 1
+        this.radius = radius ?? 0;
+        this.tick = tick ?? 0;
+        this.lastTick = tick;
+        this.delta = 0;
+        this.opacity = 1;
+        this.updateMod = updateMod;
+        if (!this.updateMod) {
+            this.updateMod = ()=>{};
+        }
+        this.spawnFunction = spawnFunction;
+        if (!this.spawnFunction) {
+            this.spawnFunction = async () => {
+                this.opacity = 0;
+                while (this.opacity < 1) {
+                    this.opacity = clamp(this.opacity + .01 * controller.speed, 0, 1);
+                    await sleep(controller.transitionDuration / 100);
+                }
+            };
+        }
+        this.despawnFunction = despawnFunction;
+        if (!this.despawnFunction) {
+            this.despawnFunction = async () => {
+                while (this.opacity > 0) {
+                    this.opacity = clamp(this.opacity - .01 * controller.speed, 0, 1);
+                    await sleep(controller.transitionDuration / 100);
+                }
+            };
+        }
+        this.despawnCondition = despawnCondition;
+        if (!this.despawnCondition) {
+            this.despawnCondition = () => {
+                return (this.x + this.radius < -100 
+                    || this.x - this.radius > this.controller.width 
+                    || this.y + this.radius < -100 
+                    || this.y - this.radius > this.controller.height)
+            };
+        }
+        this.spawnFunction();
+    }
+
+    // draws
+    draw() {
+        this.ctx.beginPath();
+        this.ctx.fillStyle = `rgba(${~~this.color.r}, ${~~this.color.g}, ${~~this.color.b}, ${this.color.a * this.opacity}`;
+        this.ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+        this.ctx.fill();
+    }
+
+    update() {
+        this.lastTick = this.tick;
+        this.tick += this.controller.speed;
+        this.delta = this.tick - this.lastTick;
+        this.updateMod(this);
+        this.velX += this.accelX * this.delta;
+        this.velY += this.accelY * this.delta;
+        this.x += this.velX * this.delta;
+        this.y += this.velY * this.delta;
+    }
+
+    checkForDeletion() {
+        if (this.despawnCondition(this)) {
+            this.delete();
+        }
+    }
+
+    async delete() {
+        let particleArray = this.controller.particles;
+        particleArray.splice(particleArray.indexOf(this), 1);
+    }
+
+}

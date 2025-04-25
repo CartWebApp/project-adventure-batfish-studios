@@ -1,5 +1,12 @@
 
+// imports Reactor class for reactive values
 import { Reactor } from './Reactor.js';
+
+import { CanvasHandler } from './CanvasOverlay.js';
+
+// imports general use functions and sets their namespace to this window
+import * as functionExports from './Functions.js';
+Object.entries(functionExports).forEach(([name, exported]) => window[name] = exported);
 
 let devMode = false;
 
@@ -14,6 +21,7 @@ let textCancelled = false;
 let game;
 let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
+let particleHandler;
 let startingRoom = 'b-start'; // [ 'Example Room' ][ 'b-start' ]
 
 const parsableStyles = [
@@ -31,103 +39,7 @@ const parsableStyles = [
     {name: 'opacity', identifier: 'op'}, // example: [op:0.5], or [op:] to reset
 ]  
 
-// Limits a number to be between a min and a max
-function clamp(num, min, max) {
-    return Math.max(Math.min(num, max), min)
-}
 
-// Pauses for a given amount of time (use async function and do "await sleep(ms)")
-function sleep(ms = 0) {
-    return new Promise(rs => setTimeout(rs, ms));
-}
-
-// pauses for a set time or until a set condition is met
-function cancelableSleep(ms = 0, signal) {
-    return new Promise((resolve, reject) => {
-        const timeoutId = setTimeout(resolve, ms);
-
-        signal?.addEventListener("abort", () => {
-            clearTimeout(timeoutId);
-            reject(new Error("Sleep aborted"));
-        });
-    });
-}
-
-// returns a random number between 2 numbers, rounded to a given number of decimals
-function random(min, max, places = 0) {
-    return Math.floor(Math.random() * (max - min + 1) * 10 ** places) / 10 ** places + min;
-}
-
-// halts until element is clicked
-async function awaitClick(element) {
-    return new Promise(resolve => {
-        element.addEventListener('click', () => {
-            resolve();
-        }, { once: true });
-    });
-}
-
-// halts until any element in a list of elements is clicked
-async function awaitClickList(elements) {
-    return new Promise(resolve => {
-        for (const element of elements) {
-            element.addEventListener('click', () => {
-                resolve();
-            }, { once: true });
-        }
-    });
-}
-
-// waits for an animation to end
-async function awaitAnimation(element) {
-    return new Promise(resolve => {
-        element.addEventListener('animationend', () => {
-            resolve();
-        }, { once: true });
-    });
-}
-
-// copies an object's properties to another object
-function transferProperties(transferFrom, transferTo) {
-    for (const key of Object.keys(transferFrom)) {
-        const value = transferFrom[key];
-        transferTo[key] = value;
-    }
-}
-
-// checks if a key-value pair exists in an array of objects
-// ex: checkPropertyValues([{id: 1}, {id: 2}], 'id', 2) -> true
-// ex: checkPropertyValues([{id: 1}, {id: 2}], 'id', 3) -> false
-function checkPropertyValues(array, key, value) {
-    for (const object of array) {
-        if (object[key] && object[key] === value) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// gets the value of a root property
-function getRootVar(propertyName) {
-    if (window.getComputedStyle(document.documentElement).getPropertyValue('--' + propertyName) != '') {
-        document.documentElement.style.setProperty('--' + propertyName, value);
-    }
-}
-
-// sets the value of a root property
-function setRootVar(propertyName, value) {
-    document.documentElement.style.setProperty('--' + propertyName, value);
-}
-
-// toggles which is the visible child element of a container (only 1 can be visible)
-function setVisibleChild(activeChild, parent) {
-    for (const child of parent.children) {
-        if (child != activeChild) {
-            child.style.display = 'none';
-        }
-    }
-    activeChild.style.display = '';
-}
 class Player {
     constructor() {
         this._maxHP = new Reactor(100);
@@ -306,6 +218,23 @@ class Game {
     // applies styles given by a string of style identifiers to the background
     styleBG(string) {
         applyStyle(document.getElementById('background-image'), generateStyleList(string));
+    }
+
+    // changes the background particle animation
+    changeParticleAnimation(animationName, strength, speed) {
+        particleHandler.changeAnimation(animationName);
+        if (strength) particleHandler.strength = strength;
+        if (speed) particleHandler.speed = speed;
+    }
+
+    // changes the background particle speed
+    changeParticleSpeed(speed) {
+        particleHandler.speed = speed;
+    }
+
+    // changes the background particle strength
+    changeParticleStrength(strength) {
+        particleHandler.strength = strength;
     }
 
     // writes text
@@ -985,6 +914,7 @@ async function init() {
         { opacity: 0, offset: 1 },
     ], [{},{}]);
     preloadImages();
+    particleHandler = new CanvasHandler(document.getElementById('particle-canvas'), undefined, 1, 1)
     // bufferTesting('loading-buffer-2', 1, 128, 2000, 64, 'backgrounds/destruction.jpeg', 20, 128, [
     //     { opacity: 1, scale: 1, filter: 'invert(0)' },
     //     { opacity: 0, scale: .5, offset: 1, filter: 'invert(0)' },
@@ -1086,9 +1016,12 @@ function generateStartingRooms() {
     room.addStory(`And so you let yourself fade away, no longer within the world...`, { waits: false, waitDelay: 2000, speed: 70, animation: 'blur' });
     room.addAction({ type: 'changeBG', parameters: ['destruction.jpeg', { out: '', in: '' }] });
     room.addAction({ type: 'styleBG', parameters: ['[an:blur-in 2s ease-out,fade-in 2s ease-out][fi:][op:]'] });
+    room.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 1, 1]});
     room.addStory(`...until [fw:bold][an:text-glow 1s ease infinite alternate][c: red]now.`, { speed: 100, waits: false, waitDelay: 1000 });
     room.addStory(`Your hearing is the first of your senses to return. Alarms blare in your ears, followed by the whoosh of air and a soft click.`);
+    room.addAction({type: 'changeParticleSpeed', parameters: [4]});
     room.addStory(`Next comes your sight. Once the steam clears, the cryopod door creaks open to the now run-down lab. Red lights are flashing through the room, presumably the whole building as well.`);
+    room.addAction({type: 'changeParticleStrength', parameters: [7]});
     room.addStory(`Stepping out of the pod, it appears that yours was the only one to be well-maintained. The other two pods are rusty and broken, with the glass shattered and labels long faded.`);
     room.addStory(`In fact, you can barely make out your own name on the scratchy, old label.`);
     room.addStory(`[c:var(--Gali)]"Gali."`, { waits: false, waitDelay: 1500, speed: 50 });
