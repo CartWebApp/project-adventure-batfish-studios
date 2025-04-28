@@ -261,13 +261,6 @@ class Game {
         await typeText(textObj.text, document.getElementById(elementID), textObj.speed, textObj.variance, true, document.getElementById('dialogue-box'), textObj.animation, textControllerSignal, textObj.waits, textObj.waitDelay)
     }
 
-    addStory(text, options, speed = 20, variance = 5, animation = 'default', waits = true, waitDelay = 0, skippable = true) {
-        let storyObject = new TextObject(text, options, speed, variance, animation, skippable, waits, waitDelay);
-        this.storyParts.push(storyObject);
-        this.queuelist.push({ type: 'story', value: storyObject });
-        return storyObject;
-    }
-
     // initiates an ending
     async ending(endType) {
         isGameLoop = false;
@@ -301,6 +294,7 @@ class Game {
         await sleep(10);
     }
 
+    // resets the player and game
     async restart() {
         player = new Player();
         currentRoom = startingRoom;
@@ -323,6 +317,7 @@ class Game {
         return { result: false, message };
     }
 
+    // returns whether a choice has been previously made
     madeChoice(choiceId) {
         return checkPropertyValues(choicesMade, 'id', choiceId);
     }
