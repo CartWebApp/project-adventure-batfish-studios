@@ -41,93 +41,6 @@ const parsableStyles = [
 ]  
 
 
-class Player {
-    constructor() {
-        this._maxHP = new Reactor(100);
-        this._hp = new Reactor(this._maxHP.value);
-        this._inventory = new Reactor({});
-        this._maxHP.bindQuery('#stat-maxHP');
-        this._hp.bindQuery('#stat-hp');
-        this._inventory.subscribe(() => this.refreshInventory(this));
-    }
-
-    // returns the players inventory
-    get inventory() {
-        return this._inventory.value;
-    }
-
-    // sets the players inventory
-    set inventory(newValue) {
-        this._inventory.value = newValue;
-    }
-
-    get hp() {
-        return this._hp.value;
-    }
-    set hp(newValue) {
-        this._hp.value = newValue;
-    }
-    get maxHP() {
-        return this._maxHP.value;
-    }
-    set maxHP(newValue) {
-        this._maxHP.value = newValue;
-    }
-
-    // Adds an item to the players inventory
-    addItem(itemName, count = 1, style = '') {
-        let newInv = this._inventory.value;
-        if (!newInv[itemName]) {
-            newInv[itemName] = { name: itemName, count, style }
-        } else {
-            newInv[itemName].count += count;
-        }
-        this._inventory.value = newInv;
-    }
-
-    // Adds an item to the players inventory
-    removeItem(itemName, count = 1) {
-        let newInv = this._inventory.value;
-        if (!newInv[itemName]) {
-            return
-        }
-        newInv[itemName].count -= count;
-        if (newInv[itemName].count <= 0) delete newInv[itemName];
-        this._inventory.value = newInv;
-    }
-
-    // refreshes the elements representing the player's inventory
-    refreshInventory(object) {
-        const inventory = document.getElementById('inventory');
-        inventory.innerHTML = '';
-        for (const item of Object.values(object.inventory)) {
-            const itemElement = document.createElement('p');
-            itemElement.className = 'item-container flex';
-            const nameElement = document.createElement('output');
-            nameElement.className = 'item-name';
-            const formattedText = formatText(item.style + ' ' + item.name);
-            formattedText.className = 'flex';
-            nameElement.appendChild(formattedText);
-            const countElement = document.createElement('output');
-            itemElement.appendChild(countElement);
-            countElement.outerHTML = `[<output class="item-count">${item.count}</output>]`;
-            itemElement.appendChild(nameElement);
-            inventory.appendChild(itemElement);
-        }
-    }
-
-    // Changes the players hp
-    changeHP(amount) {
-        this.hp = clamp(this.hp + amount, 0, this.maxHP)
-    }
-
-    // changes the players max hp
-    changeMaxHP(amount) {
-        this.maxHP = clamp(this.maxHP + amount, 1, Infinity);
-        this.hp = clamp(this.hp, 0, this.maxHP)
-    }
-}
-
 // Holds game logic methods
 class Game {
     constructor() {
@@ -261,6 +174,12 @@ class Game {
         await typeText(textObj.text, document.getElementById(elementID), textObj.speed, textObj.variance, true, document.getElementById('dialogue-box'), textObj.animation, textControllerSignal, textObj.waits, textObj.waitDelay)
     }
 
+    // initiates combat
+    async encounter(enemies, rewards) {
+        clearText();
+        typeText(`You meet enemies`, document.getElementById('story'));
+    }
+
     // initiates an ending
     async ending(endType) {
         isGameLoop = false;
@@ -323,6 +242,112 @@ class Game {
     }
 
 }
+
+// generic character class
+class Character {
+    constructor(name, hp=100, strength=1, agility=1) {
+        this.name = name;
+        this._maxHP = new Reactor(hp);
+        this._hp = new Reactor(this._maxHP.value);
+        this._strength = new Reactor(strength);
+        this._agility = new Reactor(agility);
+    }
+
+    // creates getters and setters
+    get maxHP() { return this._maxHP.value; }
+    set maxHP(newValue) { this._maxHP.value = newValue; }
+    get hp() { return this._hp.value; }
+    set hp(newValue) { this._hp.value = newValue; }
+    get strength() { return this._strength.value; }
+    set strength(newValue) { this._strength.value = newValue; }
+    get agility() { return this._agility.value; }
+    set agility(newValue) { this._agility.value = newValue; }
+
+    // changes the characters hp
+    changeHP(amount) {
+        this.hp = clamp(this.hp + amount, 0, this.maxHP);
+        return this.hp;
+    }
+
+    // changes the characters max hp
+    changeMaxHP(amount) {
+        this.maxHP = clamp(this.maxHP + amount, 1, Infinity);
+        this.hp = clamp(this.hp, 0, this.maxHP);
+        return this.maxHP;
+    }
+
+    getDamage() {
+        return this.power;
+    }
+
+    getSpeed() {
+        return this.agility;
+    }
+
+}
+class Player extends Character {
+    constructor() {
+        super('Player', 100, 1, 1);
+        this._inventory = new Reactor({});
+        this._maxHP.bindQuery('#stat-maxHP');
+        this._hp.bindQuery('#stat-hp');
+        this._inventory.subscribe(() => this.refreshInventory(this));
+    }
+
+    // returns the players inventory
+    get inventory() {
+        return this._inventory.value;
+    }
+
+    // sets the players inventory
+    set inventory(newValue) {
+        this._inventory.value = newValue;
+    }
+
+    // Adds an item to the players inventory
+    addItem(itemName, count = 1, style = '') {
+        let newInv = this._inventory.value;
+        if (!newInv[itemName]) {
+            newInv[itemName] = { name: itemName, count, style }
+        } else {
+            newInv[itemName].count += count;
+        }
+        this._inventory.value = newInv;
+    }
+
+    // Adds an item to the players inventory
+    removeItem(itemName, count = 1) {
+        let newInv = this._inventory.value;
+        if (!newInv[itemName]) {
+            return
+        }
+        newInv[itemName].count -= count;
+        if (newInv[itemName].count <= 0) delete newInv[itemName];
+        this._inventory.value = newInv;
+    }
+
+    // refreshes the elements representing the player's inventory
+    refreshInventory(object) {
+        const inventory = document.getElementById('inventory');
+        inventory.innerHTML = '';
+        for (const item of Object.values(object.inventory)) {
+            const itemElement = document.createElement('p');
+            itemElement.className = 'item-container flex';
+            const nameElement = document.createElement('output');
+            nameElement.className = 'item-name';
+            const formattedText = formatText(item.style + ' ' + item.name);
+            formattedText.className = 'flex';
+            nameElement.appendChild(formattedText);
+            const countElement = document.createElement('output');
+            itemElement.appendChild(countElement);
+            countElement.outerHTML = `[<output class="item-count">${item.count}</output>]`;
+            itemElement.appendChild(nameElement);
+            inventory.appendChild(itemElement);
+        }
+    }
+
+}
+
 
 // default text object for writing to the page
 class TextObject {
