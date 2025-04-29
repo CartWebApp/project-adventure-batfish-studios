@@ -87,14 +87,14 @@ export function setRootVar(propertyName, value) {
     document.documentElement.style.setProperty('--' + propertyName, value);
 }
 
-// toggles which is the visible child element of a container (only 1 can be visible)
-export function setVisibleChild(activeChild, parent) {
-    for (const child of parent.children) {
-        if (child != activeChild) {
-            child.style.display = 'none';
+// toggles which is the visible element of a set of elements (only 1 can be visible)
+export function setVisibleElement(activeElement, elementSet) {
+    for (const element of elementSet) {
+        if (element != activeElement) {
+            element.style.display = 'none';
         }
     }
-    activeChild.style.display = '';
+    activeElement.style.display = '';
 }
 
 // deep copies an object

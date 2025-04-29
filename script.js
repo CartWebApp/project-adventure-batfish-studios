@@ -178,6 +178,11 @@ class Game {
     async encounter(enemies, rewards) {
         clearText();
         typeText(`You meet enemies`, document.getElementById('story'));
+        while (enemies.length > 0 && player.hp > 0) {
+            // shows options
+            // await clicking of any option
+            // check what option is clicked, and run that function
+        }
     }
 
     // initiates an ending
@@ -291,6 +296,8 @@ class Player extends Character {
         this._inventory = new Reactor({});
         this._maxHP.bindQuery('#stat-maxHP');
         this._hp.bindQuery('#stat-hp');
+        this._strength.bindQuery('#stat-strength');
+        this._agility.bindQuery('#stat-agility');
         this._inventory.subscribe(() => this.refreshInventory(this));
     }
 
@@ -922,7 +929,7 @@ function createEventListeners() {
                 menu.classList.remove('hidden');
                 overlay.classList.remove('hidden');
             }
-            setVisibleChild(toggledElement, document.querySelector('#center-menu .menu-content'));
+            setVisibleElement(toggledElement, document.querySelector('#center-menu .menu-content').children);
         });
     })
 }
@@ -1001,8 +1008,9 @@ function generateExampleRooms() {
     room.addStory(`[ts:2px 2px 2px white][c:#c5c5c5]Lorem [rt:90deg]ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et [rt:180deg]dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure [rt:270deg]dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui [rt:]officia deserunt mollit anim id est laborum.`, { speed: 10, variance: 3, animation: 'funky' });
     let choice1 = room.createChoice('Pick up item');
     choice1.addAction({ type: 'getItem', parameters: ['Example Item', 1, 10] });
+    room.addStory(`This text only shows if you got at least 8 Example Items!`)
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Example Item', 8] });
     room.addStory(`Woah`, { speed: 500, variance: 100, animation: 'shaky' });
-    room.addStory(`This text only shows if you got more than 8 Example Items!`);
     room.addStory(`[c:rgb(0,255,255)]Cooleo![c:] This is a neat blur effect! I like it so much, I think I will put [c:yellow][fs:24px]more[:] text!`, { speed: 100, variance: 10, animation: 'blur' });
     room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, { speed: 50, variance: 10, animation: 'fade-alternate' });
     room.addStory("Let's have some choices now!", { waits: false, waitDelay: 0 });

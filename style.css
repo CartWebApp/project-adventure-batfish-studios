@@ -166,7 +166,7 @@ p {
     left: 50%;
     top: 1rem;
     transform: translateX(-50%);
-    z-index: 2;
+    z-index: 5;
 }
 
 #main-nav ul {
@@ -281,11 +281,13 @@ p {
 #stat-container {
     padding: 1rem;
     width: 45%;
-    height: clamp(10rem, 50%, 50%);
+    height: clamp(6rem, 30%, 30%);
+    overflow: auto;
+    scrollbar-width: none;
 }
 
 #inventory-container {
-    height: clamp(10rem, 50%, 50%);
+    height: clamp(6rem, 30%, 30%);
     width: 45%;
     padding: 1rem;
     overflow: hidden;
@@ -294,6 +296,7 @@ p {
 #inventory {
     height: 100%;
     overflow: auto;
+    scrollbar-width: none;
 }
 
 #menu-toggle {
@@ -360,6 +363,14 @@ p {
 
 .health {
     color: red;
+}
+
+.strength {
+    color: rgb(245, 139, 0);
+}
+
+.agility {
+    color: rgb(85, 255, 0);
 }
 
 .green {
