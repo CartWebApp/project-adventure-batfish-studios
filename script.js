@@ -5,8 +5,8 @@ import { Reactor } from './Reactor.js';
 import { CanvasHandler } from './CanvasOverlay.js';
 
 // imports general use functions and sets their namespace to this window
-import * as functionExports from './Functions.js';
-Object.entries(functionExports).forEach(([name, exported]) => window[name] = exported);
+import * as fnExports from './Functions.js';
+Object.entries(fnExports).forEach(([name, exported]) => window[name] = exported);
 
 let devMode = false;
 
@@ -19,12 +19,13 @@ let textControllerSignal;
 let textCancelled = false;
 let game;
 let history;
+let battle; // holds combat related methods
 let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
 let resets = 0;
-let startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'Example Hub'; // [ 'Example Hub' ][ 'b-start' ]
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
@@ -110,7 +111,7 @@ class Game {
         let messages = [];
         player.changeHP(amount);
         if (player.hp <= 0) {
-            currentEnding = endings[cause + ' death'] ? cause + ' death' : 'default death';
+            currentEnding = endings[cause] ? cause : 'default death';
         }
         if (amount >= 0) {
             messages.push(customMessage || `[c:lime]HP +${amount}`);
@@ -212,28 +213,20 @@ class Game {
     }
 
     // initiates combat
-    async encounter(enemies, rewards) {
-        let choices = [
-            new Choice('Fight', {speed: 0}).addAction(),
-            new Choice('Item', {speed: 0}),
-            new Choice('Inspect', {speed: 0}),
-        ];
-        clearText();
-        typeText(`You meet enemies`, document.getElementById('story'));
-        while (enemies.length > 0 && player.hp > 0) {
-            // shows options: Fight, Item, Inspect
-            
-            // await clicking of any option
-            // check what option is clicked, and run that function
-        }
+    async encounter(enemies, rewards, groupName) {
+        await battle.encounter(enemies, rewards, groupName);
     }
+
 
     // initiates an ending
     async ending(endType) {
         isGameLoop = false;
         currentEnding = endings[endType];
-        currentEnding.createChoice('Restart')
-            .addAction({ type: 'restart' });
+        if (!history.endings.includes(endType)){
+            currentEnding.createChoice('Restart', {repeatable: true})
+                .addAction({ type: 'restart'});
+        }
+        history.addEnding(endType);
         clearDialogueText();
         for (const item of currentEnding.queuelist) {
             if (item.type === 'story') {
@@ -300,9 +293,94 @@ class Game {
 
 }
 
+// holds combat methods
+class Battle {
+    constructor() {
+
+    }
+
+    async encounter(enemies, rewards, groupName='some enemies') {
+        let selectedChoice;
+        let remainingEnemies = enemies;
+        const battleContainer = document.getElementById('battle-input');
+        const dialogueBox = document.getElementById('dialogue-box');
+        let menuChoices = [
+            new Choice('Fight', {speed: -1}),
+            new Choice('Item', {speed: -1}),
+            new Choice('Inspect', {speed: -1}),
+        ];
+        clearDialogueText();
+        typeText(`You have encountered ${groupName}`, document.getElementById('story'), -1, 0, true, document.getElementById('dialogue-box'));
+        while (remainingEnemies.length > 0 && player.hp > 0) {
+            clearText(battleContainer)
+            // shows options: Fight, Item, Inspect
+            showChoices(menuChoices, battleContainer);
+            selectedChoice = await tryChoices(battleContainer);
+            selectedChoice = selectedChoice.text.toLowerCase();
+
+            // check what option is clicked, and run that function
+            if (selectedChoice === 'fight') {
+                await battle.selectEnemy(remainingEnemies, battleContainer);
+                await battle.enemyTurn
+            }
+        }
+
+        if (player.hp > 0) {
+            // loot!
+            clearDialogueText();
+            typeText(`You have defeated ${groupName}`, document.getElementById('story'), -1, 0, true, document.getElementById('dialogue-box'));
+            let rewardActions = []
+            for (const reward of rewards) {
+                rewardActions.push(new Action('getItem', [reward.name, reward.min, reward.max], false))
+            }
+            attemptActionsWithText(rewardActions);
+            await fnExports.awaitClick(dialogueBox);
+        }
+    }
+    
+    // shows the remaining enemies to select
+    async selectEnemy(enemies, container) {
+        clearDialogueText();
+        typeText(`Choose your enemy`, document.getElementById('story'), -1, 0, true, document.getElementById('dialogue-box'));
+        let selectedEnemy;
+        let choices = [];
+        for (const enemy of enemies) {
+            choices.push(new Choice(enemy.name, {speed: -1, value: enemy}));
+        }
+        showChoices(choices, container);
+        let selectedChoice = await tryChoices(container);
+        selectedEnemy = selectedChoice.value;
+        await battle.fightEnemy(selectedEnemy, container)
+
+        // dead enemy gets removed
+        if (selectedEnemy.hp === 0) {
+            enemies.splice(enemies.indexOf(selectedEnemy), 1)
+        }
+    }
+
+    // shows the remaining enemies to select
+    async fightEnemy(enemy, container) {
+        clearDialogueText();
+        let playerAttack = player.getAttack();
+        enemy.changeHP(-playerAttack)
+        typeText(`You delt [class:health]${playerAttack}[:] damage.`, document.getElementById('action-output'), -1, 0, true, document.getElementById('dialogue-box'));
+        await typeText(`Remaining enemy health: [class:health]${enemy.hp}`, document.getElementById('action-output'), -1, 0, true, document.getElementById('dialogue-box'),null,null, true);
+
+        clearDialogueText();
+        if (enemy.hp === 0) {return}
+
+        let enemyAttack = enemy.getAttack();
+        game.changeHP(-enemyAttack, -enemyAttack, 'slain by enemy')
+        typeText(`${enemy.name} delt [class:health]${enemyAttack}[:] damage.`, document.getElementById('action-output'), -1, 0, true, document.getElementById('dialogue-box'));
+        await typeText(`Remaining health: [class:health]${player.hp}`, document.getElementById('action-output'), -1, 0, true, document.getElementById('dialogue-box'),null,null, true);
+        clearDialogueText();
+        
+    }
+}
+
 // generic character class
 class Character {
-    constructor(name, hp=100, strength=1, agility=1) {
+    constructor(name, hp=100, strength=10, agility=10) {
         this.name = name;
         this._maxHP = new Reactor(hp);
         this._hp = new Reactor(this._maxHP.value);
@@ -333,8 +411,8 @@ class Character {
         return this.maxHP;
     }
 
-    getDamage() {
-        return this.power;
+    getAttack() {
+        return Math.round(this.strength * fnExports.random(.8, 1.2, 1));
     }
 
     getSpeed() {
@@ -344,7 +422,7 @@ class Character {
 }
 class Player extends Character {
     constructor() {
-        super('Player', 100, 1, 1);
+        super('Player', 100, 10, 10);
         this._inventory = new Reactor({});
         this._maxHP.bindQuery('#stat-maxHP');
         this._hp.bindQuery('#stat-hp');
@@ -407,6 +485,12 @@ class Player extends Character {
 
 }
 
+class Enemy extends Character {
+    constructor(name, hp, strength, agility) {
+        super(name, hp, strength, agility)
+    }
+}
+
 
 // default text object for writing to the page
 class TextObject {
@@ -433,8 +517,16 @@ class TextObject {
     }
 }
 
+class Action {
+    constructor(type, parameters=[], waits=false) {
+        this.type = type;
+        this.parameters = parameters;
+        this.waits = waits;
+    }
+}
+
 class Choice extends TextObject {
-    constructor(text, options = {}, repeatable = false, speed = 4, variance = 1, animation = 'default', skippable = true, room = undefined, id = '', customID = '') {
+    constructor(text, options = {}, repeatable = false, speed = 4, variance = 1, animation = 'default', skippable = true, room = undefined, id = '', customID = '', value='') {
         super(text, options, speed, variance, animation, skippable, true, 0);
         this.hidden = false;
         this.repeatable = repeatable;
@@ -451,9 +543,9 @@ class Choice extends TextObject {
 
     addAction(options, type, parameters, waits) {
         type = options.type ?? type;
-        parameters = options.parameters ?? parameters ?? [];
+        parameters = options.parameters ?? parameters;
         waits = options.waits ?? false;
-        this.actions.push({ type, parameters, waits });
+        this.actions.push(new Action(type, parameters, waits));
         return this;
     }
 
@@ -520,9 +612,9 @@ class Room {
     // adds an action for a room
     addAction(options, type, parameters, waits) {
         type = options.type ?? type;
-        parameters = options.parameters ?? parameters ?? [];
+        parameters = options.parameters ?? parameters;
         waits = options.waits ?? waits ?? false;
-        const action = { type, parameters, waits };
+        const action = new Action(type, parameters, waits);
         this.actions.push(action);
 
         const lastInQueue = this.queuelist[this.queuelist.length - 1]
@@ -689,6 +781,7 @@ function clearDialogueText() {
     clearText(document.getElementById('story'));
     clearText(document.getElementById('action-output'));
     clearText(document.getElementById('choices'));
+    clearText(document.getElementById('battle-input'));
 }
 
 // types out text (can be skipped by clicking on element)
@@ -784,9 +877,9 @@ function getShownChoices(choices) {
 }
 
 // diplays each choice to the dialogue box
-async function showChoices(choices) {
+async function showChoices(choices, container) {
     const dialogueBox = document.getElementById('dialogue-box');
-    const choiceContainer = document.getElementById('choices');
+    const choiceContainer = container ?? document.getElementById('choices');
     let choiceElements = [];
     let choiceTexts = [];
 
@@ -1033,6 +1126,7 @@ async function init() {
     player = new Player();
     history = new History();
     game = new Game();
+    battle = new Battle();
     generateAllRooms();
     generateEndings();
     await sleep(1000);
@@ -1061,6 +1155,8 @@ function generateExampleRooms() {
         .addAction({type: 'changeRoom', parameters: ['Example Room']});
     room.createChoice('Particle Testing')
         .addAction({type: 'changeRoom', parameters: ['Example Room Particles']});
+    room.createChoice('Battle Testing')
+        .addAction({type: 'changeRoom', parameters: ['Example Room Battle']});
 
     room = createRoom('Example Room', { name: 'neutral.jpeg' });
     room.addStory(`This is a [an:text-blur 1s ease][c:red]test[c:] story`);
@@ -1105,8 +1201,9 @@ function generateExampleRooms() {
     room.addAction({ type: 'styleBG', parameters: ['[fi:grayscale(.6) blur(8px)]'] });
     room.addStory('1...', { waitDelay: 1000, waits: false });
     room.addAction({ type: 'changeBG', parameters: ['escape.jpeg', { waitsOut: true }] });
+    room.addStory('El fin');
     room.addAction({ type: 'ending', parameters: ['Example Ending'] });
-
+    
     // particle testing
     room = createRoom('Example Room Particles', { name: 'neutral.jpeg' });
     room.addAction({type: 'changeParticleAnimation', parameters: ['fog', 1, 1]});
@@ -1125,10 +1222,27 @@ function generateExampleRooms() {
     smoke.addAction({type: 'changeParticleAnimation', parameters: ['smoke top', 1, 1]});
     smoke.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [ashes.id] })
 
-    room.addStory('El fin');
-
-    let ending = createEnding('Example Ending', { transition: { out: '', in: '' } });
-    ending.addStory('Yay! You reached the end!', { waitDelay: 500, waits: false });
+    // battle testing
+    room = createRoom('Example Room Battle', { name: 'neutral.jpeg' });
+    room.addAction({type: 'encounter', parameters: [[
+        new Enemy('Example Enemy', 10, 2, 2),
+        new Enemy('Example Enemy 2', 20, 5, 5)
+    ],
+    [
+        {name: 'Example Reward', min: 1, max: 5},
+        {name: 'Example Reward 2', min: 1, max: 5}
+    ], 'a couple of example enemies'], waits: true})
+    room.addAction({type: 'encounter', parameters: [[
+        new Enemy('Weak Enemy', 10, 2, 2),
+        new Enemy('OP Enemy', 200, 500, 500),
+        new Enemy('Enemy 3', 1, 1, 1),
+        new Enemy('Enemy 4', 1, 1, 1),
+        new Enemy('Enemy 5', 1, 1, 1),
+        new Enemy('Enemy 6', 1, 1, 1),
+        new Enemy('Enemy 7', 1, 1, 1)
+    ], [
+        {name: 'Wacky Thing', min: 1, max: 1}
+    ], 'The Wacky Gang'], waits: true})
 }
 
 function generateStartingRooms() {
@@ -1269,12 +1383,18 @@ function generateEscapeRooms() {
 
 // endings
 function generateEndings() {
-    let ending = createEnding('stayed behind');
+    let ending = createEnding('Example Ending', { transition: { out: '', in: '' } });
+    ending.addStory('Yay! You reached the end!', { waitDelay: 500, waits: false });
+
+    ending = createEnding('stayed behind');
     ending.addStory('[c:#bf1b1b][an:text-shiver .25s ease-in-out infinite alternate]Your loss,[:] I guess.');
     ending.addStory(`You didn't live long enough to tell the story.`, { waits: false });
 
     ending = createEnding('default death');
     ending.addStory('[c:#bf1b1b][an:text-shiver .25s ease-in-out infinite alternate]You Died.', { waits: false });
+
+    ending = createEnding('slain by enemy');
+    ending.addStory('You got killed by an enemy. [c:#bf1b1b][an:text-shiver .25s ease-in-out infinite alternate]How unfortunate...', { waits: false });
 
     ending = createEnding('squeegee death');
     ending.addStory('You got killed by a squeegee? How???', { waits: false });

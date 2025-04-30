@@ -7,7 +7,7 @@
     --escape: rgb(155, 4, 220);
     --savior: rgb(30, 224, 0);
     --destruction: rgb(181, 7, 7);
-    --Gali: rgb(41, 91, 255);
+    --gali: rgb(41, 91, 255);
     --character: rgb(223, 145, 27);
     --dialogue: rgb(224, 0, 187);
     --actions: rgb(142, 142, 142);
@@ -177,17 +177,26 @@ p {
 
 #main-nav button {
     padding: 1rem;
-    border-radius: 4px;
-    border: solid 1px var(--button-color);
     color: var(--button-color);
-    box-shadow: inset 0 0 8px var(--button-color);
-    transition: 200ms ease;
+    border: solid 1px;
+    border-radius: 4px;
+    box-shadow: inset 0 0 8px;
     font-size: 20px;
+    transition: 200ms ease;
+}
+
+.button-future-1 {
+    border: solid 1px;
+    box-shadow: inset 0 0 8px;
+    border-radius: 4px;
+    padding: 1rem;
 }
 
 #main-nav button:hover,
-#main-nav button:focus-visible {
-    box-shadow: inset 0 0 10px 4px var(--button-color);
+#main-nav button:focus-visible,
+.button-future-1:hover,
+.button-future-1:focus-visible {
+    box-shadow: inset 0 0 10px 4px;
     outline: none
 }
 
@@ -358,8 +367,34 @@ p {
 }
 
 #battle-input {
+    flex-flow: row wrap;
     pointer-events: visiblePainted;
     justify-content: space-between;
+    gap: 1rem;
+}
+
+#battle-input .choice {
+    margin-top: 8px;
+    box-shadow: inset 0 0 8px;
+    border: solid 1px;
+    padding: 1rem;
+    border-radius: 4px;
+    min-width: 25%;
+}
+
+#battle-input .choice:hover,
+#battle-input .choice:focus-visible {
+    box-shadow: inset 0 0 10px 4px;
+    outline: none;
+}
+
+#battle-input .choice:hover .transition-character {
+    text-decoration: none;
+}
+
+#battle-input .choice .text-line {
+    margin: auto;
+    width: fit-content;
 }
 
 .item-count {
