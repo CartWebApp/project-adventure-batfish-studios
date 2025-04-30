@@ -24,7 +24,7 @@ let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
-let startingRoom = 'Example Hub'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
@@ -49,6 +49,7 @@ class History {
         this.actionsLog = [];
         this._roomsVisited = {run: [], past: []}; // rooms visited on current run and all time
         this._endings = new Set();
+        this.resets = 0;
     }
     
     get endings() { return Array.from(this._endings) }
@@ -1256,7 +1257,7 @@ function generateStartingRooms() {
 
     room = createRoom('b-2-pods', { transition: { out: '', in: '' } }); // beginning-2
     room.addStory(`You get hit with a strong sense of deja vu, but you continue onwards.`)
-        .addRequirement({mode: 'show', type: ()=> resets > 0 && game.madePastChoice('enter-pod')}); // only shows when having done this in a previous run
+        .addRequirement({mode: 'show', type: ()=> history.resets > 0 && game.madePastChoice('enter-pod')}); // only shows when having done this in a previous run
     room.addAction({ type: 'styleBG', parameters: ['[an:blur-out 5s ease-out,fade-out 5s ease-out][fi:blur(16px)][op:0]'] });
     room.addStory(`And so you let yourself fade away, no longer within the world...`, { waits: false, waitDelay: 2000, speed: 70, animation: 'blur' });
     room.addAction({ type: 'changeBG', parameters: ['destruction.jpeg', { out: '', in: '' }] });
