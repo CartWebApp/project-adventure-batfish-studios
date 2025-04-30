@@ -14,15 +14,16 @@ let rooms = {};
 let currentRoom;
 let player;
 let isGameLoop = true;
-let choicesMade = [];
 let textController; // makes text writing cancellable
 let textControllerSignal;
 let textCancelled = false;
 let game;
+let history;
 let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
+let resets = 0;
 let startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
 
 const parsableStyles = [
@@ -40,6 +41,41 @@ const parsableStyles = [
     {name: 'opacity', identifier: 'op'}, // example: [op:0.5], or [op:] to reset
 ]  
 
+// holds history data
+class History {
+    constructor() {
+        this.choices = {run: [], past: []};
+        this.storyLog = [];
+        this.actionsLog = [];
+        this._roomsVisited = {run: [], past: []}; // rooms visited on current run and all time
+        this._endings = new Set();
+    }
+    
+    get endings() { return Array.from(this._endings) }
+    
+    addEnding(ending) {
+        this._endings.add(ending);
+    }
+
+    addRoom(room) {
+        this._roomsVisited.run.push(room);
+    }
+
+    addChoice(choice) {
+        this.choices.run.push(choice);
+    }
+
+    // resets run specific history
+    softReset() {
+        this.choices.past.push(...this.choices.run);
+        this._roomsVisited.past.push(...this._roomsVisited.run);
+        this.choices.run = [];
+        this._roomsVisited.run = [];
+        this.storyLog = [];
+        this.actionsLog = [];
+    }
+    
+}
 
 // Holds game logic methods
 class Game {
@@ -105,6 +141,7 @@ class Game {
 
     // changes the current room to a new room
     changeRoom(room) {
+        history.addRoom(room);
         currentRoom = rooms[room];
     }
 
@@ -176,10 +213,16 @@ class Game {
 
     // initiates combat
     async encounter(enemies, rewards) {
+        let choices = [
+            new Choice('Fight', {speed: 0}).addAction(),
+            new Choice('Item', {speed: 0}),
+            new Choice('Inspect', {speed: 0}),
+        ];
         clearText();
         typeText(`You meet enemies`, document.getElementById('story'));
         while (enemies.length > 0 && player.hp > 0) {
-            // shows options
+            // shows options: Fight, Item, Inspect
+            
             // await clicking of any option
             // check what option is clicked, and run that function
         }
@@ -201,7 +244,7 @@ class Game {
                 while (getShownChoices(item.value).length > 0) {
                     showChoices(item.value);
                     let selectedChoice = await tryChoices(document.getElementById('choices'));
-                    choicesMade.push(selectedChoice);
+                    history.addChoice(selectedChoice);
                     clearText(document.getElementById('action-output'))
                     clearText(document.getElementById('choices'))
                     if (selectedChoice.text === 'Restart') {
@@ -220,10 +263,12 @@ class Game {
 
     // resets the player and game
     async restart() {
+        resets += 1;
+        history.softReset();
         player = new Player();
+        generateAllRooms();
         currentRoom = startingRoom;
         isGameLoop = true;
-        choicesMade = [];
         document.getElementById('history-content').innerHTML = '';
         await sleep(10);
         clearDialogueText();
@@ -243,7 +288,12 @@ class Game {
 
     // returns whether a choice has been previously made
     madeChoice(choiceId) {
-        return checkPropertyValues(choicesMade, 'id', choiceId);
+        return checkPropertyValues(history.choices.run, 'id', choiceId);
+    }
+
+    // returns whether a choice has been made in a previous run
+    madePastChoice(choiceId) {
+        return checkPropertyValues(history.choices.past, 'id', choiceId);
     }
 
 }
@@ -762,6 +812,8 @@ function checkRequirements(choice, mode = 'use') {
             result = game[requirement.type](...requirement.parameters)
         } else if (typeof window[requirement.type] === 'function') {
             result = window?.[requirement.type](...requirement.parameters);
+        } else if (typeof requirement.type === 'function') {
+            result = requirement.type(...requirement.parameters);
         }
         if (typeof result != "object") {
             result = { result };
@@ -806,6 +858,8 @@ async function attemptAction(action) {
             return await game[action.type](...action.parameters);
         } else if (typeof window[action.type] === 'function') {
             return await window?.[action.type](...action.parameters);
+        } else if (typeof action.type === 'function') {
+            return await action.type(...action.parameters);
         }
     } else {
 
@@ -814,6 +868,8 @@ async function attemptAction(action) {
             return game[action.type](...action.parameters);
         } else if (typeof window[action.type] === 'function') {
             return window?.[action.type](...action.parameters);
+        } else if (typeof action.type === 'function') {
+            return action.type(...action.parameters);
         }
     }
 }
@@ -887,7 +943,7 @@ async function gameLoop() {
                     }
                     showChoices(item.value);
                     let selectedChoice = await tryChoices(choiceContainer);
-                    choicesMade.push(selectedChoice);
+                    history.addChoice(selectedChoice);
                     clearText(document.getElementById('action-output'))
                     clearText(document.getElementById('choices'))
                     await attemptActionsWithText(selectedChoice.actions);
@@ -972,6 +1028,7 @@ async function init() {
     // ], [{},{scale: (base, index)=>base + index*1 * (1 + index % 2 * -2)}]);
     createEventListeners();
     player = new Player();
+    history = new History();
     game = new Game();
     generateAllRooms();
     generateEndings();
@@ -1081,6 +1138,8 @@ function generateStartingRooms() {
     choice2.addAction({ type: 'ending', parameters: ['stayed behind'] });
 
     room = createRoom('b-2-pods', { transition: { out: '', in: '' } }); // beginning-2
+    room.addStory(`You get hit with a strong sense of deja vu, but you continue onwards.`)
+        .addRequirement({mode: 'show', type: ()=> resets > 0 && game.madePastChoice(choice1.id)}); // only shows when having done this in a previous run
     room.addAction({ type: 'styleBG', parameters: ['[an:blur-out 5s ease-out,fade-out 5s ease-out][fi:blur(16px)][op:0]'] });
     room.addStory(`And so you let yourself fade away, no longer within the world...`, { waits: false, waitDelay: 2000, speed: 70, animation: 'blur' });
     room.addAction({ type: 'changeBG', parameters: ['destruction.jpeg', { out: '', in: '' }] });
@@ -1091,7 +1150,7 @@ function generateStartingRooms() {
     room.addStory(`Stepping out of the pod, it appears that yours was the only one to be well-maintained. The other two pods are rusty and broken, with the glass shattered and labels long faded.`);
     room.addStory(`In fact, you can barely make out your own name on the scratchy, old label.`);
     room.addStory(`[c:var(--Gali)]"Gali."`, { waits: false, waitDelay: 1500, speed: 50 });
-    room.addStory(`There doesn't seem to be much left to do or see. Anything that once was is long gone.`, { waits: false, });
+    room.addStory(`There doesn't seem to be much left to do or see. Anything that once was is long gone.`, { waits: false });
     choice1 = room.createChoice("Leave the lab.");
     choice1.addAction({ type: 'changeRoom', parameters: ['b-3-hallways'] });
     choice2 = room.createChoice(`Go back to sleep.`, {repeatable: true});

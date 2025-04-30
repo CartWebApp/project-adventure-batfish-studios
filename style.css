@@ -357,6 +357,11 @@ p {
     overflow-wrap: anywhere;
 }
 
+#battle-input {
+    pointer-events: visiblePainted;
+    justify-content: space-between;
+}
+
 .item-count {
     color: yellow;
 }
