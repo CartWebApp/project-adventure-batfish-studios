@@ -288,12 +288,14 @@ class Game {
 
     // returns whether a choice has been previously made
     madeChoice(choiceId) {
-        return checkPropertyValues(history.choices.run, 'id', choiceId);
+        return checkPropertyValues(history.choices.run, 'id', choiceId)
+        || checkPropertyValues(history.choices.run, 'customID', choiceId);
     }
 
     // returns whether a choice has been made in a previous run
     madePastChoice(choiceId) {
-        return checkPropertyValues(history.choices.past, 'id', choiceId);
+        return checkPropertyValues(history.choices.past, 'id', choiceId)
+            || checkPropertyValues(history.choices.past, 'customID', choiceId);
     }
 
 }
@@ -432,12 +434,13 @@ class TextObject {
 }
 
 class Choice extends TextObject {
-    constructor(text, options = {}, repeatable = false, speed = 4, variance = 1, animation = 'default', skippable = true, room = undefined, id = '') {
+    constructor(text, options = {}, repeatable = false, speed = 4, variance = 1, animation = 'default', skippable = true, room = undefined, id = '', customID = '') {
         super(text, options, speed, variance, animation, skippable, true, 0);
         this.hidden = false;
         this.repeatable = repeatable;
         this.room = room;
         this.id = id;
+        this.customID = customID;
         this.actions = [];
         this.requirements = [];
         transferProperties(this.options, this);
@@ -494,9 +497,9 @@ class Room {
     }
 
     // creates a choice and automatically adds it to the room
-    createChoice(text, options, repeatable, speed, variance, animation, skippable) {
+    createChoice(text, options, repeatable, speed, variance, animation, skippable, customID) {
         const id = this.getChoiceId(this.choices.length + 1);
-        const choice = new Choice(text, options, repeatable, speed, variance, animation, skippable, this, id);
+        const choice = new Choice(text, options, repeatable, speed, variance, animation, skippable, this, id, customID);
         this.addChoice(choice);
         return choice;
     }
@@ -1132,14 +1135,14 @@ function generateStartingRooms() {
     let room = createRoom('b-start', { name: 'neutral.jpeg' }); // beginning-1
     room.addStory(`Danger is imminent. You, among two others, were the only ones smart enough to take precautions. Now, you stand before your cryopod, ready to bid your conciousness farewell.`);
     room.addStory(`Step into the pod?`, { waits: false });
-    let choice1 = room.createChoice("Enter.");
+    let choice1 = room.createChoice("Enter.", {customID: 'enter-pod'});
     choice1.addAction({ type: 'changeRoom', parameters: ['b-2-pods'] });
     let choice2 = room.createChoice("Chicken out.");
     choice2.addAction({ type: 'ending', parameters: ['stayed behind'] });
 
     room = createRoom('b-2-pods', { transition: { out: '', in: '' } }); // beginning-2
     room.addStory(`You get hit with a strong sense of deja vu, but you continue onwards.`)
-        .addRequirement({mode: 'show', type: ()=> resets > 0 && game.madePastChoice(choice1.id)}); // only shows when having done this in a previous run
+        .addRequirement({mode: 'show', type: ()=> resets > 0 && game.madePastChoice('enter-pod')}); // only shows when having done this in a previous run
     room.addAction({ type: 'styleBG', parameters: ['[an:blur-out 5s ease-out,fade-out 5s ease-out][fi:blur(16px)][op:0]'] });
     room.addStory(`And so you let yourself fade away, no longer within the world...`, { waits: false, waitDelay: 2000, speed: 70, animation: 'blur' });
     room.addAction({ type: 'changeBG', parameters: ['destruction.jpeg', { out: '', in: '' }] });
