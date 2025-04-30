@@ -24,8 +24,7 @@ let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
-let resets = 0;
-let startingRoom = 'Example Hub'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'e-offer'; // [ 'Example Hub' ][ 'b-start' ]
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
@@ -1283,8 +1282,13 @@ function generateStartingRooms() {
     choice2.addAction({ type: 'changeRoom', parameters: ['d-start'] }); //destruction route
     let choice3 = room.createChoice("Go straight.");
     choice3.addAction({ type: 'changeRoom', parameters: ['s-start'] }); //savior route
-}
 
+    room = createRoom(`b-return`, { name: 'neutral.jpeg' }); // changed mind at some point
+    room.addStory(`Returning to the lab, you find that the way back to your cryopod is now blocked off. The ceiling has collapsed, and the only way back out is through one of the other hallways.`);
+    room.addStory(`You can either go [c:var(--escape)]left, [c:var(--destruction)]right, [c:]or [c:var(--savior)]straight ahead.`);
+    // choice1 = room.createChoice("Go left.");
+     // .addRequirement({ mode: 'show', type: 'madeChoice', parameters: []});
+}
 // Escape
 function generateEscapeRooms() {
     let room = createRoom('e-start', {name: 'escape.jpeg'});
@@ -1351,7 +1355,7 @@ function generateEscapeRooms() {
     room.addStory(`As you recall how you'd first seeked safety in the cryopod, the leader's stance seems to soften a bit.`);
     room.addStory(`They let their guard down further the more you talk, their gaze drifting to the crumbling lab behind you.`); 
     room.addStory(`Slowly, they pull their hood back, revealing their iridescent, choppy hair and purple scales.`);
-    room.addStory(`[c:var(--dialogue)]"So [fst:italic]you're [fst:][c:var(--Gali)]the Permafrost Subject.[c:var(--dialogue)]"`);
+    room.addStory(`[c:var(--dialogue)]"So [fst:italic]you're [fst:][c:var(--Gali)]Project Permafrost.[c:var(--dialogue)]"`);
     room.addStory(`You tilt your head in confusion, squinting at the rogue survivor.`);
     room.addStory(`Sensing your puzzlement, they approach you, glancing up and down at your figure.`);
     room.addStory(`[c:var(--dialogue)]"Of course! [fst:italic]now [fst:]I recognize the uniform. You were..."`);
@@ -1370,15 +1374,50 @@ function generateEscapeRooms() {
     room.addStory(`[fw:bold][fs:30px][c:var(--dialogue)][an:text-shiver .65s ease-in-out infinite alternate]"...fifteen years?"`, {speed: 65});
     room.addStory(`She moves on without giving you so much as a second to process that little tidbit.`);
     room.addStory(`[c:var(--dialogue)]"It's a good thing you're out now, I suppose. We were just popping through the area to see if there was anything worth taking."`);
-    room.addAction({type: 'changeRoom', parameters: ['e-taskList']});
+    room.addAction({type: 'changeRoom', parameters: ['e-offer']});
 
     room = createRoom(`e-gfSarcastic`, {name: 'escape.jpeg'});
     room.addStory(``);
 
-    room = createRoom(`e-taskList`, {name:'escape.jpeg', transition: {out: '', in: ''}});
+    room = createRoom(`e-offer`, {name:'escape.jpeg', transition: {out: '', in: ''}});
     room.addStory(`Continuing to eye you a little, she appears to be lost in thought.`);
     room.addStory(`[c:var(--character)]Idelle [c:]hums to herself, insert more story here`);
     room.addStory(`[c:var(--dialogue)]"You know, this place is gonna blow to bits any day now.`);
+    room.addStory(`"It won't do you any good if you stay here."`);
+    room.addStory(`"After all, just look at the state of the lab now. Who knows what could have happened if your pod hadn't opened now?"`);
+    room.addStory(`Glancing over your shoulder, the lab appears to be in a much worse state than you'd thought from the inside. As if on cue...`);
+    room.addStory(`(CRASH!)`);
+    room.addStory(`...one of the walls collapses, sending a cloud of dust and debris flying.`);
+    room.addStory(`With a sigh, [c:var(--character)]Idelle [c:]gestures to the wreckage.`);
+    room.addStory(`"Case in point."`);
+    room.addStory(`She turns to the group, who are still standing around, weapons at the ready.`);
+    room.addStory(`"We were just about to head out, but...I suppose we could do with a plus one."`);
+    room.addStory(`[c:var(--character)]Idelle [c:]looks back at you, her expression softening.`);
+    room.addStory(`"We're still gathering up quite a bit of supplies, and we could use the extra help. Besides, it's not like you have much of a chance here."`);
+    room.addStory(`The other four survivors are still eyeing you suspiciously, weapons at the ready. They don't seem like they plan on being very welcoming.`);
+    room.addStory(`Meanwhile, [c:var(--character)]Idelle [c:]is still waiting for your answer, hand outstretched towards you.`);
+    choice1 = room.createChoice(`Go with Idelle, your life depends on it.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-taskList']});
+    choice2 = room.createChoice(`You don't know these people. Stay behind.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['b-return']});
+
+    room = createRoom(`e-taskList`, {name: 'escape.jpeg', transition: {out: '', in: ''}});
+    room.addStory(`You take a deep breath and step forward, shaking [c:var(--character)]Idelle's [c:]hand.`);
+    room.addStory(`She smiles while the crew lower their weapons.`);
+    room.addStory(`"Welcome aboard, Gali."`);
+    room.addStory(`"Now then—"`);
+    room.addStory(`[c:var(--character)]Idelle [c:]gestures to the ship.`);
+    room.addStory(`"You can start by helping us gather supplies. We need to stock up before we leave, and there's still a bit of...[fst:italic]renovation,[fst:] we'll call it...to do."`);
+    room.addStory(`You must gather the following items:`);
+    room.addStory(`- 1 FUEL CANISTER`);
+    room.addStory(`- 1 MICROCHIP`);
+    room.addStory(`- 5 SCRAP METAL`);
+    room.addStory(`- 15 FOOD PACKS`);
+    room.addStory(`- MEDICAL KITS`);
+    room.addStory(`[c:var(--character)]Idelle [c:]drags some kind of...thing out of the ship, pushing what appears to be a big hunk of metal towards you.`);
+    room.addStory(`"Here. Call it a welcome gift."`);
+    room.addStory(`Explore the wasteland and gather supplies for the ship.`);
+
 }
 
 // endings
