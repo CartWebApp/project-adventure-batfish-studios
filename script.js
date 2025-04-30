@@ -24,7 +24,7 @@ let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
-let startingRoom = 'e-offer'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'Example Hub'; // [ 'Example Hub' ][ 'b-start' ]
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
@@ -255,7 +255,7 @@ class Game {
 
     // resets the player and game
     async restart() {
-        resets += 1;
+        history.resets += 1;
         history.softReset();
         player = new Player();
         generateAllRooms();
@@ -860,7 +860,9 @@ async function showStory(story) {
         let textLine = document.createElement('div');
         textLine.textContent = cleanText;
         textLine.classList.add('story-history');
+        history.storyLog.push(cleanText);
         document.getElementById('history-content').appendChild(textLine);
+        clearText(document.getElementById('action-output'));
     }
 }
 
@@ -980,6 +982,7 @@ async function attemptActionsWithText(actions) {
                 const cleanText = parseStyles(message, 'This returns the clean text because nothing matches this.').text;
                 let textLine = document.createElement('div');
                 textLine.textContent = cleanText;
+                history.actionsLog.push(cleanText);
                 textLine.classList.add('action-history');
                 document.getElementById('history-content').appendChild(textLine);
             }
@@ -1026,9 +1029,7 @@ async function gameLoop() {
                 return;
             }
             if (item.type === 'story') {
-                clearText(document.getElementById('story'));
                 await showStory([item.value]);
-                clearText(document.getElementById('action-output'));
             } else if (item.type === 'choicelist') {
                 while (isGameLoop && getShownChoices(item.value).length > 0 && thisRoom === currentRoom && !leaveChoices) {
                     leaveChoices = false;
