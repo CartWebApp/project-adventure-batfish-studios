@@ -1381,12 +1381,12 @@ function generateEscapeRooms() {
 
     room = createRoom(`e-offer`, {name:'escape.jpeg', transition: {out: '', in: ''}});
     room.addStory(`Continuing to eye you a little, she appears to be lost in thought.`);
-    room.addStory(`[c:var(--character)]Idelle [c:]hums to herself, insert more story here`);
+    room.addStory(`[c:var(--character)]Idelle [c:]hums to herself, examining the wreckage of the lab behind you.`);
     room.addStory(`[c:var(--dialogue)]"You know, this place is gonna blow to bits any day now.`);
     room.addStory(`"It won't do you any good if you stay here."`);
     room.addStory(`"After all, just look at the state of the lab now. Who knows what could have happened if your pod hadn't opened now?"`);
     room.addStory(`Glancing over your shoulder, the lab appears to be in a much worse state than you'd thought from the inside. As if on cue...`);
-    room.addStory(`(CRASH!)`);
+    room.addStory(`[c:var(--actions)](CRASH!)`);
     room.addStory(`...one of the walls collapses, sending a cloud of dust and debris flying.`);
     room.addStory(`With a sigh, [c:var(--character)]Idelle [c:]gestures to the wreckage.`);
     room.addStory(`"Case in point."`);
@@ -1416,8 +1416,34 @@ function generateEscapeRooms() {
     room.addStory(`- MEDICAL KITS`);
     room.addStory(`[c:var(--character)]Idelle [c:]drags some kind of...thing out of the ship, pushing what appears to be a big hunk of metal towards you.`);
     room.addStory(`"Here. Call it a welcome gift."`);
-    room.addStory(`Explore the wasteland and gather supplies for the ship.`);
+    room.addStory(`"We found this a while back, but it doesn't seem to be doing much for us. You can have it."`);
+    room.addStory(`Suddenly, the thing starts to shudder, and a loud whirring noise fills the air.`);
+    room.addStory(`It gives a quiet chirp as a metal plate slides open, revealing a small screen with two little, glowing eyes.`);
+    room.addStory(`"Oh, uh...`);
+    room.addStory(`That's not supposed to happen."`);
+    room.addStory(`The little machine chirps again, and the screen lights up, displaying a small, pixelated face.`);
+    room.addStory(`"Wait a minute, I know what this is!"`);
+    room.addStory(`[c:var(--character)]Idelle [c:]excitedly exclaims, beaming as she points at the machine.`);
+    room.addStory(`"These things are ancient! They had all sorts of these little guys running around back in the day, remember?"`);
+    room.addStory(`You shake your head. This is unlike anything you've ever seen before.`);
+    room.addStory(`Realizing her error, [c:var(--character)]Idelle [c:]frowns, looking a little embarrassed.`);
+    room.addStory(`"Right, right. You were frozen for a while, huh?"`);
+    room.addStory(`She clears her throat, trying to regain her composure.`);
+    room.addStory(`"This is a little helper bot! It can help you with all sorts of things, like finding items and keeping track of your inventory."`);
+    room.addStory(`"Weird that it's still working, though. I thought they all broke down ages ago."`);
+    room.addStory(`After a moment, she grins awkwardly.`);
+    room.addStory(`"Not that I was just gonna hand it off to you to deal with or anything. I just thought it was a...neat little thing."`);
+    room.addStory(`Upon inspection, the little machine appears to be a small, round ball with a screen on it. It has two little arms and legs, and a tiny little face that looks like it's made out of pixels.`);
+    room.addStory(`For a moment, the screen reads in little, pixelated letters:`);
+    room.addStory(`[c:var(--dialogue)]"HELLO! MY NAME IS OTTO :-]"`);
+    room.addStory(`Then, the screen flickers and goes blank.`);
+    room.addStory(`[c:var(--character)]Idelle [c:]shrugs with a smile.`);
+    room.addStory(`"I guess it likes you."`);
+    room.addStory(`"Now, if you don't mind, I have a few things to take care of. come back to the ship when you've found everything"`);
+    choice1 = room.createChoice(`Explore the wasteland and gather supplies for the ship.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-wasteland']});
 
+    room = createRoom(`e-wasteland`, {name: 'escape.jpeg'});
 }
 
 // endings
