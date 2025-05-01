@@ -24,7 +24,7 @@ let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
-let startingRoom = 'e-offer'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'e-5-1'; // [ 'Example Hub' ][ 'b-start' ]
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
@@ -1439,12 +1439,285 @@ function generateEscapeRooms() {
     room.addStory(`Then, the screen flickers and goes blank.`);
     room.addStory(`[c:var(--character)]Idelle [c:]shrugs with a smile.`);
     room.addStory(`"I guess it likes you."`);
-    room.addStory(`"Now, if you don't mind, I have a few things to take care of. come back to the ship when you've found everything"`);
+    room.addStory(`"Now, if you don't mind, I have a few things to take care of. come back to the ship when you've found everything."`);
+    room.addStory(`The wasteland is a desolate, barren dust bowl. The ground is cracked and dry, and the air is thick with dust and debris. Your mouth tastes more and more like metal the longer you stand out here.`);
     choice1 = room.createChoice(`Explore the wasteland and gather supplies for the ship.`);
-    choice1.addAction({type: 'changeRoom', parameters: ['e-wasteland']});
+    choice1.addAction({type: 'changeRoom', parameters: ['e-3-3']});
 
-    room = createRoom(`e-wasteland`, {name: 'escape.jpeg'});
+    room = createRoom(`e-1-1`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (1,1).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-1-2']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-2-1']});
+
+    room = createRoom(`e-1-2`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (1,2).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-1-3']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-2-2']});
+    let choice3 = room.createChoice(`Go South.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-1-1']});
+
+    room = createRoom(`e-1-3`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (1,3).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-1-4']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-2-3']});
+    choice3 = room.createChoice(`Go South.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-1-2']});
+
+    room = createRoom(`e-1-4`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (1,4).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-1-5']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-2-4']});
+    choice3 = room.createChoice(`Go South.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-1-3']});
+
+    room = createRoom(`e-1-5`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (1,5).`);
+    choice1 = room.createChoice(`Go South.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-1-4']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-2-5']});
+
+    room = createRoom(`e-2-1`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (2,1).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-2-2']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-3-1']});
+    choice3 = room.createChoice(`Go West.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-1-1']});
+
+
+
+    room = createRoom(`e-2-2`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (2,2).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-2-3']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-3-2']});
+    choice3 = room.createChoice(`Go South.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-2-1']});
+    let choice4 = room.createChoice(`Go West.`);
+    choice4.addAction({type: 'changeRoom', parameters: ['e-1-2']});
+
+    room = createRoom(`e-2-3`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (2,3).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-2-4']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-3-3']});
+    choice3 = room.createChoice(`Go South.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-2-2']});
+    choice4 = room.createChoice(`Go West.`);
+    choice4.addAction({type: 'changeRoom', parameters: ['e-1-3']});
+
+    room = createRoom(`e-2-4`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (2,4).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-2-5']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-3-4']});
+    choice3 = room.createChoice(`Go South.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-2-3']});
+    choice4 = room.createChoice(`Go West.`);
+    choice4.addAction({type: 'changeRoom', parameters: ['e-1-4']});
+
+
+    room = createRoom(`e-2-5`, {name: 'escape.jpeg'});
+    room.addAction({type: 'encounter', parameters: [[
+        new Enemy('Average Joe', 10, 3, 3),
+    ],
+    [
+        {name: 'Food Pack', min: 1, max: 4}
+    ], 'an abnormality!'], waits: true})
+    room.addStory(`You are currently at (2,5).`);
+    choice1 = room.createChoice(`Go South.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-2-4']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-3-5']});
+    choice3 = room.createChoice(`Go West.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-1-5']});
+
+    room = createRoom(`e-3-1`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (3,1).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-3-2']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-4-1']});
+    choice3 = room.createChoice(`Go West.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-2-1']});
+
+
+    room = createRoom(`e-3-2`, {name: 'escape.jpeg'});
+    room.addAction({type: 'encounter', parameters: [[
+        new Enemy('Rootwraith Vine', 8, 5, 5),
+        new Enemy('Blightfruit Beast', 15, 2, 2)
+    ],
+    [
+        {name: 'Food Pack', min: 1, max: 4}
+    ], 'some bad apples!'], waits: true})
+    room.addStory(`You are currently at (3,2).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-3-3']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-4-2']});
+    choice3 = room.createChoice(`Go South.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-3-1']});
+    choice4 = room.createChoice(`Go West.`);
+    choice4.addAction({type: 'changeRoom', parameters: ['e-2-2']});
+
+
+    room = createRoom(`e-3-3`, {name: 'escape.jpeg'});
+    room.addStory('You are currently at (3,3).');
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-3-4']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-4-3']});
+    choice3 = room.createChoice(`Go South.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-3-2']});
+    choice4 = room.createChoice(`Go West.`);
+    choice4.addAction({type: 'changeRoom', parameters: ['e-2-3']});
+
+    room = createRoom(`e-3-4`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (3,4).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-3-5']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-4-4']});
+    choice3 = room.createChoice(`Go South.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-3-3']});
+    choice4 = room.createChoice(`Go West.`);
+    choice4.addAction({type: 'changeRoom', parameters: ['e-2-4']});
+
+    room = createRoom(`e-3-5`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (3,5).`);
+    choice1 = room.createChoice(`Go South.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-3-4']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-4-5']});
+    choice3 = room.createChoice(`Go West.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-2-5']});
+
+    room = createRoom(`e-4-1`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (4,1).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-4-2']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-5-1']});
+    choice3 = room.createChoice(`Go West.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-3-1']});
+
+    room = createRoom(`e-4-2`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (4,2).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-4-3']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-5-2']});
+    choice3 = room.createChoice(`Go South.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-4-1']});
+    choice4 = room.createChoice(`Go West.`);
+    choice4.addAction({type: 'changeRoom', parameters: ['e-3-2']});
+
+    room = createRoom(`e-4-3`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (4,3).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-4-4']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-5-3']});
+    choice3 = room.createChoice(`Go South.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-4-2']});
+    choice4 = room.createChoice(`Go West.`);
+    choice4.addAction({type: 'changeRoom', parameters: ['e-3-3']});
+
+    room = createRoom(`e-4-4`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (4,4).`);
+    room.addAction({type: 'encounter', parameters: [[
+        new Enemy('Heavily Armed Turtle 1', 12, 2, 2),
+        new Enemy('Heavily Armed Turtle 1', 12, 2, 2),
+        new Enemy('Heavily Armed Turtle 3', 12, 2, 2),
+        new Enemy('Heavily Armed Turtle 4', 12, 2, 2),
+    ],
+    [
+        {name: 'Food Pack', min: 1, max: 4}
+    ], 'a clan of mutants!'], waits: true})
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-4-5']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-5-4']});
+    choice3 = room.createChoice(`Go South.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-4-3']});
+    choice4 = room.createChoice(`Go West.`);
+    choice4.addAction({type: 'changeRoom', parameters: ['e-3-4']});
+
+
+    room = createRoom(`e-4-5`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (4,5).`);
+    choice1 = room.createChoice(`Go South.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-4-4']});
+    choice2 = room.createChoice(`Go East.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-5-5']});
+    choice3 = room.createChoice(`Go West.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-4-5']});
+
+    room = createRoom(`e-5-1`, {name: 'escape.jpeg'});
+    room.addAction({type: 'encounter', parameters: [[
+        new Enemy('Blatto Roach', 20, 3, 3),
+        new Enemy('Joyama Spider', 20, 3, 3)
+    ],
+    [
+        {name: 'Food Pack', min: 1, max: 3},
+        {name: 'Lume Fruit', min: 1, max: 2}
+    ], 'an infestation!'], waits: true})
+    room.addStory(`You are currently at (5,1).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-5-2']});
+    choice2 = room.createChoice(`Go West.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-4-1']});
+
+    room = createRoom(`e-5-2`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (5,2).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-5-3']});
+    choice2 = room.createChoice(`Go South.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-5-1']});
+    choice3 = room.createChoice(`Go West.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-4-2']});
+
+    room = createRoom(`e-5-3`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (5,3).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-5-4']});
+    choice2 = room.createChoice(`Go South.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-5-2']});
+    choice3 = room.createChoice(`Go West.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-4-3']});
+
+    room = createRoom(`e-5-4`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (5,4).`);
+    choice1 = room.createChoice(`Go North.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-5-5']});
+    choice2 = room.createChoice(`Go South.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-5-3']});
+    choice3 = room.createChoice(`Go West.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['e-4-4']});
+
+    room = createRoom(`e-5-5`, {name: 'escape.jpeg'});
+    room.addStory(`You are currently at (5,5).`);
+    choice1 = room.createChoice(`Go South.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-5-4']});
+    choice2 = room.createChoice(`Go West.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['e-4-5']});
+
+
 }
+
 
 // endings
 function generateEndings() {
