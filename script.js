@@ -548,7 +548,7 @@ class Character {
 
     // returns a cloned instance
     clone() {
-        return new Character(this.name, this.hp, this.strength, this.agility)
+        return new Character(this.name, this.hp, this.strength, this.agility, this.desc)
     }
 
     // changes the characters hp
