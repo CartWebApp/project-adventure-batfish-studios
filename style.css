@@ -11,6 +11,7 @@
     --character: rgb(223, 145, 27);
     --dialogue: rgb(224, 0, 187);
     --actions: rgb(142, 142, 142);
+    --enemy-name: yellow;
 }
 
 
@@ -393,6 +394,36 @@ p {
     display: flex;
     flex-wrap: wrap;
     overflow-wrap: anywhere;
+}
+
+.timing-target,
+.timing-indicator{
+    left: 50%;
+    translate: -50%;
+    height: 10rem;
+    width: 10rem;
+    border-radius: 999rem;
+}
+
+.timing-target {
+    position: relative;
+    border: solid 1px white;
+}
+
+.timing-target.solid {
+    background-color: rgb(0, 199, 0);
+    border: unset;
+}
+
+.timing-indicator {
+    position: absolute;
+    border: solid 1px white;
+    scale: 0;
+}
+
+.timing-indicator.solid {
+    background-color: rgba(199, 0, 0, 0.726);
+    border: unset;
 }
 
 .item-count {

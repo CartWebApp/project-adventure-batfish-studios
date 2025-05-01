@@ -23,7 +23,7 @@ let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
-let startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'Example Hub'; // [ 'Example Hub' ][ 'b-start' ]
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
@@ -312,16 +312,14 @@ class Battle {
         let selectedChoice;
         let menuChoices = [
             new Choice('Fight', {speed: -1}),
-            new Choice('Item', {speed: -1}),
+            // new Choice('Item', {speed: -1}),
             new Choice('Inspect', {speed: -1}),
         ];
-
-        clearDialogueText();
-        typeText(`You have encountered ${this.groupName}`, {...this.textConfig});
-
+        
         // fight loop
         while (this.remainingEnemies.length > 0 && player.hp > 0) {
-            clearText(this.inputContainer)
+            clearDialogueText();
+            typeText(`You have encountered ${this.groupName}`, {...this.textConfig});
             // shows options: Fight, Item, Inspect
             showChoices(menuChoices, this.inputContainer);
             selectedChoice = await tryChoices(this.inputContainer);
@@ -329,9 +327,11 @@ class Battle {
 
             // check what option is clicked, and run that function
             if (selectedChoice === 'fight') {
-                await this.selectEnemy();
+                await this.selectEnemy('fight', 'Which enemy will you attack?');
                 if (this.remainingEnemies.length === 0) break;
                 await this.enemyTurn();
+            } else if (selectedChoice === 'inspect') {
+                await this.selectEnemy('inspect', 'Which enemy will you inspect?');
             }
         }
 
@@ -344,9 +344,9 @@ class Battle {
     }
     
     // shows the remaining enemies to select
-    async selectEnemy() {
+    async selectEnemy(action, text='Which enemy?') {
         clearDialogueText();
-        typeText(`Choose your enemy`, {...this.textConfig});
+        typeText(text, {...this.textConfig});
         let selectedEnemy;
         let choices = [];
         for (const enemy of this.remainingEnemies) {
@@ -355,38 +355,133 @@ class Battle {
         showChoices(choices, this.inputContainer);
         let selectedChoice = await tryChoices(this.inputContainer);
         selectedEnemy = selectedChoice.value;
-        await this.fightEnemy(selectedEnemy)
+
+        if (action === 'fight') {
+            await this.fightEnemy(selectedEnemy);
+        } else if (action === 'inspect') {
+            await this.inspectEnemy(selectedEnemy);
+        }
 
         // dead enemy gets removed
         if (selectedEnemy.hp === 0) {
-            this.remainingEnemies.splice(this.remainingEnemies.indexOf(selectedEnemy), 1)
+            this.remainingEnemies.splice(this.remainingEnemies.indexOf(selectedEnemy), 1);
+            await typeText(`[c:var(--enemy-name)]${selectedEnemy.name}[:] has been defeated!`, {...this.textConfig, waits: true});
         }
     }
 
     // shows the remaining enemies to select
     async fightEnemy(enemy) {
         clearDialogueText();
-        let playerAttack = player.getAttack();
-        enemy.changeHP(-playerAttack)
-        typeText(`You delt [class:health]${playerAttack}[:] damage.`, {...this.textConfig});
+        let baseAttack = player.getAttack();
+        let attackMulti = await this.timedAttack(enemy);
+        let finalAttack = Math.round(baseAttack * attackMulti);
+        enemy.changeHP(-finalAttack)
+        typeText(`You delt [class:health]${finalAttack}[:] damage to [c:var(--enemy-name)]${enemy.name}.`, {...this.textConfig});
         await typeText(`Remaining enemy health: [class:health]${enemy.hp}`, {...this.textConfig, waits: true});
-
-        clearDialogueText();
-        if (enemy.hp === 0) {
-            
-        }
     }
 
     async enemyTurn() {
+        clearDialogueText();
+
         // select random enemy from alive enemies
         let enemy = this.remainingEnemies[random(0, this.remainingEnemies.length - 1)];
-
-        let enemyAttack = enemy.getAttack();
+        let baseAttack = enemy.getAttack();
+        let defenceMulti = await this.timedDefense(enemy);
+        let enemyAttack = Math.round(baseAttack / defenceMulti);
         game.changeHP(-enemyAttack, -enemyAttack, 'slain by enemy')
-        typeText(`${enemy.name} delt [class:health]${enemyAttack}[:] damage.`, {...this.textConfig});
+        typeText(`[c:var(--enemy-name)]${enemy.name}[:] delt [class:health]${enemyAttack}[:] damage.`, {...this.textConfig});
         await typeText(`Remaining health: [class:health]${player.hp}`, {...this.textConfig, waits: true});
-        clearDialogueText();
+    }
+
+    // runs a timing minigame to get attack multi
+    async timedAttack(enemy) {
+        let agilityRatio = player.agility / enemy.agility;
+        let speedMulti;
+        if (player.agility < enemy.agility) {
+            let speedLog = Math.log(1 / agilityRatio);
+            speedMulti = clamp(1 + .5 * speedLog, 1, 100);
+        } else {
+            speedMulti = clamp((1 / agilityRatio) ** .3, .5, 1);
+        }
+
+        let offset = await this.timingGame(speedMulti, 'out');
+        let multi = 2 - (offset * 4) ** .5;
+        return multi;
+    }
+
+    // runs a timing minigame to get defense multi
+    async timedDefense(enemy) {
+        let agilityRatio = player.agility / enemy.agility;
+        let speedMulti;
+        if (player.agility < enemy.agility) {
+            let speedLog = Math.log(1 / agilityRatio);
+            speedMulti = clamp(1 + .5 * speedLog, 1, 100);
+        } else {
+            speedMulti = clamp((1 / agilityRatio) ** .3, .5, 1);
+        }
+
+        let offset = await this.timingGame(speedMulti, 'in');
+        let multi = 1.8 - (offset) ** .5;
+        return multi;
+    }
+
+    // runs a timing minigame to get a multi
+    async timingGame(speed, direction='out') {
+
+        let keyframes;
+
+        if (direction === 'out') {
+            keyframes = [
+                {scale: 0},
+                {scale: 1.5}
+            ]
+        } else if (direction === 'in') {
+            keyframes = [
+                {scale: 2},
+                {scale: 0.5}
+            ]
+        }
+
+        let timing = {
+            duration: 1000 / speed
+        }
+
+        let target = document.createElement('div');
+        target.className = 'timing-target';
+        this.advanceElement.appendChild(target);
+
+        let indicator = document.createElement('div');
+        indicator.className = 'timing-indicator';
+        target.appendChild(indicator);
+
+        if (direction === 'out') {
+            indicator.classList.add('solid');
+        } else {
+            target.classList.add('solid');
+        }
+
+        await sleep(300);
+
+        let animation = indicator.animate(keyframes, timing);
+
+        await Promise.race([animation.finished, awaitClick(this.advanceElement)])
         
+        let offset = Math.abs(1 - getComputedStyle(indicator).scale)
+        indicator.style.scale = getComputedStyle(indicator).scale;
+        animation.cancel();
+        await sleep(500);
+        target.remove();
+        return offset;
+    }
+
+    // displays an enemies info
+    async inspectEnemy(enemy) {
+        clearDialogueText();
+        typeText(`Name: [c:var(--enemy-name)]${enemy.name}`, {...this.textConfig});
+        if (enemy.desc) typeText(`Description: [c:#eeeeee]${enemy.description}`, {...this.textConfig});
+        typeText(`[class:health]HP: ${enemy.hp}/${enemy.maxHP}`, {...this.textConfig});
+        typeText(`[class:strength]Strength: ${enemy.strength}`, {...this.textConfig});
+        await typeText(`[class:agility]Agility: ${enemy.agility}`, {...this.textConfig, waits: true});
     }
 
     // gives the player rewards
@@ -403,12 +498,13 @@ class Battle {
 
 // generic character class
 class Character {
-    constructor(name, hp=100, strength=10, agility=10) {
+    constructor(name, hp=100, strength=10, agility=10, desc='') {
         this.name = name;
         this._maxHP = new Reactor(hp);
         this._hp = new Reactor(this._maxHP.value);
         this._strength = new Reactor(strength);
         this._agility = new Reactor(agility);
+        this._desc = new Reactor(desc);
     }
 
     // creates getters and setters
@@ -420,6 +516,8 @@ class Character {
     set strength(newValue) { this._strength.value = newValue; }
     get agility() { return this._agility.value; }
     set agility(newValue) { this._agility.value = newValue; }
+    get desc() { return this._desc.value; }
+    set desc(newValue) { this._desc.value = newValue; }
 
     // returns a cloned instance
     clone() {
@@ -440,7 +538,7 @@ class Character {
     }
 
     getAttack() {
-        return Math.round(this.strength * fnExports.random(.8, 1.2, 1));
+        return this.strength * fnExports.random(.9, 1.1, 1);
     }
 
     getSpeed() {
@@ -514,8 +612,8 @@ class Player extends Character {
 }
 
 class Enemy extends Character {
-    constructor(name, hp, strength, agility) {
-        super(name, hp, strength, agility)
+    constructor(name, hp, strength, agility, desc) {
+        super(name, hp, strength, agility, desc)
     }
 }
 
@@ -1264,8 +1362,8 @@ function generateExampleRooms() {
     // battle testing
     room = createRoom('Example Room Battle', { name: 'neutral.jpeg' });
     room.addAction({type: 'encounter', parameters: [[
-        new Enemy('Example Enemy', 10, 2, 2),
-        new Enemy('Example Enemy 2', 20, 5, 5)
+        new Enemy('Example Enemy', 10, 2, 5),
+        new Enemy('Example Enemy 2', 20, 6, 10, 'This guy has a description, [c:green]Neat!')
     ],
     [
         {name: 'Example Reward', min: 1, max: 5},
@@ -1273,12 +1371,12 @@ function generateExampleRooms() {
     ], 'a couple of example enemies'], waits: true})
     room.addAction({type: 'encounter', parameters: [[
         new Enemy('Weak Enemy', 10, 2, 2),
-        new Enemy('OP Enemy', 200, 500, 500),
+        new Enemy('OP Enemy', 200, 500, 500, `You [fst:italic]really[:] don't want to mess with this guy`),
         new Enemy('Enemy 3', 1, 1, 1),
-        new Enemy('Enemy 4', 1, 1, 1),
-        new Enemy('Enemy 5', 1, 1, 1),
-        new Enemy('Enemy 6', 1, 1, 1),
-        new Enemy('Enemy 7', 1, 1, 1)
+        new Enemy('Enemy 4', 1, 1, 2),
+        new Enemy('Enemy 5', 1, 1, 4),
+        new Enemy('Enemy 6', 1, 1, 5),
+        new Enemy('Enemy 7', 1, 1, 8)
     ], [
         {name: 'Wacky Thing', min: 1, max: 1}
     ], 'The Wacky Gang'], waits: true})

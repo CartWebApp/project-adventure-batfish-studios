@@ -63,16 +63,16 @@ export function transferProperties(transferFrom, transferTo) {
     }
 }
 
-// checks if a key-value pair exists in an array of objects
-// ex: checkPropertyValues([{id: 1}, {id: 2}], 'id', 2) -> true
-// ex: checkPropertyValues([{id: 1}, {id: 2}], 'id', 3) -> false
+// checks if a key-value pair exists in an array of objects and attempts to return it
+// ex: checkPropertyValues([{id: 1}, {id: 2}], 'id', 2) -> {id: 2}
+// ex: checkPropertyValues([{id: 1}, {id: 2}], 'id', 3) -> undefined
 export function checkPropertyValues(array, key, value) {
     for (const object of array) {
         if (object[key] && object[key] === value) {
-            return true;
+            return object;
         }
     }
-    return false;
+    return;
 }
 
 // gets the value of a root property
