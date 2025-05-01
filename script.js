@@ -19,7 +19,6 @@ let textControllerSignal;
 let textCancelled = false;
 let game;
 let history;
-let battle; // holds combat related methods
 let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
@@ -209,12 +208,13 @@ class Game {
         elementID = options.elementID ?? elementID;
         let textObj = new TextObject(text, options, speed, variance, animation, skippable, waits, waitDelay);
         if (clearsText) clearText(document.getElementById(elementID));
-        await typeText(textObj.text, document.getElementById(elementID), textObj.speed, textObj.variance, true, document.getElementById('dialogue-box'), textObj.animation, textControllerSignal, textObj.waits, textObj.waitDelay)
+        await typeText(textObj.text,{}, document.getElementById(elementID), textObj.speed, textObj.variance, true, document.getElementById('dialogue-box'), textObj.animation, textControllerSignal, textObj.waits, textObj.waitDelay)
     }
 
     // initiates combat
     async encounter(enemies, rewards, groupName) {
-        await battle.encounter(enemies, rewards, groupName);
+        let battle = new Battle({enemies, rewards, groupName})
+        await battle.encounter();
     }
 
 
@@ -293,88 +293,111 @@ class Game {
 
 }
 
-// holds combat methods
+// represents a battle
 class Battle {
-    constructor() {
-
+    constructor(parameters, enemies, rewards, groupName, inputContainer, outputContainer, advanceElement) {
+        this.enemies = enemies;
+        this.rewards = rewards ?? [];
+        this.groupName = groupName ?? 'some enemies';
+        this.inputContainer = inputContainer ?? document.getElementById('battle-input');
+        this.outputContainer = outputContainer ?? document.getElementById('story');
+        this.advanceElement = advanceElement ?? document.getElementById('dialogue-box');
+        if (parameters) transferProperties(parameters, this);
+        this.textConfig = this.textConfig ?? {element: this.outputContainer, speed: -1, skipElement: this.advanceElement, skippable: true};
+        this.enemies = this.enemies.map(enemy => enemy.clone());
+        this.remainingEnemies = this.enemies;
     }
 
-    async encounter(enemies, rewards, groupName='some enemies') {
+    async encounter() {
         let selectedChoice;
-        let remainingEnemies = enemies;
-        const battleContainer = document.getElementById('battle-input');
-        const dialogueBox = document.getElementById('dialogue-box');
         let menuChoices = [
             new Choice('Fight', {speed: -1}),
             new Choice('Item', {speed: -1}),
             new Choice('Inspect', {speed: -1}),
         ];
+
         clearDialogueText();
-        typeText(`You have encountered ${groupName}`, document.getElementById('story'), -1, 0, true, document.getElementById('dialogue-box'));
-        while (remainingEnemies.length > 0 && player.hp > 0) {
-            clearText(battleContainer)
+        typeText(`You have encountered ${this.groupName}`, {...this.textConfig});
+
+        // fight loop
+        while (this.remainingEnemies.length > 0 && player.hp > 0) {
+            clearText(this.inputContainer)
             // shows options: Fight, Item, Inspect
-            showChoices(menuChoices, battleContainer);
-            selectedChoice = await tryChoices(battleContainer);
+            showChoices(menuChoices, this.inputContainer);
+            selectedChoice = await tryChoices(this.inputContainer);
             selectedChoice = selectedChoice.text.toLowerCase();
 
             // check what option is clicked, and run that function
             if (selectedChoice === 'fight') {
-                await battle.selectEnemy(remainingEnemies, battleContainer);
-                await battle.enemyTurn
+                await this.selectEnemy();
+                if (this.remainingEnemies.length === 0) break;
+                await this.enemyTurn();
             }
         }
 
+        // end of fight
         if (player.hp > 0) {
             // loot!
-            clearDialogueText();
-            typeText(`You have defeated ${groupName}`, document.getElementById('story'), -1, 0, true, document.getElementById('dialogue-box'));
-            let rewardActions = []
-            for (const reward of rewards) {
-                rewardActions.push(new Action('getItem', [reward.name, reward.min, reward.max], false))
-            }
-            attemptActionsWithText(rewardActions);
-            await fnExports.awaitClick(dialogueBox);
+            this.getRewards();
+            await awaitClick(this.advanceElement);
         }
     }
     
     // shows the remaining enemies to select
-    async selectEnemy(enemies, container) {
+    async selectEnemy() {
         clearDialogueText();
-        typeText(`Choose your enemy`, document.getElementById('story'), -1, 0, true, document.getElementById('dialogue-box'));
+        typeText(`Choose your enemy`, {...this.textConfig});
         let selectedEnemy;
         let choices = [];
-        for (const enemy of enemies) {
+        for (const enemy of this.remainingEnemies) {
             choices.push(new Choice(enemy.name, {speed: -1, value: enemy}));
         }
-        showChoices(choices, container);
-        let selectedChoice = await tryChoices(container);
+        showChoices(choices, this.inputContainer);
+        let selectedChoice = await tryChoices(this.inputContainer);
         selectedEnemy = selectedChoice.value;
-        await battle.fightEnemy(selectedEnemy, container)
+        await this.fightEnemy(selectedEnemy)
 
         // dead enemy gets removed
         if (selectedEnemy.hp === 0) {
-            enemies.splice(enemies.indexOf(selectedEnemy), 1)
+            this.remainingEnemies.splice(this.remainingEnemies.indexOf(selectedEnemy), 1)
         }
     }
 
     // shows the remaining enemies to select
-    async fightEnemy(enemy, container) {
+    async fightEnemy(enemy) {
         clearDialogueText();
         let playerAttack = player.getAttack();
         enemy.changeHP(-playerAttack)
-        typeText(`You delt [class:health]${playerAttack}[:] damage.`, document.getElementById('action-output'), -1, 0, true, document.getElementById('dialogue-box'));
-        await typeText(`Remaining enemy health: [class:health]${enemy.hp}`, document.getElementById('action-output'), -1, 0, true, document.getElementById('dialogue-box'),null,null, true);
+        typeText(`You delt [class:health]${playerAttack}[:] damage.`, {...this.textConfig});
+        await typeText(`Remaining enemy health: [class:health]${enemy.hp}`, {...this.textConfig, waits: true});
 
         clearDialogueText();
-        if (enemy.hp === 0) {return}
+        if (enemy.hp === 0) {
+            
+        }
+    }
+
+    async enemyTurn() {
+        // select random enemy from alive enemies
+        let enemy = this.remainingEnemies[random(0, this.remainingEnemies.length - 1)];
 
         let enemyAttack = enemy.getAttack();
         game.changeHP(-enemyAttack, -enemyAttack, 'slain by enemy')
-        typeText(`${enemy.name} delt [class:health]${enemyAttack}[:] damage.`, document.getElementById('action-output'), -1, 0, true, document.getElementById('dialogue-box'));
-        await typeText(`Remaining health: [class:health]${player.hp}`, document.getElementById('action-output'), -1, 0, true, document.getElementById('dialogue-box'),null,null, true);
+        typeText(`${enemy.name} delt [class:health]${enemyAttack}[:] damage.`, {...this.textConfig});
+        await typeText(`Remaining health: [class:health]${player.hp}`, {...this.textConfig, waits: true});
         clearDialogueText();
         
+    }
+
+    // gives the player rewards
+    async getRewards() {
+        clearDialogueText();
+            typeText(`You have defeated ${this.groupName}`, {...this.textConfig});
+            let rewardActions = []
+            for (const reward of this.rewards) {
+                rewardActions.push(new Action('getItem', [reward.name, reward.min, reward.max], false))
+            }
+            await attemptActionsWithText(rewardActions);
     }
 }
 
@@ -397,6 +420,11 @@ class Character {
     set strength(newValue) { this._strength.value = newValue; }
     get agility() { return this._agility.value; }
     set agility(newValue) { this._agility.value = newValue; }
+
+    // returns a cloned instance
+    clone() {
+        return new Character(this.name, this.hp, this.strength, this.agility)
+    }
 
     // changes the characters hp
     changeHP(amount) {
@@ -785,7 +813,18 @@ function clearDialogueText() {
 }
 
 // types out text (can be skipped by clicking on element)
-async function typeText(text, element, speed = 10, variance = 0, skippable = true, skipElement = null, animation = 'none', signal = textControllerSignal, waits = false, waitDelay = 0) {
+async function typeText(text, options, element, speed = 10, variance = 0, skippable = true, skipElement = null, animation = 'none', signal = textControllerSignal, waits = false, waitDelay = 0) {
+    element = options.element ?? element;
+    speed = options.speed ?? speed;
+    variance = options.variance ?? variance;
+    skippable = options.skippable ?? skippable;
+    skipElement = options.skipElement ?? skipElement;
+    animation = options.animation ?? animation;
+    signal = options.signal ?? signal;
+    waits = options.waits ?? waits;
+    waitDelay = options.waitDelay ?? waitDelay;
+
+
     let skipped = false;
 
     if (devMode) waitDelay = 0;
@@ -856,7 +895,7 @@ async function showStory(story) {
     for (const part of story) {
         if (!checkRequirements(part, 'show').metRequirements) return;
         clearText(storyElement);
-        await typeText(part.text, storyElement, part.speed, part.variance, true, dialogueBox, part.animation, textControllerSignal, part.waits, part.waitDelay);
+        await typeText(part.text,{}, storyElement, part.speed, part.variance, true, dialogueBox, part.animation, textControllerSignal, part.waits, part.waitDelay);
         const cleanText = parseStyles(part.text, 'This returns the clean text because nothing matches this.').text;
         let textLine = document.createElement('div');
         textLine.textContent = cleanText;
@@ -895,7 +934,7 @@ async function showChoices(choices, container) {
         choiceContainer.appendChild(choiceElement);
         choiceElements.push(choiceElement);
         choiceTexts.push(choice.text);
-        typeText(choice.text, choiceElement, choice.speed, choice.variance, true, dialogueBox, choice.animation, textControllerSignal);
+        typeText(choice.text,{}, choiceElement, choice.speed, choice.variance, true, dialogueBox, choice.animation, textControllerSignal);
     }
 }
 
@@ -979,7 +1018,7 @@ async function attemptActionsWithText(actions) {
         let actionResult = await attemptAction(action);
         if (actionResult && actionResult?.messages) {
             for (const message of actionResult.messages) {
-                typeText(message, document.getElementById('action-output'));
+                typeText(message,{}, document.getElementById('action-output'));
                 const cleanText = parseStyles(message, 'This returns the clean text because nothing matches this.').text;
                 let textLine = document.createElement('div');
                 textLine.textContent = cleanText;
@@ -1002,7 +1041,7 @@ async function tryChoices(choiceContainer) {
         let requirementsResult = checkRequirements(selectedChoice, 'use');
         metReqirements = requirementsResult.metRequirements;
         for (const message of requirementsResult.messages) {
-            typeText(message, document.getElementById('action-output'));
+            typeText(message,{}, document.getElementById('action-output'));
             const cleanText = parseStyles(message, 'This returns the clean text because nothing matches this.').text;
             let textLine = document.createElement('div');
             textLine.textContent = cleanText;
@@ -1127,7 +1166,6 @@ async function init() {
     player = new Player();
     history = new History();
     game = new Game();
-    battle = new Battle();
     generateAllRooms();
     generateEndings();
     await sleep(1000);
@@ -1272,7 +1310,8 @@ function generateStartingRooms() {
     choice1 = room.createChoice("Leave the lab.");
     choice1.addAction({ type: 'changeRoom', parameters: ['b-3-hallways'] });
     choice2 = room.createChoice(`Go back to sleep.`, {repeatable: true});
-    choice2.addAction({type: 'changeHP', parameters: [-10, -10, 'shocked']});
+    choice2.addAction({ type: 'writeText', parameters: ['[c:yellow]The cryopod zaps you, clearly malfunctioning', {elementID: 'action-output', waits: false, speed: -1}] });
+    choice2.addAction({type: 'changeHP', parameters: [-10, -15, 'cryopod']});
 
     room = createRoom('b-3-hallways', { name: '', transition: { out: '', in: '' } }); // beginning-3
     room.addStory(`After just a bit of effort, the doors (usually automatic, you remember) give way, leading you to three different corridors.`);
@@ -1440,7 +1479,7 @@ function generateEndings() {
     ending = createEnding('squeegee death');
     ending.addStory('You got killed by a squeegee? How???', { waits: false });
 
-    ending = createEnding('shocked death');
+    ending = createEnding('cryopod');
     ending.addStory(`How sad. The very thing that once kept you safe [c:#bf1b1b][an:text-shiver .25s ease-in-out infinite alternate]has now led to your demise.`, {waits: false});
 }
 

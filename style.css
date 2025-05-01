@@ -3,7 +3,7 @@
     --choice-color: rgb(0, 255, 247);
     --item-color: rgb(255, 251, 0);
     --border-color: rgb(61, 106, 255);
-    --button-color: rgb(81, 191, 255);
+    --button-color: rgb(0, 255, 136);
     --escape: rgb(155, 4, 220);
     --savior: rgb(30, 224, 0);
     --destruction: rgb(181, 7, 7);
@@ -334,6 +334,7 @@ p {
     scrollbar-width: none;
     transition: 150ms ease;
     font-variation-settings: "";
+    container-type: inline-size;
 }
 
 .text {
@@ -344,57 +345,54 @@ p {
     width: 100%;
 }
 
-#choices {
-    pointer-events: visiblePainted;
-}
-
-.choice {
-    padding: 0;
-    background: none;
-    border: none;
-    color: var(--choice-color);
-    width: fit-content
-}
-
-.choice:hover .transition-character {
-    text-decoration: underline currentColor;
-}
-
-.text-line {
-    display: flex;
-    flex-wrap: wrap;
-    overflow-wrap: anywhere;
-}
-
+#choices,
 #battle-input {
-    flex-flow: row wrap;
-    pointer-events: visiblePainted;
+    display: grid;
     justify-content: space-between;
+    pointer-events: visiblePainted;
+    grid-template-columns: repeat(auto-fill, clamp(8rem, 25%, 12rem));
     gap: 1rem;
 }
 
-#battle-input .choice {
-    margin-top: 8px;
-    box-shadow: inset 0 0 8px;
-    border: solid 1px;
-    padding: 1rem;
-    border-radius: 4px;
-    min-width: 25%;
-}
-
-#battle-input .choice:hover,
-#battle-input .choice:focus-visible {
+.choice:hover,
+.choice:focus-visible {
     box-shadow: inset 0 0 10px 4px;
     outline: none;
 }
 
-#battle-input .choice:hover .transition-character {
-    text-decoration: none;
-}
-
-#battle-input .choice .text-line {
+.choice .text-line {
     margin: auto;
     width: fit-content;
+    justify-content: center;
+}
+
+.choice .text-line .transition-word{
+    flex-wrap: wrap;
+}
+
+.choice {
+    background: none;
+    margin-top: 1rem;
+    color: var(--choice-color);
+    box-shadow: inset 0 0 8px;
+    border: solid 1px;
+    border-radius: 4px;
+    padding: 1rem;
+    width: 100%;
+    transition: 200ms ease;
+}
+
+@container (max-width: 20rem) {
+    #choices,
+    #battle-input {
+        justify-content: space-around;
+    }
+  }
+  
+.text-line {
+    display: flex;
+    flex-wrap: wrap;
+    overflow-wrap: anywhere;
 }
 
 .item-count {
