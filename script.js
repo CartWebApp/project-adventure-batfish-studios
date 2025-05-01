@@ -49,6 +49,7 @@ class History {
         this._roomsVisited = {run: [], past: []}; // rooms visited on current run and all time
         this._endings = new Set();
         this.resets = 0;
+        this.container = document.getElementById('history-content')
     }
     
     get endings() { return Array.from(this._endings) }
@@ -57,12 +58,38 @@ class History {
         this._endings.add(ending);
     }
 
+    addStory(story) {
+        this.storyLog.push(story);
+        let textLine = document.createElement('div');
+        textLine.textContent = story;
+        textLine.classList.add('story-history');
+        this.container.appendChild(textLine);
+        this.container.scrollTop = this.container.scrollHeight;
+
+    }
+
+    addAction(action) {
+        this.actionsLog.push(action);
+        let textLine = document.createElement('div');
+        textLine.textContent = action;
+        textLine.classList.add('action-history');
+        this.container.appendChild(textLine);
+        this.container.scrollTop = this.container.scrollHeight;
+
+    }
+
     addRoom(room) {
         this._roomsVisited.run.push(room);
     }
 
     addChoice(choice) {
         this.choices.run.push(choice);
+        let textLine = document.createElement('div');
+        textLine.textContent = choice.text;
+        textLine.classList.add('choice-history');
+        this.container.appendChild(textLine);
+        this.container.scrollTop = this.container.scrollHeight;
+
     }
 
     // resets run specific history
@@ -478,7 +505,7 @@ class Battle {
     async inspectEnemy(enemy) {
         clearDialogueText();
         typeText(`Name: [c:var(--enemy-name)]${enemy.name}`, {...this.textConfig});
-        if (enemy.desc) typeText(`Description: [c:#eeeeee]${enemy.description}`, {...this.textConfig});
+        if (enemy.desc) typeText(`Description: [c:#eeeeee]${enemy.desc}`, {...this.textConfig});
         typeText(`[class:health]HP: ${enemy.hp}/${enemy.maxHP}`, {...this.textConfig});
         typeText(`[class:strength]Strength: ${enemy.strength}`, {...this.textConfig});
         await typeText(`[class:agility]Agility: ${enemy.agility}`, {...this.textConfig, waits: true});
@@ -995,11 +1022,7 @@ async function showStory(story) {
         clearText(storyElement);
         await typeText(part.text,{}, storyElement, part.speed, part.variance, true, dialogueBox, part.animation, textControllerSignal, part.waits, part.waitDelay);
         const cleanText = parseStyles(part.text, 'This returns the clean text because nothing matches this.').text;
-        let textLine = document.createElement('div');
-        textLine.textContent = cleanText;
-        textLine.classList.add('story-history');
-        history.storyLog.push(cleanText);
-        document.getElementById('history-content').appendChild(textLine);
+        history.addStory(cleanText);
         clearText(document.getElementById('action-output'));
     }
 }
@@ -1118,11 +1141,7 @@ async function attemptActionsWithText(actions) {
             for (const message of actionResult.messages) {
                 typeText(message,{}, document.getElementById('action-output'));
                 const cleanText = parseStyles(message, 'This returns the clean text because nothing matches this.').text;
-                let textLine = document.createElement('div');
-                textLine.textContent = cleanText;
-                history.actionsLog.push(cleanText);
-                textLine.classList.add('action-history');
-                document.getElementById('history-content').appendChild(textLine);
+                history.addAction(cleanText);
             }
         }
     }
@@ -1141,17 +1160,11 @@ async function tryChoices(choiceContainer) {
         for (const message of requirementsResult.messages) {
             typeText(message,{}, document.getElementById('action-output'));
             const cleanText = parseStyles(message, 'This returns the clean text because nothing matches this.').text;
-            let textLine = document.createElement('div');
-            textLine.textContent = cleanText;
-            textLine.classList.add('action-history');
-            document.getElementById('history-content').appendChild(textLine);
+            history.addAction(cleanText)
         }
     }
     const cleanText = parseStyles(selectedChoice.text, 'This returns the clean text because nothing matches this.').text;
-    let textLine = document.createElement('div');
-    textLine.textContent = cleanText;
-    textLine.classList.add('choice-history');
-    document.getElementById('history-content').appendChild(textLine);
+    history.addChoice(selectedChoice)
     return selectedChoice;
 }
 
@@ -1177,7 +1190,6 @@ async function gameLoop() {
                     }
                     showChoices(item.value);
                     let selectedChoice = await tryChoices(choiceContainer);
-                    history.addChoice(selectedChoice);
                     clearText(document.getElementById('action-output'))
                     clearText(document.getElementById('choices'))
                     await attemptActionsWithText(selectedChoice.actions);

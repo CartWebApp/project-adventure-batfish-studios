@@ -69,10 +69,10 @@ export function transferProperties(transferFrom, transferTo) {
 export function checkPropertyValues(array, key, value) {
     for (const object of array) {
         if (object[key] && object[key] === value) {
-            return object;
+            return true;
         }
     }
-    return;
+    return false;
 }
 
 // gets the value of a root property
