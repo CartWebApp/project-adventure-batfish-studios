@@ -23,7 +23,7 @@ let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
-let startingRoom = 'e-hospital'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
@@ -2125,7 +2125,7 @@ function generateEscapeRooms() {
     room.addStory(`[c:var(--dialogue)][fst:italic]"AUGH!"`);
     room.addAction({type: 'styleBG', parameters: '[an: shake 70ms 9 linear alternate][sc:1.2]'});
     room.addStory(`[c:var(--actions)](Thud!)`);
-    room.addStory(`IDELLE!?`)
+    room.addStory(`IDELLE!?`);
     room.addAction({type: 'encounter', parameters: [[
         new Enemy('Blatto Lackey 1', 20, 8, 8, `A tall, lanky fellow. All brain, no brawn.`),
         new Enemy('Palmetto', 40, 15, 15, `A rootin', tootin', mutasnt shootin' cockroach. No...a glockroach.`),
@@ -2174,8 +2174,8 @@ function generateEndings() {
 
     ending = createEnding('escape');
     ending.addStory(`It's a shame what's happened to that poor woman.`);
-    room.addStory(`You're left without a leader. A mentor.`);
-    room.addStory('...A friend.');
+    ending.addStory(`You're left without a leader. A mentor.`);
+    ending.addStory('...A friend.');
     ending.addStory(`But hey! At least you made it out [c:var(--escape)][an:text-shiver .30s ease-in-out infinite alternate]alive...`);
     ending.addStory(`You drive off into the cosmos, letting Virema fade into nothing more than a distant memory.`, {waits: false});
 }
