@@ -73,6 +73,10 @@ p {
     display: flex;
 }
 
+.wrap {
+    flex-wrap: wrap;
+}
+
 .hidden {
     display: none;
 }
@@ -332,6 +336,7 @@ p {
 #inventory .item-container {
     cursor: pointer;
     width: fit-content;
+    -webkit-tap-highlight-color: transparent;
     transition: 150ms ease;
 }
 

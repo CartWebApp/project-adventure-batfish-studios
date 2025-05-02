@@ -687,12 +687,12 @@ class Player extends Character {
         // repopulates inventory gui
         for (const item of Object.values(player.inventory)) {
             const itemElement = document.createElement('p');
-            itemElement.className = 'item-container flex';
+            itemElement.className = 'item-container flex wrap';
             itemElement.itemName = item.name;
             const nameElement = document.createElement('output');
             nameElement.className = 'item-name';
             const formattedText = formatText(item.style + ' ' + item.name);
-            formattedText.className = 'flex';
+            formattedText.className = 'flex wrap';
             nameElement.appendChild(formattedText);
             const countElement = document.createElement('output');
             itemElement.appendChild(countElement);
@@ -715,13 +715,13 @@ class Player extends Character {
         descriptionElement.innerHTML = '';
         actionsElement.innerHTML = '';
         
-        let formattedText = formatText(`${item.name}`);
-        formattedText.className = 'flex';
+        let formattedText = formatText(`${item.style + item.name}`);
+        formattedText.className = 'flex wrap';
         formattedText.style.fontSize = '1.5rem';
         document.getElementById('item-description').appendChild(formattedText);
 
         formattedText = formatText(item.description);
-        formattedText.className = 'flex';
+        formattedText.className = 'flex wrap';
         document.getElementById('item-description').appendChild(formattedText);
 
         if (item.type === 'consumable') {
@@ -733,12 +733,12 @@ class Player extends Character {
             if (this.usedItems.has(item.name) || item.hideEffects === false) {
                 for (const effect of item.getEffects()) {
                     let effectDesc = formatText(effect);
-                    effectDesc.className = 'flex';
+                    effectDesc.className = 'flex wrap';
                     descriptionElement.appendChild(effectDesc);
                 }
             } else {
                 let effectDesc = formatText(`[[c:yellow]Use to unlock effect description[:]]`);
-                effectDesc.className = 'flex';
+                effectDesc.className = 'flex wrap';
                 descriptionElement.appendChild(effectDesc);
             }
 
@@ -752,7 +752,7 @@ class Player extends Character {
                     actionsElement.innerHTML = '';
                     for (const effect of item.getEffects()) {
                         let effectDesc = formatText(effect);
-                        effectDesc.className = 'flex';
+                        effectDesc.className = 'flex wrap';
                         descriptionElement.appendChild(effectDesc);
                     }
                 }

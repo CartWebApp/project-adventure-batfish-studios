@@ -33,7 +33,8 @@
         "name": "Astrostew",
         "description": "You're not sure what is in this, but it must be safe, right?",
         "type": "consumable",
-        "effects": [{"type": "heal", "value": 15}]
+        "effects": [{"type": "heal", "value": 15}],
+        "hideEffects": true
     },
     "Food Pack": {
         "name": "Food Pack",
