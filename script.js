@@ -117,7 +117,7 @@ class Game {
         max = max ?? min;
         let count = random(min, max);
         let messages = [];
-        style = style || '[c:var(--item-color)]';
+        style = style || itemData?.[itemName].style || '[c:var(--item-color)]';
         let item;
         if (!(itemName in itemData)) {
             item = new Item({name: itemName, count, type: 'generic', description: 'An item', style: style});
@@ -314,7 +314,8 @@ class Game {
             if (invItem.name === itemName && invItem.count >= minCount)
                 return true;
         }
-        let message = customMessage || `You do not have [[c:yellow]${itemName}[:]]`;
+        let itemStyle = itemData?.[itemName].style ?? '[c:var(--item-color)]';
+        let message = customMessage || `You do not have [${itemStyle + itemName}[:]]`;
         return { result: false, message };
     }
 
@@ -630,8 +631,8 @@ class Character {
 
 }
 class Player extends Character {
-    constructor() {
-        super('Player', 100, 10, 10);
+    constructor(hp=100, strength=10, agility=10) {
+        super('Player', hp, strength, agility);
         this._inventory = new Reactor({});
         this._maxHP.bindQuery('#stat-maxHP');
         this._hp.bindQuery('#stat-hp');

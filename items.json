@@ -27,7 +27,8 @@
     "Wacky Thing": {
         "name": "Wacky Thing",
         "description": "How did you get this? You would have had to fight off a very powerful foe to get this...",
-        "type": "generic"
+        "type": "generic",
+        "style": "[fs:2.5rem][ff:Rubik Glitch]"
     },
     "Astrostew": {
         "name": "Astrostew",

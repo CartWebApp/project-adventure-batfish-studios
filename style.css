@@ -384,7 +384,9 @@ p {
 
 #dialogue-box .content {
     position: absolute;
-    padding: 2rem 2rem;
+    padding: 2rem;
+    padding-left: clamp(3rem, 4% + 1rem, 5rem);
+    padding-right: clamp(2rem, 4%, 4rem);
     padding-top: clamp(8px, 5%, 2rem);
     display: flex;
     flex-direction: column;
@@ -395,7 +397,8 @@ p {
     max-height: calc(100% - 2rem);
     width: 100%;
     top: 50%;
-    translate: 0 -50%;
+    left: 50%;
+    translate: -50% -50%;
 }
 
 #dialogue-box .clip-small {
