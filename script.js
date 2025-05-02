@@ -23,7 +23,7 @@ let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
-let startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'e-3-3'; // [ 'Example Hub' ][ 'b-start' ]
 let runNumber = 0;
 let itemData;
 
@@ -117,7 +117,7 @@ class Game {
         max = max ?? min;
         let count = random(min, max);
         let messages = [];
-        style = style || itemData?.[itemName].style || '[c:var(--item-color)]';
+        style = style || itemData?.[itemName]?.style || '[c:var(--item-color)]';
         let item;
         if (!(itemName in itemData)) {
             item = new Item({name: itemName, count, type: 'generic', description: 'An item', style: style});
@@ -314,7 +314,7 @@ class Game {
             if (invItem.name === itemName && invItem.count >= minCount)
                 return true;
         }
-        let itemStyle = itemData?.[itemName].style ?? '[c:var(--item-color)]';
+        let itemStyle = itemData?.[itemName]?.style ?? '[c:var(--item-color)]';
         let message = customMessage || `You do not have [${itemStyle + itemName}[:]]`;
         return { result: false, message };
     }
@@ -1520,10 +1520,11 @@ function generateExampleRooms() {
     // battle testing
     room = createRoom('Example Room Battle', { name: 'neutral.jpeg' });
     room.addAction({ type: 'getItem', parameters: ['Lume Fruit', 2, 3]});
-    room.addAction({type: 'encounter', parameters: [[
+    room.addAction({type: 'encounter', parameters: [
+    [
         new Enemy('Example Enemy', 10, 2, 5),
         new Enemy('Example Enemy 2', 20, 6, 10, 'This guy has a description, [c:green]Neat!')
-    ]
+    ],
     [
         {name: 'Example Reward', min: 1, max: 5},
         {name: 'Example Reward 2', min: 1, max: 5}
