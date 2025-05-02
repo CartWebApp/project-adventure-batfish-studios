@@ -2154,7 +2154,6 @@ function generateEscapeRooms() {
     room.addStory(`You make your way back to the ship, where [c:var(--character)]Idelle [c:]is waiting for you. She looks relieved to see you.`);
     room.addStory(`[c:var(--dialogue)]"You made it back! Took you long enough, I was starting to worry."`);
     room.addStory(`[c:var(--character)]Idelle [c:]looks over the pile of supplies you brought back with you.`);
-    room.addAction({type: 'changeHP', parameters: [-70]})
     room.addStory(`[c:var(--dialogue)]"I see you found everything I asked for. Good job!"`);
     room.addStory(`[c:var(--dialogue)]"You look like you got pretty banged up, though...here, let me handle it."`)
         .addRequirement({ mode: 'show', type: 'hasStat', parameters: ['hp', 0, 40] })
