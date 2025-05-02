@@ -400,6 +400,7 @@ class Battle {
         let selectedChoice = await tryChoices(this.inputContainer);
         if (selectedChoice.value === 'previous') return;
         let selectedItem = player.inventory[selectedChoice.value];
+        if (!selectedItem) return;
         let result = selectedItem.use(player);
         clearDialogueText();
         for (const message of result) {
@@ -531,7 +532,7 @@ class Battle {
 
         let animation = indicator.animate(keyframes, timing);
 
-        await Promise.race([animation.finished, awaitClick(this.advanceElement)])
+        await Promise.race([animation.finished, awaitEvent(this.advanceElement, 'click')])
         
         let offset = Math.abs(1 - getComputedStyle(indicator).scale)
         indicator.style.scale = getComputedStyle(indicator).scale;
@@ -637,6 +638,8 @@ class Player extends Character {
         this._strength.bindQuery('#stat-strength');
         this._agility.bindQuery('#stat-agility');
         this._inventory.subscribe(() => this.refreshInventory(this));
+        this.usedItems = new Set();
+        this.selectedItem;
     }
 
     // returns the players inventory
@@ -655,7 +658,7 @@ class Player extends Character {
         if (!newInv[item.name]) {
             newInv[item.name] = item
         } else {
-            newInv[item.name].count += count;
+            newInv[item.name].count += item.count;
         }
         this._inventory.value = newInv;
     }
@@ -672,12 +675,20 @@ class Player extends Character {
     }
 
     // refreshes the elements representing the player's inventory
-    refreshInventory(object) {
+    refreshInventory(player) {
         const inventory = document.getElementById('inventory');
         inventory.innerHTML = '';
-        for (const item of Object.values(object.inventory)) {
+
+        if (!player.inventory[player.selectedItem]) {
+            document.getElementById('item-description').innerHTML = '';
+            document.getElementById('item-actions').innerHTML = '';
+        }
+
+        // repopulates inventory gui
+        for (const item of Object.values(player.inventory)) {
             const itemElement = document.createElement('p');
             itemElement.className = 'item-container flex';
+            itemElement.itemName = item.name;
             const nameElement = document.createElement('output');
             nameElement.className = 'item-name';
             const formattedText = formatText(item.style + ' ' + item.name);
@@ -688,7 +699,66 @@ class Player extends Character {
             countElement.outerHTML = `[<output class="item-count">${item.count}</output>]`;
             itemElement.appendChild(nameElement);
             inventory.appendChild(itemElement);
+
+            itemElement.addEventListener('click', (e)=> {
+                this.selectItem(item)
+            })
         }
+    }
+
+    // shows an item's description and available actions in the inventory
+    selectItem(item) {
+        this.selectedItem = item;
+        let descriptionElement = document.getElementById('item-description');
+        let actionsElement = document.getElementById('item-actions')
+
+        descriptionElement.innerHTML = '';
+        actionsElement.innerHTML = '';
+        
+        let formattedText = formatText(`${item.name}`);
+        formattedText.className = 'flex';
+        formattedText.style.fontSize = '1.5rem';
+        document.getElementById('item-description').appendChild(formattedText);
+
+        formattedText = formatText(item.description);
+        formattedText.className = 'flex';
+        document.getElementById('item-description').appendChild(formattedText);
+
+        if (item.type === 'consumable') {
+            let useButton = document.createElement('button');
+            useButton.type = 'button';
+            useButton.className = 'choice';
+            useButton.textContent = 'Use';
+
+            if (this.usedItems.has(item.name) || item.hideEffects === false) {
+                for (const effect of item.getEffects()) {
+                    let effectDesc = formatText(effect);
+                    effectDesc.className = 'flex';
+                    descriptionElement.appendChild(effectDesc);
+                }
+            } else {
+                let effectDesc = formatText(`[[c:yellow]Use to unlock effect description[:]]`);
+                effectDesc.className = 'flex';
+                descriptionElement.appendChild(effectDesc);
+            }
+
+            actionsElement.appendChild(useButton);
+            useButton.addEventListener(('click'), ()=> {
+                item.use(this);
+                if (item.count > 0) {
+                    this.selectItem(item)
+                } else {
+                    descriptionElement.innerHTML = '';
+                    actionsElement.innerHTML = '';
+                    for (const effect of item.getEffects()) {
+                        let effectDesc = formatText(effect);
+                        effectDesc.className = 'flex';
+                        descriptionElement.appendChild(effectDesc);
+                    }
+                }
+            })
+        }
+        
     }
 
 }
@@ -1456,14 +1526,15 @@ function generateExampleRooms() {
     ], 'a couple of example enemies'], waits: true})
     room.addAction({type: 'encounter', parameters: [[
         new Enemy('Weak Enemy', 10, 2, 2),
-        new Enemy('OP Enemy', 200, 500, 500, `You [fst:italic]really[:] don't want to mess with this guy`),
+        new Enemy('OP Enemy', 200, 100, 100, `You [fst:italic]really[:] don't want to mess with this guy`),
         new Enemy('Enemy 3', 1, 1, 1),
         new Enemy('Enemy 4', 1, 1, 2),
         new Enemy('Enemy 5', 1, 1, 4),
         new Enemy('Enemy 6', 1, 1, 5),
         new Enemy('Enemy 7', 1, 1, 8)
     ], [
-        {name: 'Wacky Thing', min: 1, max: 1}
+        {name: 'Wacky Thing', min: 1, max: 1},
+        {name: 'Super Syrum', min: 1, max: 1}
     ], 'The Wacky Gang'], waits: true})
 }
 

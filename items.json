@@ -33,7 +33,7 @@
         "name": "Astrostew",
         "description": "You're not sure what is in this, but it must be safe, right?",
         "type": "consumable",
-        "effects": [{"type": "heal", "value": 20}]
+        "effects": [{"type": "heal", "value": 15}]
     },
     "Food Pack": {
         "name": "Food Pack",
@@ -48,7 +48,20 @@
         "effects": [
             {"type": "gainMaxHP", "value": 1},
             {"type": "heal", "value": 15}
-        ]
+        ],
+        "hideEffects": true
+    },
+    "Super Syrum": {
+        "name": "Super Syrum",
+        "description": "A supernatural concoction of untold power. You shouldn't have this.",
+        "type": "consumable",
+        "effects": [
+            {"type": "gainMaxHP", "value": 9999},
+            {"type": "gainStrength", "value": 999},
+            {"type": "gainAgility", "value": 999},
+            {"type": "heal", "value": 9999}
+        ],
+        "hideEffects": true
     }
     
 }

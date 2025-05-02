@@ -28,6 +28,7 @@ body, html {
     height: 100%;
     overflow: hidden;
     background-color: black;
+    touch-action: manipulation;
 }
 
 body, button {
@@ -251,7 +252,7 @@ p {
     left: 50%;
     top: 50%;
     width: clamp(0px, 85%, 1180px);
-    height: clamp(50%,50%,50rem);
+    height: clamp(10rem,65%,80rem);
     min-height: 8rem;
     max-height: calc(100% - 5rem);
     transform: translate(-50%, -50%) scale(1);
@@ -304,32 +305,39 @@ p {
 #playersheet {
     flex-wrap: wrap;
     flex-direction: row;
-    justify-content: space-around;
-    overflow: auto;
-}
-
-#playersheet > div {
-    border: double 4px rgba(255, 255, 255, 0.5);
-    width: clamp(10rem, 45%, 30rem);
-}
-
-#stat-container {
-    padding: 1rem;
-    height: clamp(6rem, 30%, 30%);
+    justify-content: space-between;
+    gap: 1rem;
     overflow: auto;
     scrollbar-width: none;
 }
 
-#inventory-container {
-    height: clamp(6rem, 30%, 30%);
+#playersheet > div {
+    border: double 4px rgba(255, 255, 255, 0.5);
+    flex-basis: clamp(10rem, 45%, 30rem);
+    flex-grow: 1;
     padding: 1rem;
+    height: clamp(8rem, 30%, 30%);
+    scrollbar-width: none;
+    overflow: auto;
+}
+
+#inventory-container {
     overflow: hidden;
 }
 
 #inventory {
     height: 100%;
-    overflow: auto;
-    scrollbar-width: none;
+}
+
+#inventory .item-container {
+    cursor: pointer;
+    width: fit-content;
+    transition: 150ms ease;
+}
+
+#inventory .item-container:hover {
+    scale: 1.1;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.651))
 }
 
 #settings {
@@ -338,6 +346,10 @@ p {
 
 #settings-content {
     padding-top: 2rem;
+}
+
+#playersheet > #item-info-container {
+    height: clamp(10rem, 40%, 40%);
 }
 
 #menu-toggle {
@@ -356,7 +368,7 @@ p {
     transform: translateX(-50%);
     width: clamp(0px, 82%, 1090px);
     min-height: 7em;
-    height: 25%;
+    height: 50%;
     max-height: 15rem;
     container-type: inline-size;
     transition: 150ms ease;
