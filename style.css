@@ -4,6 +4,8 @@
     --item-color: rgb(255, 251, 0);
     --border-color: rgb(61, 106, 255);
     --button-color: rgb(0, 255, 247);
+    --border-gradient-color-1: rgb(0, 29, 31);
+    --border-gradient-color-2: rgb(0, 236, 253);
     --escape: rgb(155, 4, 220);
     --savior: rgb(30, 224, 0);
     --destruction: rgb(181, 7, 7);
@@ -329,6 +331,14 @@ p {
     scrollbar-width: none;
 }
 
+#settings {
+    flex-direction: column;
+}
+
+#settings-content {
+    padding-top: 2rem;
+}
+
 #menu-toggle {
     position: absolute;
     background-image: url(imgs/icons/x.svg);
@@ -386,9 +396,25 @@ p {
     left: 0;
     bottom: 0;
     right: 0;
-    background-color: var(--border-color);
+    /* background-color: var(--border-color); */
     z-index: -2;
     clip-path: polygon(0 0, 50% 0, 55% 5%, 100% 5%, 100% 90%, 97% 100%, 2% 100%, 2% 33%, 0 20%);
+    animation: future-border-1 100 linear infinite;
+}
+
+#dialogue-box .clip-large::before {
+    content: "";
+    position: absolute;
+    width: 1000%;
+    height: 1000%;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    z-index: 1;
+    background-size: 100% 100%;
+    background-position: 0px 0px;
+    background-image: repeating-conic-gradient(from 0deg at 50% 50%, var(--border-gradient-color-1) 0%, var(--border-gradient-color-2) 100%);
+    animation: rotate 60000ms linear infinite;
 }
 
 .text {

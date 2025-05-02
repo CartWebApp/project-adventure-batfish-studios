@@ -130,7 +130,7 @@ export class CanvasHandler {
         reusableParams = {
             getX: () => random(-this.height/4,this.width),
             getY: () => random(this.height/1.5,this.height),
-            getAccelX: () => .1,
+            getAccelX: () => 0,
             getRadius: () => random(50, this.height/4),
             getColor: () => {
                 const randomColor = random(150, 230);

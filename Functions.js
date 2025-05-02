@@ -26,13 +26,18 @@ export function random(min, max, places = 0) {
     return Math.floor(randomNum * 10 ** places) / 10 ** places;
 }
 
-// halts until element is clicked
-export async function awaitClick(element) {
+// halts until element throws a given event
+export async function awaitEvent(element, eventName) {
     return new Promise(resolve => {
-        element.addEventListener('click', () => {
+        element.addEventListener(eventName, () => {
             resolve();
         }, { once: true });
     });
+}
+
+// halts until element is clicked
+export async function awaitClick(element) {
+    return awaitEvent(element, 'click');
 }
 
 // halts until any element in a list of elements is clicked

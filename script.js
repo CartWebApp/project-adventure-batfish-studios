@@ -24,6 +24,7 @@ let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
 let startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
+let runNumber = 0;
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
@@ -284,10 +285,12 @@ class Game {
     // resets the player and game
     async restart() {
         history.resets += 1;
+        runNumber += 1;
         history.softReset();
+        game.changeParticleAnimation('none', 1, 1);
         player = new Player();
         generateAllRooms();
-        currentRoom = startingRoom;
+        currentRoom = rooms[startingRoom];
         isGameLoop = true;
         document.getElementById('history-content').innerHTML = '';
         await sleep(10);
@@ -377,7 +380,7 @@ class Battle {
         let selectedEnemy;
         let choices = [];
         for (const enemy of this.remainingEnemies) {
-            choices.push(new Choice(enemy.name, {speed: -1, value: enemy}));
+            choices.push(new Choice(enemy.name, {speed: -1, value: enemy, color: 'orange'}));
         }
         showChoices(choices, this.inputContainer);
         let selectedChoice = await tryChoices(this.inputContainer);
@@ -693,7 +696,7 @@ class Action {
 }
 
 class Choice extends TextObject {
-    constructor(text, options = {}, repeatable = false, speed = 4, variance = 1, animation = 'default', skippable = true, room = undefined, id = '', customID = '', value='') {
+    constructor(text, options = {}, repeatable = false, speed = 4, variance = 1, animation = 'default', skippable = true, room = undefined, id = '', customID = '', value='', color = '') {
         super(text, options, speed, variance, animation, skippable, true, 0);
         this.hidden = false;
         this.repeatable = repeatable;
@@ -756,9 +759,9 @@ class Room {
     }
 
     // creates a choice and automatically adds it to the room
-    createChoice(text, options, repeatable, speed, variance, animation, skippable, customID) {
+    createChoice(text, options, repeatable, speed, variance, animation, skippable, customID, color) {
         const id = this.getChoiceId(this.choices.length + 1);
-        const choice = new Choice(text, options, repeatable, speed, variance, animation, skippable, this, id, customID);
+        const choice = new Choice(text, options, repeatable, speed, variance, animation, skippable, this, id, customID, color);
         this.addChoice(choice);
         return choice;
     }
@@ -1064,6 +1067,7 @@ async function showChoices(choices, container) {
         if (choice.hidden || !checkRequirements(choice, 'show').metRequirements) continue;
         let choiceElement = document.createElement('button');
         choiceElement.className = 'choice';
+        choiceElement.style.color = choice.color;
         choiceElement.id = `choice-${i}`;
         choiceElement.object = choice;
         choiceContainer.appendChild(choiceElement);
@@ -1185,10 +1189,12 @@ async function tryChoices(choiceContainer) {
 // repeats every room
 async function gameLoop() {
     currentRoom = rooms[startingRoom];
+    let currentRunNumber = runNumber;
     const choiceContainer = document.getElementById('choices');
     while (isGameLoop) {
         let thisRoom = currentRoom;
         for (const item of currentRoom.queuelist) {
+            if (currentRunNumber != runNumber) return;
             if (player.hp <= 0) {
                 game.ending(currentEnding);
                 return;
@@ -1217,6 +1223,7 @@ async function gameLoop() {
             game.ending(currentEnding);
             return;
         }
+        if (currentRunNumber != runNumber) return;
         else if (thisRoom === currentRoom) {
             await showStory([new TextObject('You have hit a dead end. Please add an ending or a way to change rooms here.', { waits: true, waitDelay: 30000 })]);
         }
@@ -1247,6 +1254,11 @@ function createEventListeners() {
             }
             setVisibleElement(toggledElement, document.querySelector('#center-menu .menu-content').children);
         });
+    })
+
+    document.getElementById('enter-example-rooms').addEventListener('click', ()=> {
+        startingRoom = 'Example Hub';
+        game.restart();
     })
 }
 
@@ -1320,6 +1332,11 @@ function generateExampleRooms() {
         .addAction({type: 'changeRoom', parameters: ['Example Room Particles']});
     room.createChoice('Battle Testing')
         .addAction({type: 'changeRoom', parameters: ['Example Room Battle']});
+    room.createChoice('Main Story')
+        .addAction({type: ()=> {
+            startingRoom = 'b-start';
+            game.restart();
+        }});
 
     room = createRoom('Example Room', { name: 'neutral.jpeg' });
     room.addStory(`This is a [an:text-blur 1s ease][c:red]test[c:] story`);
@@ -1370,7 +1387,7 @@ function generateExampleRooms() {
     // particle testing
     room = createRoom('Example Room Particles', { name: 'neutral.jpeg' });
     room.addAction({type: 'changeParticleAnimation', parameters: ['fog', 1, 1]});
-    room.addStory('Lets try out some particles!');
+    room.addStory('Lets try out some particles!', {waits: false});
     room.createChoice('Speed Up', {repeatable: true})
     .addAction({type: 'changeParticleSpeed', parameters: [.5]});
     room.createChoice('Slow Down', {repeatable: true})
