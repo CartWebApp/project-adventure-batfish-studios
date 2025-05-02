@@ -3,7 +3,7 @@
     --choice-color: rgb(0, 255, 247);
     --item-color: rgb(255, 251, 0);
     --border-color: rgb(61, 106, 255);
-    --button-color: rgb(0, 255, 136);
+    --button-color: rgb(0, 255, 247);
     --escape: rgb(155, 4, 220);
     --savior: rgb(30, 224, 0);
     --destruction: rgb(181, 7, 7);
@@ -91,6 +91,16 @@ p {
     color: yellow;
 }
 
+.clip-border::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 8px;
+    bottom: 4px;
+    right: 8px;
+    z-index: -1;
+}
+
 #loading-screen {
     background-color: black;
     position: absolute;
@@ -161,13 +171,22 @@ p {
 
 #main-nav {
     position: absolute;
-    padding: 1rem;
-    border: solid 3px var(--border-color);
-    background-color: rgb(3, 0, 31);
+    padding: 1.5rem;
+    background-color: var(--border-color);
     left: 50%;
     top: 1rem;
     transform: translateX(-50%);
     z-index: 5;
+    clip-path: polygon(0 0, 90% 0, 93% 5%, 100% 5%, 100% 100%, 14% 100%, 11% 95%, 0 95%);
+}
+
+#main-nav::before {
+    top: 4px;
+    left: 4px;
+    bottom: 4px;
+    right: 4px;
+    background-color: rgb(3, 0, 31);
+    clip-path: polygon(0 0, 90% 0, 93% 5%, 100% 5%, 100% 100%, 14% 100%, 11% 95%, 0 95%);
 }
 
 #main-nav ul {
@@ -275,6 +294,8 @@ p {
     height: 100%;
     overflow-y: auto;
     scrollbar-width: none;
+    border: double 4px rgba(255, 255, 255, 0.5);
+    padding: 1rem;
 }
 
 #playersheet {
@@ -285,12 +306,12 @@ p {
 }
 
 #playersheet > div {
-    border: solid 1px rgba(255, 255, 255, 0.5);
+    border: double 4px rgba(255, 255, 255, 0.5);
+    width: clamp(10rem, 45%, 30rem);
 }
 
 #stat-container {
     padding: 1rem;
-    width: 45%;
     height: clamp(6rem, 30%, 30%);
     overflow: auto;
     scrollbar-width: none;
@@ -298,7 +319,6 @@ p {
 
 #inventory-container {
     height: clamp(6rem, 30%, 30%);
-    width: 45%;
     padding: 1rem;
     overflow: hidden;
 }
@@ -320,22 +340,55 @@ p {
 
 #dialogue-box {
     position: absolute;
-    padding: 2rem;
-    border: solid 3px var(--border-color);
     left: 50%;
     bottom: clamp(1rem, 3rem, 5vh);
     transform: translateX(-50%);
-    width: clamp(0px, 80%, 1080px);
+    width: clamp(0px, 82%, 1090px);
     min-height: 7em;
-    max-height: 35%;
-    overflow-y: auto;
-    background-color: rgb(3, 0, 31);
-    color: white;
-    z-index: 2;
-    scrollbar-width: none;
-    transition: 150ms ease;
-    font-variation-settings: "";
+    height: 25%;
+    max-height: 15rem;
     container-type: inline-size;
+    transition: 150ms ease;
+    z-index: 2;
+    padding: 0 1rem;
+}
+
+#dialogue-box .content {
+    position: absolute;
+    padding: 2rem 2rem;
+    padding-top: clamp(8px, 5%, 2rem);
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    scrollbar-width: none;
+    color: white;
+    height: fit-content;
+    max-height: calc(100% - 2rem);
+    width: 100%;
+    top: 50%;
+    translate: 0 -50%;
+}
+
+#dialogue-box .clip-small {
+    position: absolute;
+    top: 4px;
+    left: 8px;
+    bottom: 4px;
+    right: 8px;
+    background-color: rgb(3, 0, 31);
+    z-index: -1;
+    clip-path: polygon(0 0, 50% 0, 55% 5%, 100% 5%, 100% 90%, 97% 100%, 2% 100%, 2% 33%, 0 20%);
+}
+
+#dialogue-box .clip-large {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background-color: var(--border-color);
+    z-index: -2;
+    clip-path: polygon(0 0, 50% 0, 55% 5%, 100% 5%, 100% 90%, 97% 100%, 2% 100%, 2% 33%, 0 20%);
 }
 
 .text {
@@ -398,31 +451,35 @@ p {
 
 .timing-target,
 .timing-indicator{
+    position: absolute;
     left: 50%;
-    translate: -50%;
+    top: 50%;
+    translate: -50% -50%;
     height: 10rem;
     width: 10rem;
-    border-radius: 999rem;
+    
 }
 
 .timing-target {
-    position: relative;
-    border: solid 1px white;
+    border: solid 2px white;
+    border-radius: 999rem;
 }
 
 .timing-target.solid {
     background-color: rgb(0, 199, 0);
     border: unset;
+    border-radius: 0;
 }
 
 .timing-indicator {
-    position: absolute;
-    border: solid 1px white;
+    border: solid 2px white;
     scale: 0;
+    border-radius: 0;
 }
 
 .timing-indicator.solid {
-    background-color: rgba(199, 0, 0, 0.726);
+    background-image: radial-gradient(rgba(92, 0, 0, 0.75), rgba(173, 0, 0, 0.75));
+    border-radius: 999rem;
     border: unset;
 }
 

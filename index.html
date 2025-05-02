@@ -22,7 +22,7 @@
     <img src="imgs/backgrounds/transparent.png" alt="background" id="background-image">
     <canvas id="particle-canvas"></canvas>
     <main>
-        <nav id="main-nav">
+        <nav id="main-nav" class="clip-border">
             <ul>
                 <li>
                     <button type="button" id="playersheet-toggle">Player</button>
@@ -55,11 +55,15 @@
                 </section>
             </div>
         </div>
-        <section id="dialogue-box">
-            <output class='text' id="story"></output>
-            <output class='text' id="action-output"></output>
-            <output class='text' id="choices"></output>
-            <output class='text' id="battle-input"></output>
+        <section id="dialogue-box" class="clip-border">
+            <div class="clip-large"></div>
+            <div class="clip-small"></div>
+            <div class="content">
+                <output class='text' id="story"></output>
+                <output class='text' id="action-output"></output>
+                <output class='text' id="choices"></output>
+                <output class='text' id="battle-input"></output>
+            </div>
         </section>
     </main>
     <script src="script.js" type="module"></script>

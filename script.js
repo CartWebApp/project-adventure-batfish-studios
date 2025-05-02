@@ -23,7 +23,7 @@ let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
-let startingRoom = 'e-5-1'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
@@ -496,7 +496,21 @@ class Battle {
         let offset = Math.abs(1 - getComputedStyle(indicator).scale)
         indicator.style.scale = getComputedStyle(indicator).scale;
         animation.cancel();
-        await sleep(500);
+
+        if (offset < 1) {
+            animation = this.advanceElement.animate([
+                {translate: '-15px -5px'},
+                {translate: '15px 5px'},
+                {translate: '15px -5px'},
+                {translate: '15px -5px'},
+                {translate: '-15px -5px'}
+            ], {
+                duration: 70,
+                iterations: 3
+            })
+            await animation.finished;
+        }
+        await sleep(200);
         target.remove();
         return offset;
     }
