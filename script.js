@@ -23,7 +23,7 @@ let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
-let startingRoom = 'e-3-3'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'e-finalTask'; // [ 'Example Hub' ][ 'b-start' ]
 let runNumber = 0;
 let itemData;
 
@@ -2157,7 +2157,9 @@ function generateEscapeRooms() {
     room.addAction({type: 'changeHP', parameters: [-70]})
     room.addStory(`[c:var(--dialogue)]"I see you found everything I asked for. Good job!"`);
     room.addStory(`[c:var(--dialogue)]"You look like you got pretty banged up, though...here, let me handle it."`)
-    choice1 = room.createChoice(`Use the medical supplies.`);
+        .addRequirement({ mode: 'show', type: 'hasStat', parameters: ['hp', 0, 40] })
+    choice1 = room.createChoice(`Use the medical supplies.`)
+        .addRequirement({ mode: 'show', type: 'hasStat', parameters: ['hp', 0, 40] });
     choice1.addAction({type: 'changeHP', parameters: [100]});
     room.addStory(`[c:var(--dialogue)]"Now that you're here, there's one more thing we have to do. I've got a stash of medical supplies somewhere out here, and I need all hands on deck to get it."`);
     room.addStory(`[c:var(--character)]Idelle [c:]pulls out a map and shows you where the stash is located.`);
