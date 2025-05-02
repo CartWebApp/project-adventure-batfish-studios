@@ -23,7 +23,7 @@ let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
-let startingRoom = 'e-5-1'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'e-hospital'; // [ 'Example Hub' ][ 'b-start' ]
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
@@ -318,6 +318,9 @@ class Game {
             || checkPropertyValues(history.choices.past, 'customID', choiceId);
     }
 
+    // returns whether the player has a stat within a given range [CASE SENSITIVE]
+    hasStat(statName, minStat=0, maxStat=Infinity) {
+        return player[statName] >= minStat && player[statName] <= maxStat }
 }
 
 // represents a battle
@@ -1355,7 +1358,7 @@ function generateExampleRooms() {
     
     // particle testing
     room = createRoom('Example Room Particles', { name: 'neutral.jpeg' });
-    room.addAction({type: 'changeParticleAnimation', parameters: ['fog', 1, 1]});
+    room.addAction({type: 'changeParticleAnimation', parameters: ['fog', 5, 5]});
     room.addStory('Lets try out some particles!');
     room.createChoice('Speed Up', {repeatable: true})
     .addAction({type: 'changeParticleSpeed', parameters: [.5]});
@@ -1376,7 +1379,7 @@ function generateExampleRooms() {
     room.addAction({type: 'encounter', parameters: [[
         new Enemy('Example Enemy', 10, 2, 5),
         new Enemy('Example Enemy 2', 20, 6, 10, 'This guy has a description, [c:green]Neat!')
-    ],
+    ]
     [
         {name: 'Example Reward', min: 1, max: 5},
         {name: 'Example Reward 2', min: 1, max: 5}
@@ -1597,48 +1600,100 @@ function generateEscapeRooms() {
 
     room = createRoom(`e-1-1`, {name: 'escape.jpeg'});
     room.addStory(`You are currently at (1,1).`);
-    choice1 = room.createChoice(`Go North.`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-1-2']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-2-1']});
 
     room = createRoom(`e-1-2`, {name: 'escape.jpeg'});
     room.addStory(`You are currently at (1,2).`);
-    choice1 = room.createChoice(`Go North.`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-1-3']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-2-2']});
-    let choice3 = room.createChoice(`Go South.`);
+    let choice3 = room.createChoice(`Go South.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-1-1']});
 
-    room = createRoom(`e-1-3`, {name: 'escape.jpeg'});
+    room = createRoom(`e-1-3`, {name: 'destruction.jpeg'});
+    room.addAction({type: 'encounter', parameters: [[
+        new Enemy('Average Joe', 15, 10, 10, `Jack of all trades, master of none.`)
+    ],
+    [
+        {name: 'Food Pack', min: 1, max: 4},
+        {name: 'Participation Trophy', min: 1, max: 1},
+    ], 'an abnormality!'], waits: true});
+    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1 = room.createChoice(`See Idelle.`);
+        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']})
+        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1 = room.createChoice(`See Idelle.`);
+        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
     room.addStory(`You are currently at (1,3).`);
-    choice1 = room.createChoice(`Go North.`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-1-4']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-2-3']});
     choice3 = room.createChoice(`Go South.`);
     choice3.addAction({type: 'changeRoom', parameters: ['e-1-2']});
 
     room = createRoom(`e-1-4`, {name: 'escape.jpeg'});
     room.addStory(`You are currently at (1,4).`);
-    choice1 = room.createChoice(`Go North.`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-1-5']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-2-4']});
-    choice3 = room.createChoice(`Go South.`);
+    choice3 = room.createChoice(`Go South.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-1-3']});
 
     room = createRoom(`e-1-5`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (1,5).`);
-    choice1 = room.createChoice(`Go South.`);
+    room.addAction({type: `getItem`, parameters: [`Food Pack`, 1, 3]});
+    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1 = room.createChoice(`See Idelle.`);
+        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
+    room.addStory(`You are currently at (1,5). []`);
+    choice1 = room.createChoice(`Go South.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-1-4']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-2-5']});
 
     room = createRoom(`e-2-1`, {name: 'escape.jpeg'});
+    room.addAction({type: `getItem`, parameters: [`Microchip`, 1, 1]});
+    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1 = room.createChoice(`See Idelle.`);
+        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
     room.addStory(`You are currently at (2,1).`);
-    choice1 = room.createChoice(`Go North.`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-2-2']});
     choice2 = room.createChoice(`Go East.`);
     choice2.addAction({type: 'changeRoom', parameters: ['e-3-1']});
@@ -1648,224 +1703,450 @@ function generateEscapeRooms() {
 
 
     room = createRoom(`e-2-2`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (2,2).`);
-    choice1 = room.createChoice(`Go North.`);
+    room.addStory(`You are currently at (2,2). [c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO EAST.]`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-2-3']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-3-2']});
-    choice3 = room.createChoice(`Go South.`);
+    choice3 = room.createChoice(`Go South.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-2-1']});
-    let choice4 = room.createChoice(`Go West.`);
+    let choice4 = room.createChoice(`Go West.`, {repeatable: true});
     choice4.addAction({type: 'changeRoom', parameters: ['e-1-2']});
 
     room = createRoom(`e-2-3`, {name: 'escape.jpeg'});
     room.addStory(`You are currently at (2,3).`);
-    choice1 = room.createChoice(`Go North.`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-2-4']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-3-3']});
-    choice3 = room.createChoice(`Go South.`);
+    choice3 = room.createChoice(`Go South.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-2-2']});
-    choice4 = room.createChoice(`Go West.`);
+    choice4 = room.createChoice(`Go West.`, {repeatable: true});
     choice4.addAction({type: 'changeRoom', parameters: ['e-1-3']});
 
     room = createRoom(`e-2-4`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (2,4).`);
-    choice1 = room.createChoice(`Go North.`);
+    room.addStory(`You are currently at (2,4).[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO NORTH.]`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-2-5']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-3-4']});
-    choice3 = room.createChoice(`Go South.`);
+    choice3 = room.createChoice(`Go South.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-2-3']});
-    choice4 = room.createChoice(`Go West.`);
+    choice4 = room.createChoice(`Go West.`, {repeatable: true});
     choice4.addAction({type: 'changeRoom', parameters: ['e-1-4']});
 
 
-    room = createRoom(`e-2-5`, {name: 'escape.jpeg'});
+    room = createRoom(`e-2-5`, {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [[
-        new Enemy('Average Joe', 10, 3, 3),
+        new Enemy('FishBat', 20, 20, 5, `Not to be confused with a batfish.`),
     ],
     [
         {name: 'Food Pack', min: 1, max: 4}
-    ], 'an abnormality!'], waits: true})
+    ], 'an abnormality!'], waits: true});
+    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1 = room.createChoice(`See Idelle.`);
+        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
     room.addStory(`You are currently at (2,5).`);
-    choice1 = room.createChoice(`Go South.`);
+    choice1 = room.createChoice(`Go South.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-2-4']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-3-5']});
-    choice3 = room.createChoice(`Go West.`);
+    choice3 = room.createChoice(`Go West.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-1-5']});
 
     room = createRoom(`e-3-1`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (3,1).`);
-    choice1 = room.createChoice(`Go North.`);
+    room.addStory(`You are currently at (3,1). [c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO NORTH.]`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-3-2']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-4-1']});
-    choice3 = room.createChoice(`Go West.`);
+    choice3 = room.createChoice(`Go West.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-2-1']});
 
 
-    room = createRoom(`e-3-2`, {name: 'escape.jpeg'});
+    room = createRoom(`e-3-2`, {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [[
-        new Enemy('Rootwraith Vine', 8, 5, 5),
-        new Enemy('Blightfruit Beast', 15, 2, 2)
+        new Enemy('Rootwraith', 8, 20, 20, `A horrid mass of roots and vines.`),
+        new Enemy('Blightfruit Beast', 30, 2, 2, `A large, mutated fruit with a gaping maw.`)
     ],
     [
-        {name: 'Food Pack', min: 1, max: 4}
-    ], 'some bad apples!'], waits: true})
+        {name: 'Food Pack', min: 1, max: 4},
+        {name: 'Opinionated Seedling', min: 1, max: 1},
+    ], 'some bad apples!'], waits: true});
+    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1 = room.createChoice(`See Idelle.`);
+        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
     room.addStory(`You are currently at (3,2).`);
-    choice1 = room.createChoice(`Go North.`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-3-3']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-4-2']});
-    choice3 = room.createChoice(`Go South.`);
+    choice3 = room.createChoice(`Go South.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-3-1']});
-    choice4 = room.createChoice(`Go West.`);
+    choice4 = room.createChoice(`Go West.`, {repeatable: true});
     choice4.addAction({type: 'changeRoom', parameters: ['e-2-2']});
 
 
     room = createRoom(`e-3-3`, {name: 'escape.jpeg'});
-    room.addStory('You are currently at (3,3).');
-    choice1 = room.createChoice(`Go North.`);
+    room.addStory('You are currently at (3,3). [c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO SOUTH.]');
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-3-4']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-4-3']});
-    choice3 = room.createChoice(`Go South.`);
+    choice3 = room.createChoice(`Go South.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-3-2']});
-    choice4 = room.createChoice(`Go West.`);
+    choice4 = room.createChoice(`Go West.`, {repeatable: true});
     choice4.addAction({type: 'changeRoom', parameters: ['e-2-3']});
 
     room = createRoom(`e-3-4`, {name: 'escape.jpeg'});
+    room.addAction({type: 'getItem', parameters: ['Scrap Metal', 1, 1,]});
+    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1 = room.createChoice(`See Idelle.`);
+        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
     room.addStory(`You are currently at (3,4).`);
-    choice1 = room.createChoice(`Go North.`);
+    choice1 = room.createChoice(`Go North.`,    {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-3-5']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-4-4']});
-    choice3 = room.createChoice(`Go South.`);
+    choice3 = room.createChoice(`Go South.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-3-3']});
-    choice4 = room.createChoice(`Go West.`);
+    choice4 = room.createChoice(`Go West.`, {repeatable: true});
     choice4.addAction({type: 'changeRoom', parameters: ['e-2-4']});
 
     room = createRoom(`e-3-5`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (3,5).`);
-    choice1 = room.createChoice(`Go South.`);
+    room.addStory(`You are currently at (3,5). [c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO WEST.]`);
+    choice1 = room.createChoice(`Go South.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-3-4']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-4-5']});
-    choice3 = room.createChoice(`Go West.`);
+    choice3 = room.createChoice(`Go West.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-2-5']});
 
     room = createRoom(`e-4-1`, {name: 'escape.jpeg'});
     room.addStory(`You are currently at (4,1).`);
-    choice1 = room.createChoice(`Go North.`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-4-2']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-5-1']});
-    choice3 = room.createChoice(`Go West.`);
+    choice3 = room.createChoice(`Go West.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-3-1']});
 
     room = createRoom(`e-4-2`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (4,2).`);
-    choice1 = room.createChoice(`Go North.`);
+    room.addStory(`You are currently at (4,2). [c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO WEST.]`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-4-3']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-5-2']});
-    choice3 = room.createChoice(`Go South.`);
+    choice3 = room.createChoice(`Go South.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-4-1']});
-    choice4 = room.createChoice(`Go West.`);
+    choice4 = room.createChoice(`Go West.`, {repeatable: true});
     choice4.addAction({type: 'changeRoom', parameters: ['e-3-2']});
 
     room = createRoom(`e-4-3`, {name: 'escape.jpeg'});
     room.addStory(`You are currently at (4,3).`);
-    choice1 = room.createChoice(`Go North.`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-4-4']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-5-3']});
-    choice3 = room.createChoice(`Go South.`);
+    choice3 = room.createChoice(`Go South.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-4-2']});
-    choice4 = room.createChoice(`Go West.`);
+    choice4 = room.createChoice(`Go West.`, {repeatable: true});
     choice4.addAction({type: 'changeRoom', parameters: ['e-3-3']});
 
-    room = createRoom(`e-4-4`, {name: 'escape.jpeg'});
+    room = createRoom(`e-4-4`, {name: 'destruction.jpeg'});
     room.addStory(`You are currently at (4,4).`);
     room.addAction({type: 'encounter', parameters: [[
-        new Enemy('Heavily Armed Turtle 1', 12, 2, 2),
-        new Enemy('Heavily Armed Turtle 1', 12, 2, 2),
-        new Enemy('Heavily Armed Turtle 3', 12, 2, 2),
-        new Enemy('Heavily Armed Turtle 4', 12, 2, 2),
+        new Enemy('Heavily Armed Turtle 1', 15, 12, 12, `A mutant turtle with a pair of swords.`),
+        new Enemy('Heavily Armed Turtle 2', 15, 12, 12, `A mutant turtle with a pair of small blades.`),
+        new Enemy('Heavily Armed Turtle 3', 15, 12, 12, `A mutant turtle with some sick nunchucks.`),
+        new Enemy('Heavily Armed Turtle 4', 15, 12, 12, `A mutant turtle with a big stick.`)
     ],
     [
-        {name: 'Food Pack', min: 1, max: 4}
-    ], 'a clan of mutants!'], waits: true})
-    choice1 = room.createChoice(`Go North.`);
+        {name: 'Food Pack', min: 1, max: 7},
+        {name: 'Slice of Brotherhood', min: 1, max: 1}
+    ], 'a clan of mutants!'], waits: true});
+    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1 = room.createChoice(`See Idelle.`);
+        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-4-5']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-5-4']});
-    choice3 = room.createChoice(`Go South.`);
+    choice3 = room.createChoice(`Go South.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-4-3']});
-    choice4 = room.createChoice(`Go West.`);
+    choice4 = room.createChoice(`Go West.`, {repeatable: true});
     choice4.addAction({type: 'changeRoom', parameters: ['e-3-4']});
 
 
     room = createRoom(`e-4-5`, {name: 'escape.jpeg'});
     room.addStory(`You are currently at (4,5).`);
-    choice1 = room.createChoice(`Go South.`);
+    choice1 = room.createChoice(`Go South.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-4-4']});
-    choice2 = room.createChoice(`Go East.`);
+    choice2 = room.createChoice(`Go East.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-5-5']});
-    choice3 = room.createChoice(`Go West.`);
+    choice3 = room.createChoice(`Go West.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-4-5']});
 
-    room = createRoom(`e-5-1`, {name: 'escape.jpeg'});
+    room = createRoom(`e-5-1`, {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [[
-        new Enemy('Blatto Roach', 20, 3, 3),
-        new Enemy('Joyama Spider', 20, 3, 3)
+        new Enemy('Blatto', 30, 20, 20, `A giant cockroach with a bad attitude.`),
+        new Enemy('Joyama', 20, 15, 15, `A large, spider-like creature with a nasty bite.`)
     ],
     [
         {name: 'Food Pack', min: 1, max: 3},
-        {name: 'Lume Fruit', min: 1, max: 2}
-    ], 'an infestation!'], waits: true})
+        {name: 'Questionable Mixtape', min: 1, max: 1}
+    ], 'an infestation!'], waits: true});
+    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1 = room.createChoice(`See Idelle.`);
+        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
     room.addStory(`You are currently at (5,1).`);
-    choice1 = room.createChoice(`Go North.`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-5-2']});
-    choice2 = room.createChoice(`Go West.`);
+    choice2 = room.createChoice(`Go West.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-4-1']});
 
     room = createRoom(`e-5-2`, {name: 'escape.jpeg'});
+    room.addAction({type: 'getItem', parameters: ['Fuel Canister', 1, 1]});
+    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1 = room.createChoice(`See Idelle.`);
+        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
     room.addStory(`You are currently at (5,2).`);
-    choice1 = room.createChoice(`Go North.`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-5-3']});
-    choice2 = room.createChoice(`Go South.`);
+    choice2 = room.createChoice(`Go South.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-5-1']});
-    choice3 = room.createChoice(`Go West.`);
+    choice3 = room.createChoice(`Go West.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-4-2']});
 
     room = createRoom(`e-5-3`, {name: 'escape.jpeg'});
     room.addStory(`You are currently at (5,3).`);
-    choice1 = room.createChoice(`Go North.`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-5-4']});
-    choice2 = room.createChoice(`Go South.`);
+    choice2 = room.createChoice(`Go South.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-5-2']});
-    choice3 = room.createChoice(`Go West.`);
+    choice3 = room.createChoice(`Go West.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-4-3']});
 
     room = createRoom(`e-5-4`, {name: 'escape.jpeg'});
+    room.addAction({type: 'getItem', parameters: ['Food Pack', 1, 4]});
+    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1 = room.createChoice(`See Idelle.`);
+        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
     room.addStory(`You are currently at (5,4).`);
-    choice1 = room.createChoice(`Go North.`);
+    choice1 = room.createChoice(`Go North.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-5-5']});
-    choice2 = room.createChoice(`Go South.`);
+    choice2 = room.createChoice(`Go South.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-5-3']});
-    choice3 = room.createChoice(`Go West.`);
+    choice3 = room.createChoice(`Go West.`, {repeatable: true});
     choice3.addAction({type: 'changeRoom', parameters: ['e-4-4']});
 
     room = createRoom(`e-5-5`, {name: 'escape.jpeg'});
     room.addStory(`You are currently at (5,5).`);
-    choice1 = room.createChoice(`Go South.`);
+    choice1 = room.createChoice(`Go South.`, {repeatable: true});
     choice1.addAction({type: 'changeRoom', parameters: ['e-5-4']});
-    choice2 = room.createChoice(`Go West.`);
+    choice2 = room.createChoice(`Go West.`, {repeatable: true});
     choice2.addAction({type: 'changeRoom', parameters: ['e-4-5']});
 
+    room = createRoom(`e-finalTask`, {name: 'escape.jpeg'});
+    room.addStory(`Hauling all of this stuff back to Idelle is kind of a pain, but you know it's worth it. You can finally get out of this place!`);
+    room.addStory(`You make your way back to the ship, where [c:var(--character)]Idelle [c:]is waiting for you. She looks relieved to see you.`);
+    room.addStory(`[c:var(--dialogue)]"You made it back! Took you long enough, I was starting to worry."`);
+    room.addStory(`[c:var(--character)]Idelle [c:]looks over the pile of supplies you brought back with you.`);
+    room.addAction({type: 'changeHP', parameters: [-70]})
+    room.addStory(`[c:var(--dialogue)]"I see you found everything I asked for. Good job!"`);
+    room.addStory(`[c:var(--dialogue)]"You look like you got pretty banged up, though...here, let me handle it."`)
+    choice1 = room.createChoice(`Use the medical supplies.`);
+    choice1.addAction({type: 'changeHP', parameters: [100]});
+    room.addStory(`[c:var(--dialogue)]"Now that you're here, there's one more thing we have to do. I've got a stash of medical supplies somewhere out here, and I need all hands on deck to get it."`);
+    room.addStory(`[c:var(--character)]Idelle [c:]pulls out a map and shows you where the stash is located.`);
+    room.addStory(`[c:var(--dialogue)]"It's a bit of a trek, but I think we can make it. We're [fst:italic][fst:bold]this [fst:]close to getting out of here!"`);
+    room.addStory(`[c:var(--character)]Idelle [c:]pinches her pointer and her thumb, barely leaving a gap between them.`);
+    room.addStory(`[c:var(--dialogue)]"Let's get moving!"`);
+    choice1 = room.createChoice(`Go to the stash.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-trek']});
+
+    room = createRoom(`e-trek`, {name: 'escape.jpeg'});
+    room.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 2, 2]});
+    room.addStory(`Luckily, [c:var(--character)]Idelle [c:]and her crew are much more equipped to handle this than you are. You follow her lead as she guides you through the treacherous terrain.`);
+    room.addStory(`Staying near [c:var(--character)]Idelle, [c:]you continue to march across the land, the wind howling in your ears.`);
+    room.addStory(`You can see the faint shadow of a building in the distance, but it looks like it's going to be a while before you even come close to it..`);
+    room.addStory(`For a while, you've been enjoying the comfortable silence of the journey. [c:var(--character)]Idelle [c:]eventually nudges you in the side, attempting to get your attention.`);
+    room.addStory(`[c:var(--dialogue)]"So, [c:var(--Gali)]Gali, [c:var(--dialogue)]tell me about yourself. What's, um..."`);
+    room.addStory(`[c:var(--character)]Idelle [c:]looks around, trying to find the right words. Understandably, it must be difficult to try to make conversation with someone stuck 75 years in the past.`);
+    room.addStory(`[c:var(--dialogue)]"How are you doing? Excited to get off this ticking time bomb of a planet?"`);
+    choice1 = room.createChoice(`You can't wait to leave.`);
+    room.addStory(`[c:var(--character)]Idelle [c:]nods her head in agreement.`);
+    room.addStory(`[c:var(--dialogue)]"I can't wait to get out of here. It's been a long time coming."`);
+    room.addStory(`[c:var(--dialogue)]"I mean, I love this planet and all, but it's just not the same anymore."`);
+    room.addStory(`[c:var(--character)]Idelle [c:]looks around, as if to make sure no one is listening.`);
+    room.addStory(`[c:var(--dialogue)]"Between you and me, I'm pretty sure it's been trying to tell us to leave for a while now."`);
+    room.addStory(`[c:var(--dialogue)]"I mean, look at this place. It's a mess."`);
+    room.addStory(`She gestures to the surrounding area, which is littered with debris and wreckage. All around you, traces of fallout are floating in the air.`);
+    room.addStory(`[c:var(--dialogue)]"I think it's time we finally listened to it. Don't you?"`);
+    room.addStory(`You consider her words for a moment, and you can't help but agree. The planet has been through a lot, and it's time to move on.`);
+    room.addStory(`[c:var(--dialogue)]"It must be nice for you, though. You've been nice and safe in your little pod, and now you get to leave while you're in tip-top shape."`);
+    room.addStory(`[c:var(--dialogue)]"I mean, I guess I can't blame you for that."`);
+    room.addStory(`[c:var(--dialogue)]"But I have to say, I'm a little jealous. Just look at you. You're practically glowing."`);
+    room.addStory(`[c:var(--dialogue)]"And not from the radiation, either."`);
+    room.addStory(`[c:var(--character)]Idelle [c:]snickers, and you can't help but feel a little flattered.`);
+    choice1 = room.createChoice('Return the compliment.');
+    room.addStory(`You note how [c:var(--character)Idelle's [c:]own scales seem to shimmer and sparkle when the sunlight hits her.`);
+    room.addStory(`[c:var(--dialogue)]"Oh, stop it. You're just saying that because you wanna ride shotgun when we leave."`);
+    room.addStory(`[c:var(--dialogue)]"Boss!"`);
+    room.addStory(`One of the crew members shouts from the back of the group, interrupting your conversation.`);
+    room.addStory(`[c:var(--dialogue)]"Up ahead!"`);
+    room.addStory(`You look ahead and see a large building in the distance. A crude hole has been blasted into the side of it, and you can see a faint light coming from inside, as well as smoke trailing out and into the air.`);
+    room.addStory(`[c:var(--character)]Idelle [c:]nods. She, along with the rest of the crew, pull their cloaks and masks over themselves as they rush to the side of the building.`);
+    room.addStory(`[c:var(--dialogue)]"This is it. This is where the stash is."`);
+    room.addStory(`For an abandoned building, it seems awfully...`);
+    room.addStory(`...lively.`);
+    room.addStory(`It sounds like there's quite the crowd inside. They sound pained. You can hear the sound of metal clanging against metal, and the occasional scream.`);
+    choice1 = room.createChoice(`What is this place?`);
+    room.addStory(`You utter to [c:var(--character)]Idelle [c:]as you approach the entrance, peeking inside...`);
+    room.addStory(`And then your eyes widen in horror.`);
+    choice1 = room.createChoice(`Is this a hospital!?`);
+    room.addStory(`[c:var(--character)]Idelle [c:]shushes you, and you can see her eyes darting around the room, trying to find a way in.`);
+    room.addStory(`[c:var(--dialogue)]"We need to get in there. We need to find the stash."`);
+    choice1 = room.createChoice(`This sounds like stealing.`);
+    room.addStory(`[c:var(--character)]Idelle [c:]rolls her eyes, motioning for two of the crew members to take the other side.`);
+    room.addStory(`[c:var(--dialogue)]"It's not [fst:italic]stealing, [fst:]it's..."`);
+    room.addStory(`[c:var(--dialogue)]"It's...uh..."`);
+    room.addStory(`She sighs.`);
+    room.addStory(`[c:var(--dialogue)]"Look. Any chances of survival they have are gone if they stay here, no matter how much they recover. They were doomed from the beginning. This just ensures that, um..."`);
+    room.addStory(`[c:var(--dialogue)]"We're just making sure nothing goes to waste."`);
+    room.addStory(`[c:var(--character)]Idelle [c:]places a hand on your shoulder, trying to reassure you.`);
+    room.addStory(`[c:var(--dialogue)]"Trust me. I know what I'm doing."`);
+    room.addStory(`[c:var(--dialogue)]"They..."`);
+    room.addStory(`[c:var(--dialogue)]"...are NOT..."`);
+    room.addStory(`[c:var(--dialogue)]"...going to survive. You got me?"`);
+    room.addStory(`[c:var(--dialogue)]"Now, let's get in there."`);
+    choice1 = room.createChoice(`Rob the hospital.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['e-hospital']});
+    choice2 = room.createChoice('Get out of here.');
+    choice2.addAction({type: 'changeRoom', parameters: ['e-ultimatum']});
+
+    room = createRoom(`e-hospital`, {name: 'neutral.jpeg'}, {transition: {out: '', in: ''}});
+    room.addAction({type: 'changeParticleAnimation', parameters: ['fog', 0.3, 0.3]})
+    room.addStory(`Considering her words very carefully...`);
+    room.addStory(`You sigh, deciding to follow [c:var(--character)]Idelle [c:]and her crew inside.`);
+    room.addStory(`[fst:italic][c:var(--actions)]Even if a little piece of you has just died inside...`, {speed: 50});
+    room.addStory(`[c:var(--character)]Idelle [c:]and her crew rush inside, and you follow suit, trying to keep up with them.`);
+    room.addStory(`[c:var(--actions)]"Ugh, smells like rot in here."`);
+    room.addStory(`[c:var(--actions)]"Grab that! I'll distract her!"`);
+    room.addStory(`[c:var(--actions)]"Shhh!"`);
+    room.addStory(`You can see the crew members are already hard at work, rummaging through the supplies and trying to find anything useful as they sneak around.`);
+    room.addStory(`[c:var(--dialogue)]"[c:var(--Gali)]Gali, [c:var(--dialogue)]head towards the closet over there.`);
+    room.addStory(`[c:var(--dialogue)]"Be careful. The place is swarming with mutant folk."`);
+    choice1 = room.createChoice(`Gather supplies.`);
+    choice1.addAction({type: 'changeRooms', parameters: ['e-finale']}); // change to hospital-2-2 later
+
+    // room = createRoom(`hospital-2-2`, {name: 'neutral.jpeg'});
+    // room.addStory(`You are currently at (2,2).`);
+    // choice1 = room.createChoice(`Go North.`, {repeatable: true});
+    // choice1.addAction({type: 'changeRoom', parameters: ['hospital-2-3']});
+    // choice2 = room.createChoice(`Go East.`, {repeatable: true});
+    // choice2.addAction({type: 'changeRoom', parameters: ['hospital-3-2']});
+    // choice3 = room.createChoice(`Go South.`, {repeatable: true});
+    // choice3.addAction({type: 'changeRoom', parameters: ['hospital-2-1']});
+    // choice4 = room.createChoice(`Go West.`, {repeatable: true});
+
+    // room = createRoom(`hospital-2-3`, {name: 'neutral.jpeg'});
+    // room.addStory(`You are currently at (2,3).`);
+    // choice1 = room.createChoice(``)
+
+    room = createRoom(`e-finale`, {name: 'escape.jpeg'});
+    room.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 2, 2]});
+    room.addStory(`There's a subtle weight on your shoulders, and it isn't from the satchel you're carrying.`);
+    room.addStory(`Everyone else seems to be in high spirits. You can hear them laughing and joking around, but you can't help but feel a little uneasy.`);
+    room.addStory(`Catching [c:var(--character)]Idelle's [c:]eye, you don't have much of a chance to dwell on it. She continues to haul her own supplies with her, and she looks like she's having a blast.`);
+    room.addStory(`[c:var(--dialogue)]"I can't believe we actually did it! We're gonna get out of here!"`);
+    room.addStory(`The shine in her eyes fades a little, and she looks down at the ground.`);
+    room.addStory(`[c:var(--dialogue)]"We..."`);
+    room.addStory(`[c:var(--dialogue)]"We're going home."`);
+    room.addAction({ type: 'changeBG', parameters: ['destruction.jpeg', { out: '', in: '' }] });
+    room.addAction({ type: 'styleBG', parameters: ['[an:blur-in 2s ease-out,fade-in 2s ease-out][fi:][op:]'] });
+    room.addStory(`[c:var(--actions)](BANG!)`);
+    room.addStory(`[c:var(--dialogue)][fst:italic]"AUGH!"`);
+    room.addAction({type: 'styleBG', parameters: '[an: shake 70ms 9 linear alternate][sc:1.2]'});
+    room.addStory(`[c:var(--actions)](Thud!)`);
+    room.addStory(`IDELLE!?`)
+    room.addAction({type: 'encounter', parameters: [[
+        new Enemy('Blatto Lackey 1', 20, 8, 8, `A tall, lanky fellow. All brain, no brawn.`),
+        new Enemy('Palmetto', 40, 15, 15, `A rootin', tootin', mutasnt shootin' cockroach. No...a glockroach.`),
+        new Enemy('Blatto Lackey 2', 20, 8, 8, `A short, dumpy fellow. All brawn, no brain.`),
+    ],
+    [
+        {name: 'Unnecessary Trauma', min: 1, max: 1},
+        {name: 'The Glockinator', min: 3, max: 3}
+    ], 'the Six-Legged Syndicate!'], waits: true});
+
+    room.addStory(`You quickly rush to [c:var(--character)]Idelle's [c:]aide as the others chase the bandits away.`);
+    room.addStory(`[c:var(--destruction)]...This isn't good at all.`);
+    room.addStory(`[fs:8px][c:var(--dialogue)]"Go..."`);
+    room.addStory(`She coughs out, her own grip on you loosening.`);
+    room.addStory(`[c:var(--dialogue)][fs:8px]"My keys...take my keys..."`);
+    room.addStory(`[c:var(--dialogue)]"...Save them, [c:var(--Gali)]Gali.[c:var(--dialogue)]"`)
+    room.addStory(`You hold [c:var(--character)]Idelle [c:]until the glow from her scales fades away.`);
+    room.addStory(`Rummaging through her pockets, you manage to pick up the ship's activation keycard. Nodding towards the others, they start to head towards the ship.`);
+    room.addStory(`Looking down at [c:var(--character)]Idelle [c:]one last time, you sigh, trying to ignore the burn in your eyes as you lay her cloack over her.`);
+    choice1 = room.createChoice('Head to the ship.');
+    choice1.addAction({type: 'ending', parameters: ['escape']});
 
 }
 
@@ -1890,6 +2171,13 @@ function generateEndings() {
 
     ending = createEnding('cryopod');
     ending.addStory(`How sad. The very thing that once kept you safe [c:#bf1b1b][an:text-shiver .25s ease-in-out infinite alternate]has now led to your demise.`, {waits: false});
+
+    ending = createEnding('escape');
+    ending.addStory(`It's a shame what's happened to that poor woman.`);
+    room.addStory(`You're left without a leader. A mentor.`);
+    room.addStory('...A friend.');
+    ending.addStory(`But hey! At least you made it out [c:var(--escape)][an:text-shiver .30s ease-in-out infinite alternate]alive...`);
+    ending.addStory(`You drive off into the cosmos, letting Virema fade into nothing more than a distant memory.`, {waits: false});
 }
 
 // preloads images
