@@ -117,3 +117,15 @@ export function deepClone(obj) {
     }
     return copy;
 }
+
+// returns JSON object of the file at the given path
+export async function parseJSON(path) {
+    return fetch(path).then(res => {
+        if (!res.ok) {
+            throw new Error(`Error! Status: ${res.status}`);
+        }
+        return res.json();
+    }).catch(error => {
+        console.error(`Unable to fetch JSON:`, error);
+    })
+}

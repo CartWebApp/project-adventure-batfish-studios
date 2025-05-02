@@ -1,11 +1,11 @@
 
 // imports Reactor class for reactive values
-import { Reactor } from './Reactor.js';
-
-import { CanvasHandler } from './CanvasOverlay.js';
+import { Reactor } from './scripts/Reactor.js';
+import { CanvasHandler } from './scripts/CanvasOverlay.js';
+import { Consumable, Item } from './scripts/Item.js';
 
 // imports general use functions and sets their namespace to this window
-import * as fnExports from './Functions.js';
+import * as fnExports from './scripts/Functions.js';
 Object.entries(fnExports).forEach(([name, exported]) => window[name] = exported);
 
 let devMode = false;
@@ -25,6 +25,7 @@ let particleHandler;
 let leaveChoices = false;
 let startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
 let runNumber = 0;
+let itemData;
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
@@ -117,7 +118,15 @@ class Game {
         let count = random(min, max);
         let messages = [];
         style = style || '[c:var(--item-color)]';
-        player.addItem(itemName, count, style);
+        let item;
+        if (!(itemName in itemData)) {
+            item = new Item({name: itemName, count, type: 'generic', description: 'An item', style: style});
+        } else if (itemData[itemName].type === 'generic') {
+            item = new Item({count, style, ...itemData[itemName]});
+        } else if (itemData[itemName].type === 'consumable') {
+            item = new Consumable({count, style, ...itemData[itemName]});
+        }
+        player.addItem(item);
         if (count > 1) {
             messages.push(customMessage || `Obtained [${style + itemName}[:]] X ${count}`);
         } else {
@@ -242,7 +251,7 @@ class Game {
     // initiates combat
     async encounter(enemies, rewards, groupName) {
         let battle = new Battle({enemies, rewards, groupName})
-        await battle.encounter();
+        await battle.encounter(runNumber);
     }
 
 
@@ -338,11 +347,11 @@ class Battle {
         this.remainingEnemies = this.enemies;
     }
 
-    async encounter() {
+    async encounter(currentRunNumber) {
         let selectedChoice;
         let menuChoices = [
             new Choice('Fight', {speed: -1}),
-            // new Choice('Item', {speed: -1}),
+            new Choice('Item', {speed: -1}),
             new Choice('Inspect', {speed: -1}),
         ];
         
@@ -354,15 +363,19 @@ class Battle {
             showChoices(menuChoices, this.inputContainer);
             selectedChoice = await tryChoices(this.inputContainer);
             selectedChoice = selectedChoice.text.toLowerCase();
+            if (currentRunNumber != runNumber) return;
 
             // check what option is clicked, and run that function
             if (selectedChoice === 'fight') {
-                await this.selectEnemy('fight', 'Which enemy will you attack?');
+                let result = await this.selectEnemy('fight', 'Which enemy will you attack?');
                 if (this.remainingEnemies.length === 0) break;
-                await this.enemyTurn();
+                if (result != 'cancelled') await this.enemyTurn();
             } else if (selectedChoice === 'inspect') {
                 await this.selectEnemy('inspect', 'Which enemy will you inspect?');
+            } else if (selectedChoice === 'item') {
+                await this.selectItem();
             }
+            if (currentRunNumber != runNumber) return;
         }
 
         // end of fight
@@ -372,6 +385,28 @@ class Battle {
             await awaitClick(this.advanceElement);
         }
     }
+
+    // shows the items the player can use
+    async selectItem() {
+        clearDialogueText();
+        typeText('What item would you like to use?', {...this.textConfig});
+        let choices = [];
+        choices.push(new Choice('Back', {speed: -1, value: 'previous', color: '#bbbbbb'}))
+        for (const item of Object.values(player.inventory)) {
+            if (item.type != 'consumable') continue;
+            choices.push(new Choice(item.name, {speed: -1, value: item.name, color: 'var(--item-color)'}));
+        }
+        showChoices(choices, this.inputContainer);
+        let selectedChoice = await tryChoices(this.inputContainer);
+        if (selectedChoice.value === 'previous') return;
+        let selectedItem = player.inventory[selectedChoice.value];
+        let result = selectedItem.use(player);
+        clearDialogueText();
+        for (const message of result) {
+            typeText(message, {...this.textConfig});
+        }
+        await typeText('', {...this.textConfig, waits: true})
+    }
     
     // shows the remaining enemies to select
     async selectEnemy(action, text='Which enemy?') {
@@ -379,11 +414,13 @@ class Battle {
         typeText(text, {...this.textConfig});
         let selectedEnemy;
         let choices = [];
+        choices.push(new Choice('Back', {speed: -1, value: 'previous', color: '#bbbbbb'}))
         for (const enemy of this.remainingEnemies) {
             choices.push(new Choice(enemy.name, {speed: -1, value: enemy, color: 'orange'}));
         }
         showChoices(choices, this.inputContainer);
         let selectedChoice = await tryChoices(this.inputContainer);
+        if (selectedChoice.value === 'previous') return 'cancelled';
         selectedEnemy = selectedChoice.value;
 
         if (action === 'fight') {
@@ -570,8 +607,9 @@ class Character {
 
     // changes the characters hp
     changeHP(amount) {
+        let previousHP = this.hp;
         this.hp = clamp(this.hp + amount, 0, this.maxHP);
-        return this.hp;
+        return this.hp - previousHP;
     }
 
     // changes the characters max hp
@@ -612,12 +650,12 @@ class Player extends Character {
     }
 
     // Adds an item to the players inventory
-    addItem(itemName, count = 1, style = '') {
+    addItem(item) {
         let newInv = this._inventory.value;
-        if (!newInv[itemName]) {
-            newInv[itemName] = { name: itemName, count, style }
+        if (!newInv[item.name]) {
+            newInv[item.name] = item
         } else {
-            newInv[itemName].count += count;
+            newInv[item.name].count += count;
         }
         this._inventory.value = newInv;
     }
@@ -1152,8 +1190,10 @@ async function attemptAction(action) {
 
 // tries to run a list of actions or an action
 async function attemptActionsWithText(actions) {
+    let currentRunNumber = runNumber;
     if (Object.prototype.toString.call(actions) != '[object Array]') actions = [actions];
     for (const action of actions) {
+        if (currentRunNumber != runNumber) return;
         let actionResult = await attemptAction(action);
         if (actionResult && actionResult?.messages) {
             for (const message of actionResult.messages) {
@@ -1280,6 +1320,7 @@ function bufferTesting(elementID=undefined, iterations=1,count = 8, duration = 2
 
 // initializes the rooms and player
 async function init() {
+    itemData = await fnExports.parseJSON('items.json');
     bufferTesting('loading-buffer', 1, 10, 2000, 1, undefined, 20, 128, [
         { opacity: 1},
         { opacity: 0, offset: 1 },
@@ -1404,6 +1445,7 @@ function generateExampleRooms() {
 
     // battle testing
     room = createRoom('Example Room Battle', { name: 'neutral.jpeg' });
+    room.addAction({ type: 'getItem', parameters: ['Lume Fruit', 2, 3]});
     room.addAction({type: 'encounter', parameters: [[
         new Enemy('Example Enemy', 10, 2, 5),
         new Enemy('Example Enemy 2', 20, 6, 10, 'This guy has a description, [c:green]Neat!')

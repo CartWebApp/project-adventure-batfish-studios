@@ -1,0 +1,54 @@
+{
+    "Example Item": {
+        "name": "Example Item",
+        "description": "An example item.",
+        "type": "generic"
+    },
+    "Example Reusable Key": {
+        "name": "Example Reusable Key",
+        "description": "An example of an item used as a requirement. Not consumed on use.",
+        "type": "generic"
+    },
+    "Example Expendable Key": {
+        "name": "Example Expendable Key",
+        "description": "An example of an item used as a requirement. Consumed on use.",
+        "type": "generic"
+    },
+    "Example Reward": {
+        "name": "Example Reward",
+        "description": "An example of an item gained as a battle reward",
+        "type": "generic"
+    },
+    "Example Reward 2": {
+        "name": "Example Reward 2",
+        "description": "An example of an item gained as a battle reward",
+        "type": "generic"
+    },
+    "Wacky Thing": {
+        "name": "Wacky Thing",
+        "description": "How did you get this? You would have had to fight off a very powerful foe to get this...",
+        "type": "generic"
+    },
+    "Astrostew": {
+        "name": "Astrostew",
+        "description": "You're not sure what is in this, but it must be safe, right?",
+        "type": "consumable",
+        "effects": [{"type": "heal", "value": 20}]
+    },
+    "Food Pack": {
+        "name": "Food Pack",
+        "description": "Bland, but filling.",
+        "type": "consumable",
+        "effects": [{"type": "heal", "value": 10}]
+    },
+    "Lume Fruit": {
+        "name": "Lume Fruit",
+        "description": "A glowing pear-like fruit.",
+        "type": "consumable",
+        "effects": [
+            {"type": "gainMaxHP", "value": 1},
+            {"type": "heal", "value": 15}
+        ]
+    }
+    
+}

@@ -1,5 +1,6 @@
 
 :root {
+    --primary-bg-color: rgb(4, 1, 37);
     --choice-color: rgb(0, 255, 247);
     --item-color: rgb(255, 251, 0);
     --border-color: rgb(61, 106, 255);
@@ -187,7 +188,7 @@ p {
     left: 4px;
     bottom: 4px;
     right: 4px;
-    background-color: rgb(3, 0, 31);
+    background-color: var(--primary-bg-color);
     clip-path: polygon(0 0, 90% 0, 93% 5%, 100% 5%, 100% 100%, 14% 100%, 11% 95%, 0 95%);
 }
 
@@ -254,7 +255,7 @@ p {
     min-height: 8rem;
     max-height: calc(100% - 5rem);
     transform: translate(-50%, -50%) scale(1);
-    background-color: rgb(3, 0, 31);
+    background-color: var(--primary-bg-color);
     z-index: 5;
     user-select: none;
     transition: all 200ms ease;
@@ -361,6 +362,7 @@ p {
     transition: 150ms ease;
     z-index: 2;
     padding: 0 1rem;
+    filter: drop-shadow(0 0 1px var(--border-gradient-color-2));
 }
 
 #dialogue-box .content {
@@ -385,7 +387,7 @@ p {
     left: 8px;
     bottom: 4px;
     right: 8px;
-    background-color: rgb(3, 0, 31);
+    background-color: var(--primary-bg-color);
     z-index: -1;
     clip-path: polygon(0 0, 50% 0, 55% 5%, 100% 5%, 100% 90%, 97% 100%, 2% 100%, 2% 33%, 0 20%);
 }
@@ -399,7 +401,6 @@ p {
     /* background-color: var(--border-color); */
     z-index: -2;
     clip-path: polygon(0 0, 50% 0, 55% 5%, 100% 5%, 100% 90%, 97% 100%, 2% 100%, 2% 33%, 0 20%);
-    animation: future-border-1 100 linear infinite;
 }
 
 #dialogue-box .clip-large::before {
@@ -407,6 +408,7 @@ p {
     position: absolute;
     width: 1000%;
     height: 1000%;
+    opacity: .5;
     top: 50%;
     left: 50%;
     translate: -50% -50%;
