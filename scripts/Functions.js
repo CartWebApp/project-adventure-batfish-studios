@@ -129,3 +129,13 @@ export async function parseJSON(path) {
         console.error(`Unable to fetch JSON:`, error);
     })
 }
+
+// like indexOf, but based on values and not references
+// made for array comparisons
+export function looseIndexOf(array, target) {
+    for (let i = 0; i < array.length; i++) {
+        if (JSON.stringify(array[i]) === JSON.stringify(target)) {
+            return i;
+        }
+    }
+}

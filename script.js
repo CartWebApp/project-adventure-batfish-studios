@@ -23,7 +23,7 @@ let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
-let startingRoom = 'Example Hub'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
 let runNumber = 0;
 let itemData;
 
@@ -258,6 +258,25 @@ class Game {
         await battle.encounter(runNumber);
     }
 
+    // // a chance to initiate combat
+    //  async randomEncounter(enemyPool, rewardPool, groupName) {
+    //     let battle = new Battle({enemies, rewards, groupName})
+    //     await battle.encounter(runNumber);
+    //     [
+    //         {
+    //             enemy: new Enemy('enemy 1', 10, 10, 10),
+    //             weight: 10
+    //         }, 
+    //         {
+    //             team: [
+    //             new Enemy('enemy 1', 10, 10, 10),
+    //             new Enemy('enemy 2', 10, 10, 10)
+    //             ],
+    //             weight: 10
+    //         }
+    //     ]
+    // }
+
     // initiates an ending
     async ending(endType) {
         isGameLoop = false;
@@ -300,7 +319,7 @@ class Game {
         runNumber += 1;
         history.softReset();
         game.changeParticleAnimation('none', 1, 1);
-        player = new Player(1000, 1000, 1000);
+        player = new Player();
         generateAllRooms();
         currentRoom = rooms[startingRoom];
         isGameLoop = true;
@@ -891,6 +910,17 @@ class Room {
         if (this.bg) { this.addAction({ type: 'changeBG', parameters: [this.bg.name, this.bg.transition] }) }
     }
 
+    // returns a copy of this room, optionally with its own name.
+    copy(name) {
+        name = name ?? this.name;
+        let copiedRoom = new Room(name, this.bg);
+        Object.assign(copiedRoom.queuelist, this.queuelist);
+        Object.assign(copiedRoom.choices, this.choices);
+        Object.assign(copiedRoom.actions, this.actions);
+        Object.assign(copiedRoom.storyParts, this.storyParts);
+        return copiedRoom;
+    }
+
     // adds a choice to the room
     addChoice(choice) {
         this.choices.push(choice);
@@ -956,18 +986,39 @@ class RoomGrid {
         if (!this.height) this.height = height;
         if (!this.entrance) this.entrance = entrance;
         if (typeof this.showCoordinates != 'boolean') this.showCoordinates = showCoordinates;
-        this.filledRooms = {};
-        this.usedCoords = [];
         this.grid = [];
         this.emptyTemplate = new Room();
         this.roomQueuelist = {queuelist: [], requirements: []};
+        this.randomRooms = [];
+        this.filledRooms = {};
+        this.unusedCoords = [];
+        this.iterateGrid((x, y)=> {
+            this.unusedCoords.push([x, y]);
+        })
     }
 
-    // generates a room at a given coordinate
-    generateRoom(coords, bg) {
-        let room = new Room(`${this.name}-${coords[0]}-${coords[1]}`, bg)
-        this.filledRooms[coords[0] + '-' + coords[1]] = room;
-        this.usedCoords.push(coords);
+    // iterates a function through each grid cell (x,y coord)
+    iterateGrid(fn) {
+        for (let x = 0; x < this.width; x++) {
+            for (let y = 0; y < this.height; y++) {
+                fn(x, y)
+            }
+        }
+    }
+
+    // generates a room(s) at a given coordinate or at random
+    generateRoom(coords, bg, count=1) {
+        let room;
+        if (coords) {
+            room = new Room(`${this.name}-${coords[0]}-${coords[1]}`, bg)
+            this.filledRooms[coords[0] + '-' + coords[1]] = room;
+            if (looseIndexOf(this.unusedCoords, coords) >= 0) {
+                this.unusedCoords.splice(looseIndexOf(this.unusedCoords, coords), 1);
+            }
+        } else {
+            room = new Room(``, bg)
+            this.randomRooms.push({room, count})
+        }
         return room;
 
     }
@@ -984,92 +1035,101 @@ class RoomGrid {
     }
 
     generateDefaultRoom(coords) {
-        let room = new Room(`${this.name}-${coords[0]}-${coords[1]}`);
-        Object.assign(room.queuelist, this.emptyTemplate.queuelist)
-        Object.assign(room.choices, this.emptyTemplate.choices)
-        Object.assign(room.actions, this.emptyTemplate.actions)
-        Object.assign(room.storyParts, this.emptyTemplate.storyParts)
+        let room = this.emptyTemplate.copy(`${this.name}-${coords[0]}-${coords[1]}`)
         return room;
     }
 
     // populates the grid with rooms
     populateGrid() {
+        for (const rooms of this.randomRooms) {
+            for (let i = 0; i < rooms.count; i++) {
+                if (this.unusedCoords.length === 0) break;
+                let room = rooms.room;
+                let roomCoords = this.unusedCoords[random(0,this.unusedCoords.length - 1)];
+                if (looseIndexOf(this.unusedCoords, roomCoords) >= 0) {
+                    this.unusedCoords.splice(looseIndexOf(this.unusedCoords, roomCoords), 1);
+                }
+                let newRoom = room.copy(`${this.name}-${roomCoords[0]}-${roomCoords[1]}`);
+                this.filledRooms[roomCoords[0] + '-' + roomCoords[1]] = newRoom;
+            }
+            if (this.unusedCoords.length === 0) break;
+        }
+
         for (let x = 0; x < this.width; x++) {
             this.grid.push([]);
-            for (let y = 0; y < this.height; y++) {
-                // adds predefined room or generated room to the grid
-                let room;
-                if (this.filledRooms[`${x}-${y}`]) {
-                    room = this.filledRooms[`${x}-${y}`];
-                } else {
-                    room = this.generateDefaultRoom([x, y]);
-                }
-                this.grid[x].push(room);
-            }
         }
+
+        this.iterateGrid((x, y)=> {
+            // adds predefined room or generated room to the grid
+            let room;
+            if (this.filledRooms[`${x}-${y}`]) {
+                room = this.filledRooms[`${x}-${y}`];
+            } else {
+                room = this.generateDefaultRoom([x, y]);
+            }
+            this.grid[x].push(room);
+        })
+
     }
 
     // connects the rooms by adding direction choices
     connectRooms() {
-        for (let x = 0; x < this.width; x++) {
-            for (let y = 0; y < this.height; y++) {
-                let room = this.grid[x][y];
+        this.iterateGrid((x, y)=> {
+            let room = this.grid[x][y];
 
-                for (const queueItem of this.roomQueuelist.queuelist) {
-                    for (const requirement of this.roomQueuelist.requirements) {
-                        if (queueItem.type === 'story') {
-                            queueItem.value.addRequirement(requirement);
-                        } else if (queueItem.type === 'actionlist') {
-                            for (const action of queueItem.value) {
-                                action.addRequirement(requirement);
-                            }
+            for (const queueItem of this.roomQueuelist.queuelist) {
+                for (const requirement of this.roomQueuelist.requirements) {
+                    if (queueItem.type === 'story') {
+                        queueItem.value.addRequirement(requirement);
+                    } else if (queueItem.type === 'actionlist') {
+                        for (const action of queueItem.value) {
+                            action.addRequirement(requirement);
                         }
-                        else if (queueItem.type === 'choicelist') {
-                            for (const choice of queueItem.value) {
-                                choice.addRequirement(requirement);
-                            }
+                    }
+                    else if (queueItem.type === 'choicelist') {
+                        for (const choice of queueItem.value) {
+                            choice.addRequirement(requirement);
                         }
                     }
                 }
-                room.addQueuelist(this.roomQueuelist.queuelist)
-
-                if (this.showCoordinates) {
-                    room.addStory(`Coordinates: [[c:yellow]${x}[:], [c:yellow]${y}[:]]`, {waits: false, speed: -1});
-                }
-
-                // adds move choice if there is a room in the target spot
-                if (this.grid?.[x-1]?.[y]) {
-                    let westRoom = this.grid[x-1][y];
-                    room.createChoice(`Go West.`, {repeatable: true})
-                        .addAction({type: 'changeRoom', parameters: [westRoom.name]});
-                }
-                if (this.grid?.[x]?.[y-1]) {
-                    let northRoom = this.grid[x][y-1];
-                    room.createChoice(`Go North.`, {repeatable: true})
-                        .addAction({type: 'changeRoom', parameters: [northRoom.name]});
-                }
-                if (this.grid?.[x]?.[y+1]) {
-                    let southRoom = this.grid[x][y+1];
-                    room.createChoice(`Go South.`, {repeatable: true})
-                        .addAction({type: 'changeRoom', parameters: [southRoom.name]});
-                }
-                if (this.grid?.[x+1]?.[y]) {
-                    let eastRoom = this.grid[x+1][y];
-                    room.createChoice(`Go East.`, {repeatable: true})
-                        .addAction({type: 'changeRoom', parameters: [eastRoom.name]});
-                }
             }
-        }
+            room.addQueuelist(this.roomQueuelist.queuelist)
+
+            if (this.showCoordinates) {
+                room.addStory(`Coordinates: [[c:yellow]${x}[:], [c:yellow]${y}[:]]`, {waits: false, speed: -1});
+            }
+
+            // adds move choice if there is a room in the target spot
+            if (this.grid?.[x-1]?.[y]) {
+                let westRoom = this.grid[x-1][y];
+                room.createChoice(`Go West.`, {repeatable: true})
+                    .addAction({type: 'changeRoom', parameters: [westRoom.name]});
+            }
+            if (this.grid?.[x]?.[y-1]) {
+                let northRoom = this.grid[x][y-1];
+                room.createChoice(`Go North.`, {repeatable: true})
+                    .addAction({type: 'changeRoom', parameters: [northRoom.name]});
+            }
+            if (this.grid?.[x]?.[y+1]) {
+                let southRoom = this.grid[x][y+1];
+                room.createChoice(`Go South.`, {repeatable: true})
+                    .addAction({type: 'changeRoom', parameters: [southRoom.name]});
+            }
+            if (this.grid?.[x+1]?.[y]) {
+                let eastRoom = this.grid[x+1][y];
+                room.createChoice(`Go East.`, {repeatable: true})
+                    .addAction({type: 'changeRoom', parameters: [eastRoom.name]});
+            }
+        })
     }
 
     // adds the rooms to the global rooms variable
     deployRooms() {
-        for (let x = 0; x < this.width; x++) {
-            for (let y = 0; y < this.height; y++) {
-                let room = this.grid[x][y];
-                rooms[room.name] = room;
-            }
-        }
+        this.iterateGrid((x, y)=> {
+            let room = this.grid[x][y];
+            rooms[room.name] = room;
+        })
+
         rooms[`${this.name}-start`] = this.grid[this.entrance[0]][this.entrance[1]]
     }
 
@@ -2026,7 +2086,6 @@ function generateEscapeRooms() {
 
     room = wastelandGrid.generateRoom([1,3], {name: 'escape.jpeg'});
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO SOUTH.]`);
-
     room = wastelandGrid.generateRoom([1,4], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [[
         new Enemy('FishBat', 20, 20, 5, `Not to be confused with a batfish.`),
