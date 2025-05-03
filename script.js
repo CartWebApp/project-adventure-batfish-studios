@@ -23,7 +23,7 @@ let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
-let startingRoom = 'Example Hub'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
 let runNumber = 0;
 let itemData;
 
@@ -300,7 +300,7 @@ class Game {
         runNumber += 1;
         history.softReset();
         game.changeParticleAnimation('none', 1, 1);
-        player = new Player(1000, 1000, 1000);
+        player = new Player();
         generateAllRooms();
         currentRoom = rooms[startingRoom];
         isGameLoop = true;
@@ -1993,27 +1993,6 @@ function generateEscapeRooms() {
         {name: 'Food Pack', min: 1, max: 4},
         {name: 'Participation Trophy', min: 1, max: 1},
     ], 'an abnormality!'], waits: true});
-    // room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 10] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-    //     choice1 = room.createChoice(`See Idelle.`);
-    //     choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 10] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-    //     choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']})
-    //     choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 10] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-    //     choice1 = room.createChoice(`See Idelle.`);
-    //     choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 10] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-    //     choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
 
     room = wastelandGrid.generateRoom([0,4], {name: 'escape.jpeg'});
     room.addAction({type: `getItem`, parameters: [`Food Pack`, 1, 3]});
