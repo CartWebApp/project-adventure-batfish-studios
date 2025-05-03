@@ -23,7 +23,7 @@ let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
-let startingRoom = 'wasteland-2-2'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'Example Hub'; // [ 'Example Hub' ][ 'b-start' ]
 let runNumber = 0;
 let itemData;
 
@@ -178,6 +178,10 @@ class Game {
 
     // changes the current room to a new room
     changeRoom(room) {
+    if (!rooms[room]) {
+        typeText('This room does not exist', {element: document.getElementById('action-output')});
+        return;
+    }
         history.addRoom(room);
         currentRoom = rooms[room];
     }
@@ -241,19 +245,18 @@ class Game {
     }
 
     // writes text
-    async writeText(text, options, speed = 20, variance = 5, animation = 'default', waits = true, waitDelay = 0, skippable = true, elementID = 'story', clearsText = false) {
+    async writeText(text, options, speed, variance, animation, waits, waitDelay, skippable, elementID = 'story', clearsText = false) {
         elementID = options.elementID ?? elementID;
-        let textObj = new TextObject(text, options, speed, variance, animation, skippable, waits, waitDelay);
+        let textObj = new StoryObject(text, options, speed, variance, animation, skippable, waits, waitDelay);
         if (clearsText) clearText(document.getElementById(elementID));
         await typeText(textObj.text,{}, document.getElementById(elementID), textObj.speed, textObj.variance, true, document.getElementById('dialogue-box'), textObj.animation, textControllerSignal, textObj.waits, textObj.waitDelay)
     }
 
-    // initiates combat
+    // a chance to initiate combat
     async encounter(enemies, rewards, groupName) {
         let battle = new Battle({enemies, rewards, groupName})
         await battle.encounter(runNumber);
     }
-
 
     // initiates an ending
     async ending(endType) {
@@ -297,7 +300,7 @@ class Game {
         runNumber += 1;
         history.softReset();
         game.changeParticleAnimation('none', 1, 1);
-        player = new Player();
+        player = new Player(1000, 1000, 1000);
         generateAllRooms();
         currentRoom = rooms[startingRoom];
         isGameLoop = true;
@@ -346,7 +349,7 @@ class Battle {
         this.outputContainer = outputContainer ?? document.getElementById('story');
         this.advanceElement = advanceElement ?? document.getElementById('dialogue-box');
         if (parameters) transferProperties(parameters, this);
-        this.textConfig = this.textConfig ?? {element: this.outputContainer, speed: -1, skipElement: this.advanceElement, skippable: true};
+        this.textConfig = this.textConfig ?? {element: this.outputContainer, speed: 0, skipElement: this.advanceElement, skippable: true};
         this.enemies = this.enemies.map(enemy => enemy.clone());
         this.remainingEnemies = this.enemies;
     }
@@ -790,21 +793,48 @@ class TextObject {
         transferProperties(this.options, this);
     }
 
-    addRequirement(options, mode, type, parameters, inverse = false) {
+    addRequirement(options, mode, type, parameters, inverse) {
         mode = options.mode ?? mode;
         type = options.type ?? type;
         inverse = options.inverse ?? inverse; // makes it required to NOT meet the requirement
         parameters = options.parameters ?? parameters ?? [];
-        this.requirements.push({ mode, type, inverse, parameters });
+        this.requirements.push(new Requirement({}, mode, type, parameters, inverse ));
         return this;
     }
 }
 
+class StoryObject extends TextObject {
+    constructor(text, options, speed = 20, variance = 5, animation = 'default', waits = true, waitDelay = 0, skippable = true) {
+        super(text, options, speed, variance, animation, skippable, waits, waitDelay);
+    }
+}
+
+class Requirement {
+    constructor(options, mode, type, parameters=[], inverse = false) {
+        Object.assign(this, options);
+        this.type = this.type ?? type;
+        this.mode = this.mode ?? mode;
+        this.parameters = this.parameters ?? parameters;
+        this.inverse = this.inverse ?? inverse;
+    }
+}
+
 class Action {
-    constructor(type, parameters=[], waits=false) {
+    constructor(type, parameters=[], waits=false, chance=100) {
         this.type = type;
         this.parameters = parameters;
         this.waits = waits;
+        this.chance = chance;
+        this.requirements = [];
+    }
+
+    addRequirement(options, mode, type, parameters, inverse) {
+        mode = options.mode ?? mode ?? 'use';
+        type = options.type ?? type;
+        inverse = options.inverse ?? inverse;
+        parameters = options.parameters ?? parameters ?? [];
+        this.requirements.push(new Requirement({}, mode, type, parameters, inverse ));
+        return this;
     }
 }
 
@@ -824,11 +854,12 @@ class Choice extends TextObject {
         }
     }
 
-    addAction(options, type, parameters, waits) {
+    addAction(options, type, parameters, waits, chance) {
         type = options.type ?? type;
         parameters = options.parameters ?? parameters;
         waits = options.waits ?? false;
-        this.actions.push(new Action(type, parameters, waits));
+        chance = options.chance ?? chance;
+        this.actions.push(new Action(type, parameters, waits, chance));
         return this;
     }
 
@@ -837,7 +868,7 @@ class Choice extends TextObject {
         type = options.type ?? type;
         inverse = options.inverse ?? inverse; // makes it required to NOT meet the requirement
         parameters = options.parameters ?? parameters ?? [];
-        this.requirements.push({ mode, type, inverse, parameters });
+        this.requirements.push(new Requirement({}, mode, type, parameters, inverse));
         return this;
     }
 
@@ -885,22 +916,20 @@ class Room {
     }
 
     // adds a story line to the room
-    addStory(text, options, speed = 20, variance = 5, animation = 'default', waits = true, waitDelay = 0, skippable = true) {
-        if (this.name.includes('0-0')) {
-            console.log('how');
-        }
-        let storyObject = new TextObject(text, options, speed, variance, animation, skippable, waits, waitDelay);
+    addStory(text, options, speed, variance, animation, waits, waitDelay, skippable) {
+        let storyObject = new StoryObject(text, options, speed, variance, animation, skippable, waits, waitDelay);
         this.storyParts.push(storyObject);
         this.queuelist.push({ type: 'story', value: storyObject });
         return storyObject;
     }
 
     // adds an action for a room
-    addAction(options, type, parameters, waits) {
+    addAction(options, type, parameters, waits, chance) {
         type = options.type ?? type;
         parameters = options.parameters ?? parameters;
         waits = options.waits ?? waits ?? false;
-        const action = new Action(type, parameters, waits);
+        chance = options.chance ?? chance
+        const action = new Action(type, parameters, waits, chance);
         this.actions.push(action);
 
         const lastInQueue = this.queuelist[this.queuelist.length - 1]
@@ -911,25 +940,34 @@ class Room {
         }
         return this
     }
+
+    // appends a queuelist to the rooms queuelist
+    addQueuelist(queuelist) {
+        this.queuelist.push(...queuelist)
+    }
 }
 
 // generates rooms in a grid pattern
 class RoomGrid {
-    constructor(options, name='', width=3, height=3, filledRooms=[], entrance=[2,2]) {
+    constructor(options, name='', width=3, height=3, entrance=[0,0], showCoordinates=true) {
         Object.assign(this, options);
         if (!this.name) this.name = name;
         if (!this.width) this.width = width;
         if (!this.height) this.height = height;
-        if (!this.filledRooms) this.filledRooms = filledRooms;
         if (!this.entrance) this.entrance = entrance;
+        if (typeof this.showCoordinates != 'boolean') this.showCoordinates = showCoordinates;
+        this.filledRooms = {};
         this.usedCoords = [];
         this.grid = [];
+        this.emptyTemplate = new Room();
+        this.roomQueuelist = {queuelist: [], requirements: []};
     }
 
     // generates a room at a given coordinate
     generateRoom(coords, bg) {
         let room = new Room(`${this.name}-${coords[0]}-${coords[1]}`, bg)
         this.filledRooms[coords[0] + '-' + coords[1]] = room;
+        this.usedCoords.push(coords);
         return room;
 
     }
@@ -937,6 +975,12 @@ class RoomGrid {
     // sets the template for empty rooms
     setDefaultRoom(room) {
         this.emptyTemplate = room;
+    }
+
+    // sets a queuelist that runs every time a room gets explored
+    // one use is to set a leave condition by using actions that are not run unless certain conditions are met
+    setRoomQueuelist(queuelist, requirements) {
+        this.roomQueuelist = {queuelist, requirements}
     }
 
     generateDefaultRoom(coords) {
@@ -970,9 +1014,35 @@ class RoomGrid {
         for (let x = 0; x < this.width; x++) {
             for (let y = 0; y < this.height; y++) {
                 let room = this.grid[x][y];
-                room.addStory(`Coordinates: [[c:yellow]${x}[:], [c:yellow]${y}[:]]`, {waits: false});
+
+                for (const queueItem of this.roomQueuelist.queuelist) {
+                    for (const requirement of this.roomQueuelist.requirements) {
+                        if (queueItem.type === 'story') {
+                            queueItem.value.addRequirement(requirement);
+                        } else if (queueItem.type === 'actionlist') {
+                            for (const action of queueItem.value) {
+                                action.addRequirement(requirement);
+                            }
+                        }
+                        else if (queueItem.type === 'choicelist') {
+                            for (const choice of queueItem.value) {
+                                choice.addRequirement(requirement);
+                            }
+                        }
+                    }
+                }
+                room.addQueuelist(this.roomQueuelist.queuelist)
+
+                if (this.showCoordinates) {
+                    room.addStory(`Coordinates: [[c:yellow]${x}[:], [c:yellow]${y}[:]]`, {waits: false, speed: -1});
+                }
 
                 // adds move choice if there is a room in the target spot
+                if (this.grid?.[x-1]?.[y]) {
+                    let westRoom = this.grid[x-1][y];
+                    room.createChoice(`Go West.`, {repeatable: true})
+                        .addAction({type: 'changeRoom', parameters: [westRoom.name]});
+                }
                 if (this.grid?.[x]?.[y-1]) {
                     let northRoom = this.grid[x][y-1];
                     room.createChoice(`Go North.`, {repeatable: true})
@@ -982,11 +1052,6 @@ class RoomGrid {
                     let southRoom = this.grid[x][y+1];
                     room.createChoice(`Go South.`, {repeatable: true})
                         .addAction({type: 'changeRoom', parameters: [southRoom.name]});
-                }
-                if (this.grid?.[x-1]?.[y]) {
-                    let westRoom = this.grid[x-1][y];
-                    room.createChoice(`Go West.`, {repeatable: true})
-                        .addAction({type: 'changeRoom', parameters: [westRoom.name]});
                 }
                 if (this.grid?.[x+1]?.[y]) {
                     let eastRoom = this.grid[x+1][y];
@@ -1005,6 +1070,7 @@ class RoomGrid {
                 rooms[room.name] = room;
             }
         }
+        rooms[`${this.name}-start`] = this.grid[this.entrance[0]][this.entrance[1]]
     }
 
     // generates the grid. DO NOT CALL MORE THAN ONCE
@@ -1024,6 +1090,31 @@ class Ending extends Room {
             this.addAction({ type: 'styleBG', parameters: ['[an:shrink 30s ease-out][fi:grayscale(.6)]'] });
         }
     }
+}
+
+// creates a queueList given a list of stories, actions, and choices
+function createQueuelist(itemList) {
+    let queuelist = [];
+    for (const item of itemList) {
+        if (item.constructor.name === 'StoryObject') {
+            queuelist.push({ type: 'story', value: item });
+        } else if (item.constructor.name === 'Choice') {
+            const lastInQueue = queuelist[queuelist.length - 1]
+            if (lastInQueue && lastInQueue.type === 'choicelist') {
+                lastInQueue.value.push(item.value)
+            } else {
+                queuelist.push({ type: 'choicelist', value: [item] });
+            }
+        } else if (item.constructor.name === 'Action') {
+            const lastInQueue = queuelist[queuelist.length - 1]
+            if (lastInQueue && lastInQueue.type === 'actionlist') {
+                lastInQueue.value.push(item.value)
+            } else {
+                queuelist.push({ type: 'actionlist', value: [item] });
+            }
+        }
+    }
+    return queuelist;
 }
 
 // creates an element for a loading buffer
@@ -1178,12 +1269,11 @@ async function typeText(text, options, element, speed = 10, variance = 0, skippa
     speed = options.speed ?? speed;
     variance = options.variance ?? variance;
     skippable = options.skippable ?? skippable;
-    skipElement = options.skipElement ?? skipElement;
+    skipElement = options.skipElement ?? skipElement ?? document.getElementById('dialogue-box');
     animation = options.animation ?? animation;
     signal = options.signal ?? signal;
     waits = options.waits ?? waits;
     waitDelay = options.waitDelay ?? waitDelay;
-
 
     let skipped = false;
 
@@ -1204,6 +1294,7 @@ async function typeText(text, options, element, speed = 10, variance = 0, skippa
         skipElement = skipElement ?? element; // the element the user clicks on to trigger skip
         skipElement.addEventListener('click', skipFunction, { once: true });
     }
+
     let textLine = document.createElement('span');
     textLine.className = 'text-line';
     element.appendChild(textLine);
@@ -1216,10 +1307,12 @@ async function typeText(text, options, element, speed = 10, variance = 0, skippa
             let newChar = char.cloneNode(true);
             newChar.classList.add(animation);
             wordSpan.appendChild(newChar);
-            try {
-                await cancelableSleep(speed + random(0, variance), signal);
-            } catch (error) {
-                let test = null;
+            if (speed >= 0) {
+                try {
+                    await cancelableSleep(speed + random(0, variance), signal);
+                } catch (error) {
+                    let test = null;
+                }
             }
         }
     }
@@ -1295,12 +1388,12 @@ async function showChoices(choices, container) {
     }
 }
 
-// returns weather all the requirments are met to make a choice
-function checkRequirements(choice, mode = 'use') {
+// returns weather all the requirments are met to do something
+function checkRequirements(object, mode = 'use') {
     let metRequirements = true;
     let messages = [];
     let result;
-    for (const requirement of choice.requirements) {
+    for (const requirement of object.requirements) {
         if (requirement.mode != mode) continue;
         if (typeof game[requirement.type] === 'function') {
             result = game[requirement.type](...requirement.parameters)
@@ -1345,6 +1438,8 @@ async function selectChoice(choiceContainer) {
 
 // tries to run an action
 async function attemptAction(action) {
+    if (action.chance < random(0, 100, 6)) return;
+    if (!checkRequirements(action, 'use').metRequirements) return;
     if (action.waits) {
 
         // if the function is within the game object, or is a global function
@@ -1380,6 +1475,9 @@ async function attemptActionsWithText(actions) {
                 typeText(message,{}, document.getElementById('action-output'));
                 const cleanText = parseStyles(message, 'This returns the clean text because nothing matches this.').text;
                 history.addAction(cleanText);
+            }
+            if (action.waits) {
+                await awaitClick(document.getElementById('dialogue-box'));
             }
         }
     }
@@ -1445,7 +1543,7 @@ async function gameLoop() {
         }
         if (currentRunNumber != runNumber) return;
         else if (thisRoom === currentRoom) {
-            await showStory([new TextObject('You have hit a dead end. Please add an ending or a way to change rooms here.', { waits: true, waitDelay: 30000 })]);
+            await showStory([new StoryObject('You have hit a dead end. Please add an ending or a way to change rooms here.', { waits: true, waitDelay: 30000 })]);
         }
     }
 }
@@ -1553,9 +1651,20 @@ function generateExampleRooms() {
         .addAction({type: 'changeRoom', parameters: ['Example Room Particles']});
     room.createChoice('Battle Testing')
         .addAction({type: 'changeRoom', parameters: ['Example Room Battle']});
+    room.createChoice('Grid Testing')
+        .addAction({type: 'changeRoom', parameters: ['Example Grid Hub']});
+    room.createChoice('Teleporter')
+        .addAction({type: 'changeRoom', parameters: ['Example Teleporter Hub']});
+
+    room = createRoom('Example Teleporter Hub')
     room.createChoice('Main Story')
         .addAction({type: ()=> {
             startingRoom = 'b-start';
+            game.restart();
+        }});
+    room.createChoice('Escape Wasteland')
+        .addAction({type: ()=> {
+            startingRoom = 'e-wasteland-start';
             game.restart();
         }});
 
@@ -1605,6 +1714,7 @@ function generateExampleRooms() {
     room.addStory('El fin');
     room.addAction({ type: 'ending', parameters: ['Example Ending'] });
     
+
     // particle testing
     room = createRoom('Example Room Particles', { name: 'neutral.jpeg' });
     room.addAction({type: 'changeParticleAnimation', parameters: ['fog', 1, 1]});
@@ -1623,6 +1733,7 @@ function generateExampleRooms() {
     smoke.addAction({type: 'changeParticleAnimation', parameters: ['smoke top', 1, 1]});
     smoke.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [ashes.id] })
 
+
     // battle testing
     room = createRoom('Example Room Battle', { name: 'neutral.jpeg' });
     room.addAction({ type: 'getItem', parameters: ['Lume Fruit', 2, 3]});
@@ -1634,19 +1745,28 @@ function generateExampleRooms() {
     [
         {name: 'Example Reward', min: 1, max: 5},
         {name: 'Example Reward 2', min: 1, max: 5}
-    ], 'a couple of example enemies'], waits: true})
+    ], 'a couple of example enemies'], waits: true, chance: 100})
     room.addAction({type: 'encounter', parameters: [[
         new Enemy('Weak Enemy', 10, 2, 2),
         new Enemy('OP Enemy', 200, 100, 100, `You [fst:italic]really[:] don't want to mess with this guy`),
-        new Enemy('Enemy 3', 1, 1, 1),
-        new Enemy('Enemy 4', 1, 1, 2),
-        new Enemy('Enemy 5', 1, 1, 4),
-        new Enemy('Enemy 6', 1, 1, 5),
-        new Enemy('Enemy 7', 1, 1, 8)
+        new Enemy('Enemy 3', 5, 1, 1),
+        new Enemy('Enemy 4', 5, 1, 2),
+        new Enemy('Enemy 5', 5, 1, 4),
+        new Enemy('Enemy 6', 5, 1, 6),
+        new Enemy('Enemy 7', 5, 1, 8)
     ], [
         {name: 'Wacky Thing', min: 1, max: 1},
         {name: 'Super Syrum', min: 1, max: 1}
     ], 'The Wacky Gang'], waits: true})
+
+
+    // grid testing
+    room = createRoom('Example Grid Hub');
+    room.createChoice('Grid 1')
+        .addAction({type: 'changeRoom', parameters: ['example-grid-1-start']});
+
+    let grid = new RoomGrid({name: 'example-grid-1', width: 4, height: 1, showCoordinates: false})
+    grid.generateGrid();
 }
 
 function generateStartingRooms() {
@@ -1670,7 +1790,7 @@ function generateStartingRooms() {
     room.addStory(`Next comes your sight. Once the steam clears, the cryopod door creaks open to the now run-down lab. Red lights are flashing through the room, presumably the whole building as well.`);
     room.addStory(`Stepping out of the pod, it appears that yours was the only one to be well-maintained. The other two pods are rusty and broken, with the glass shattered and labels long faded.`);
     room.addStory(`In fact, you can barely make out your own name on the scratchy, old label.`);
-    room.addStory(`[c:var(--Gali)]"Gali."`, { waits: false, waitDelay: 1500, speed: 50 });
+    room.addStory(`[c:var(--Gali)]"Gali."`, { waits: false, waitDelay: 1000, speed: 50 });
     room.addStory(`There doesn't seem to be much left to do or see. Anything that once was is long gone.`, { waits: false });
     choice1 = room.createChoice("Leave the lab.");
     choice1.addAction({ type: 'changeRoom', parameters: ['b-3-hallways'] });
@@ -1747,7 +1867,7 @@ function generateEscapeRooms() {
     room.addStory(`In front of you stands a small, inter-species group of survivors.`);
     room.addStory(`They all raise their weapons, which are crudely built from scraps and duct taped together.`);
     room.addStory(`Their [c:var(--character)]leader, [c:]a tall, cloaked figure, steps forward. The faintest glimpse of purple peeks out from under their burlap hood, glimmering in the Viremian sunlight.`);
-    room.addStory(`[c:var(--dialogue)][fst:italic][fs:30px]"You."`, {speed: 350, waits: false, waitDelay:2500});
+    room.addStory(`[c:var(--dialogue)][fst:italic][fs:30px]"You."`, {speed: 350, waits: false, waitDelay:1500});
     room.addStory(`Their spear is pointed towards your chest.`);
     room.addStory(`[c:var(--dialogue)]"Where did you come from? Why are you following me? Who sent you here?"`);
     room.addStory(`The other four continue to circle around you, gazes intense. It's like they're throwing daggers straight into you with their eyes.`);
@@ -1773,7 +1893,7 @@ function generateEscapeRooms() {
     room.addStory(`[c:var(--actions)][fst:italic]You and [c:var(--character)]Idelle [c:var(--actions)]are now acquainted.`)
     room.addStory(`[c:var(--dialogue)]"You should have been released years ago, Gali."`);
     room.addStory(`[c:var(--dialogue)]"They let me and that other fellow go after the 60-year contract was up. They couldn't get your pod to open at the time, so..."`);
-    room.addStory(`...So you were [an:text-funky][c:var(--destruction)]abandoned, [an:][c:]it seems.`, {speed: 70, waits: false, waitDelay:2500});
+    room.addStory(`...So you were [an:text-funky][c:var(--destruction)]abandoned, [an:][c:]it seems.`, {speed: 70, waits: false, waitDelay:1500});
     choice1 = room.createChoice(`Ask how long you've been frozen.`);
     room.addStory(`[c:var(--character)]Idelle [c:]gives a sheepish frown, awkwardly patting your shoulder.`);
     room.addStory(`[c:var(--dialogue)]"Oh, I don't know. Just about, erm...an extra...few..."`);
@@ -1818,7 +1938,7 @@ function generateEscapeRooms() {
     room.addStory(`- 1 FUEL CANISTER`);
     room.addStory(`- 1 MICROCHIP`);
     room.addStory(`- 5 SCRAP METAL`);
-    room.addStory(`- 15 FOOD PACKS`);
+    room.addStory(`- 10 FOOD PACKS`);
     room.addStory(`- MEDICAL KITS`);
     room.addStory(`[c:var(--character)]Idelle [c:]drags some kind of...thing out of the ship, pushing what appears to be a big hunk of metal towards you.`);
     room.addStory(`"Here. Call it a welcome gift."`);
@@ -1848,12 +1968,22 @@ function generateEscapeRooms() {
     room.addStory(`"Now, if you don't mind, I have a few things to take care of. come back to the ship when you've found everything."`);
     room.addStory(`The wasteland is a desolate, barren dust bowl. The ground is cracked and dry, and the air is thick with dust and debris. Your mouth tastes more and more like metal the longer you stand out here.`);
     choice1 = room.createChoice(`Explore the wasteland and gather supplies for the ship.`);
-    choice1.addAction({type: 'changeRoom', parameters: ['e-2-2']});
+    choice1.addAction({type: 'changeRoom', parameters: ['e-wasteland-start']});
 
-    let wastelandGrid = new RoomGrid({name: 'wasteland', width: 5, height: 5 });
+    let wastelandGrid = new RoomGrid({name: 'e-wasteland', width: 5, height: 5, entrance: [2, 2]});
     let defaultRoom = new Room('', {name: 'escape.jpeg'});
     // defaultRoom.addStory('The land is barren');
     wastelandGrid.setDefaultRoom(defaultRoom)
+    wastelandGrid.setRoomQueuelist(createQueuelist([
+        new StoryObject(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`),
+        new Choice(`See Idelle.`)
+            .addAction({type: 'changeRoom', parameters: ['e-finalTask']})
+    ]), [
+        new Requirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] }),
+        new Requirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 10] }),
+        new Requirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] }),
+        new Requirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] })
+    ])
 
     room = wastelandGrid.generateRoom([0,2], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [[
@@ -1863,62 +1993,39 @@ function generateEscapeRooms() {
         {name: 'Food Pack', min: 1, max: 4},
         {name: 'Participation Trophy', min: 1, max: 1},
     ], 'an abnormality!'], waits: true});
-    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1 = room.createChoice(`See Idelle.`);
-        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']})
-        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1 = room.createChoice(`See Idelle.`);
-        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
+    // room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
+    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 10] })
+    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+    //     choice1 = room.createChoice(`See Idelle.`);
+    //     choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 10] })
+    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+    //     choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']})
+    //     choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 10] })
+    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+    //     choice1 = room.createChoice(`See Idelle.`);
+    //     choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
+    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 10] })
+    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
+    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
+    //     choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
 
     room = wastelandGrid.generateRoom([0,4], {name: 'escape.jpeg'});
     room.addAction({type: `getItem`, parameters: [`Food Pack`, 1, 3]});
-    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1 = room.createChoice(`See Idelle.`);
-        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
 
     room = wastelandGrid.generateRoom([1,0], {name: 'escape.jpeg'});
-    room.addAction({type: `getItem`, parameters: [`Microchip`, 1, 1]});
-    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1 = room.createChoice(`See Idelle.`);
-        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
+    room.addAction({type: `getItem`, parameters: [`Microchip`, 1, 1], waits: true});
 
     room = wastelandGrid.generateRoom([1,1], {name: 'escape.jpeg'});
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO EAST.]`);
 
     room = wastelandGrid.generateRoom([1,3], {name: 'escape.jpeg'});
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO SOUTH.]`);
-
 
     room = wastelandGrid.generateRoom([1,4], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [[
@@ -1927,21 +2034,9 @@ function generateEscapeRooms() {
     [
         {name: 'Food Pack', min: 1, max: 4}
     ], 'an abnormality!'], waits: true});
-    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1 = room.createChoice(`See Idelle.`);
-        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
 
     room = wastelandGrid.generateRoom([2,0], {name: 'escape.jpeg'});
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO SOUTH.]`);
-
 
     room = wastelandGrid.generateRoom([2,1], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [[
@@ -1952,35 +2047,12 @@ function generateEscapeRooms() {
         {name: 'Food Pack', min: 1, max: 4},
         {name: 'Opinionated Seedling', min: 1, max: 1},
     ], 'some bad apples!'], waits: true});
-    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1 = room.createChoice(`See Idelle.`);
-        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
-
 
     room = wastelandGrid.generateRoom([2,2], {name: 'escape.jpeg'});
     room.addStory('[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO NORTH.]');
 
-    room = new Room(`e-2-3`, {name: 'escape.jpeg'});
-    room.addAction({type: 'getItem', parameters: ['Scrap Metal', 1, 1,]});
-    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1 = room.createChoice(`See Idelle.`);
-        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
+    room = wastelandGrid.generateRoom([2,3], {name: 'escape.jpeg'});
+    room.addAction({type: 'getItem', parameters: ['Scrap Metal', 1, 1,], waits: true});
 
     room = wastelandGrid.generateRoom([2,4], {name: 'escape.jpeg'});
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO WEST.]`);
@@ -1989,7 +2061,6 @@ function generateEscapeRooms() {
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO WEST.]`);
 
     room = wastelandGrid.generateRoom([3,3], {name: 'destruction.jpeg'});
-    room.addStory(`You are currently at (4,4).`);
     room.addAction({type: 'encounter', parameters: [[
         new Enemy('Heavily Armed Turtle 1', 15, 12, 12, `A mutant turtle with a pair of swords.`),
         new Enemy('Heavily Armed Turtle 2', 15, 12, 12, `A mutant turtle with a pair of small blades.`),
@@ -2000,17 +2071,6 @@ function generateEscapeRooms() {
         {name: 'Food Pack', min: 1, max: 7},
         {name: 'Slice of Brotherhood', min: 1, max: 1}
     ], 'a clan of mutants!'], waits: true});
-    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1 = room.createChoice(`See Idelle.`);
-        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
 
     room = wastelandGrid.generateRoom([4,0], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [[
@@ -2021,45 +2081,12 @@ function generateEscapeRooms() {
         {name: 'Food Pack', min: 1, max: 3},
         {name: 'Questionable Mixtape', min: 1, max: 1}
     ], 'an infestation!'], waits: true});
-    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1 = room.createChoice(`See Idelle.`);
-        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
 
     room = wastelandGrid.generateRoom([4,1], {name: 'escape.jpeg'});
     room.addAction({type: 'getItem', parameters: ['Fuel Canister', 1, 1]});
-    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1 = room.createChoice(`See Idelle.`);
-        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
 
     room = wastelandGrid.generateRoom([4,3], {name: 'escape.jpeg'});
     room.addAction({type: 'getItem', parameters: ['Food Pack', 1, 4]});
-    room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1 = room.createChoice(`See Idelle.`);
-        choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 15] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-        .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-        choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
 
     wastelandGrid.generateGrid(); // only use once, and after you add all the rooms you want
 
@@ -2155,7 +2182,7 @@ function generateEscapeRooms() {
     room.addStory(`[c:var(--dialogue)]"[c:var(--Gali)]Gali, [c:var(--dialogue)]head towards the closet over there.`);
     room.addStory(`[c:var(--dialogue)]"Be careful. The place is swarming with mutant folk."`);
     choice1 = room.createChoice(`Gather supplies.`);
-    choice1.addAction({type: 'changeRooms', parameters: ['e-finale']}); // change to hospital-2-2 later
+    choice1.addAction({type: 'changeRoom', parameters: ['e-finale']}); // change to hospital-2-2 later
 
     // room = createRoom(`hospital-2-2`, {name: 'neutral.jpeg'});
     // room.addStory(`You are currently at (2,2).`);
