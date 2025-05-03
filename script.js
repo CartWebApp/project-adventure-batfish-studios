@@ -23,12 +23,12 @@ let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
-let startingRoom = 'e-finalTask'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'wasteland-2-2'; // [ 'Example Hub' ][ 'b-start' ]
 let runNumber = 0;
 let itemData;
 
 const parsableStyles = [
-    {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [-:]
+    {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [:]
     {name: 'class', identifier: 'class'}, // example: [class:item-count], or [class:] to reset
     {name: 'color', identifier: 'c'}, // example: [c:#0011] for green, or [c:] to reset
     {name: 'fontFamily', identifier: 'ff'}, // example: [ff:'Courier New'], or [ff:] to reset
@@ -387,6 +387,7 @@ class Battle {
             // loot!
             this.getRewards();
             await awaitClick(this.advanceElement);
+            clearDialogueText();
         }
     }
 
@@ -848,7 +849,7 @@ class Choice extends TextObject {
 
 class Room {
     constructor(name, bg) {
-        this.name = name;
+        this.name = name ?? '';
         this.bg = bg ?? {};
         this.bg.transition = this.bg.transition ?? { out: '[an:fade-out .5s ease]', in: '[an:fade-in .5s ease]', waitsOut: true, waitsIn: false }
         this.bg.transition.waitsOut = this.bg.transition.waitsOut ?? true;
@@ -885,6 +886,9 @@ class Room {
 
     // adds a story line to the room
     addStory(text, options, speed = 20, variance = 5, animation = 'default', waits = true, waitDelay = 0, skippable = true) {
+        if (this.name.includes('0-0')) {
+            console.log('how');
+        }
         let storyObject = new TextObject(text, options, speed, variance, animation, skippable, waits, waitDelay);
         this.storyParts.push(storyObject);
         this.queuelist.push({ type: 'story', value: storyObject });
@@ -906,6 +910,108 @@ class Room {
             this.queuelist.push({ type: 'actionlist', value: [action] });
         }
         return this
+    }
+}
+
+// generates rooms in a grid pattern
+class RoomGrid {
+    constructor(options, name='', width=3, height=3, filledRooms=[], entrance=[2,2]) {
+        Object.assign(this, options);
+        if (!this.name) this.name = name;
+        if (!this.width) this.width = width;
+        if (!this.height) this.height = height;
+        if (!this.filledRooms) this.filledRooms = filledRooms;
+        if (!this.entrance) this.entrance = entrance;
+        this.usedCoords = [];
+        this.grid = [];
+    }
+
+    // generates a room at a given coordinate
+    generateRoom(coords, bg) {
+        let room = new Room(`${this.name}-${coords[0]}-${coords[1]}`, bg)
+        this.filledRooms[coords[0] + '-' + coords[1]] = room;
+        return room;
+
+    }
+
+    // sets the template for empty rooms
+    setDefaultRoom(room) {
+        this.emptyTemplate = room;
+    }
+
+    generateDefaultRoom(coords) {
+        let room = new Room(`${this.name}-${coords[0]}-${coords[1]}`);
+        Object.assign(room.queuelist, this.emptyTemplate.queuelist)
+        Object.assign(room.choices, this.emptyTemplate.choices)
+        Object.assign(room.actions, this.emptyTemplate.actions)
+        Object.assign(room.storyParts, this.emptyTemplate.storyParts)
+        return room;
+    }
+
+    // populates the grid with rooms
+    populateGrid() {
+        for (let x = 0; x < this.width; x++) {
+            this.grid.push([]);
+            for (let y = 0; y < this.height; y++) {
+                // adds predefined room or generated room to the grid
+                let room;
+                if (this.filledRooms[`${x}-${y}`]) {
+                    room = this.filledRooms[`${x}-${y}`];
+                } else {
+                    room = this.generateDefaultRoom([x, y]);
+                }
+                this.grid[x].push(room);
+            }
+        }
+    }
+
+    // connects the rooms by adding direction choices
+    connectRooms() {
+        for (let x = 0; x < this.width; x++) {
+            for (let y = 0; y < this.height; y++) {
+                let room = this.grid[x][y];
+                room.addStory(`Coordinates: [[c:yellow]${x}[:], [c:yellow]${y}[:]]`, {waits: false});
+
+                // adds move choice if there is a room in the target spot
+                if (this.grid?.[x]?.[y-1]) {
+                    let northRoom = this.grid[x][y-1];
+                    room.createChoice(`Go North.`, {repeatable: true})
+                        .addAction({type: 'changeRoom', parameters: [northRoom.name]});
+                }
+                if (this.grid?.[x]?.[y+1]) {
+                    let southRoom = this.grid[x][y+1];
+                    room.createChoice(`Go South.`, {repeatable: true})
+                        .addAction({type: 'changeRoom', parameters: [southRoom.name]});
+                }
+                if (this.grid?.[x-1]?.[y]) {
+                    let westRoom = this.grid[x-1][y];
+                    room.createChoice(`Go West.`, {repeatable: true})
+                        .addAction({type: 'changeRoom', parameters: [westRoom.name]});
+                }
+                if (this.grid?.[x+1]?.[y]) {
+                    let eastRoom = this.grid[x+1][y];
+                    room.createChoice(`Go East.`, {repeatable: true})
+                        .addAction({type: 'changeRoom', parameters: [eastRoom.name]});
+                }
+            }
+        }
+    }
+
+    // adds the rooms to the global rooms variable
+    deployRooms() {
+        for (let x = 0; x < this.width; x++) {
+            for (let y = 0; y < this.height; y++) {
+                let room = this.grid[x][y];
+                rooms[room.name] = room;
+            }
+        }
+    }
+
+    // generates the grid. DO NOT CALL MORE THAN ONCE
+    generateGrid() {
+        this.populateGrid();
+        this.connectRooms();
+        this.deployRooms();
     }
 }
 
@@ -1742,25 +1848,14 @@ function generateEscapeRooms() {
     room.addStory(`"Now, if you don't mind, I have a few things to take care of. come back to the ship when you've found everything."`);
     room.addStory(`The wasteland is a desolate, barren dust bowl. The ground is cracked and dry, and the air is thick with dust and debris. Your mouth tastes more and more like metal the longer you stand out here.`);
     choice1 = room.createChoice(`Explore the wasteland and gather supplies for the ship.`);
-    choice1.addAction({type: 'changeRoom', parameters: ['e-3-3']});
+    choice1.addAction({type: 'changeRoom', parameters: ['e-2-2']});
 
-    room = createRoom(`e-1-1`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (1,1).`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-1-2']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-2-1']});
+    let wastelandGrid = new RoomGrid({name: 'wasteland', width: 5, height: 5 });
+    let defaultRoom = new Room('', {name: 'escape.jpeg'});
+    // defaultRoom.addStory('The land is barren');
+    wastelandGrid.setDefaultRoom(defaultRoom)
 
-    room = createRoom(`e-1-2`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (1,2).`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-1-3']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-2-2']});
-    let choice3 = room.createChoice(`Go South.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-1-1']});
-
-    room = createRoom(`e-1-3`, {name: 'destruction.jpeg'});
+    room = wastelandGrid.generateRoom([0,2], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [[
         new Enemy('Average Joe', 15, 10, 10, `Jack of all trades, master of none.`)
     ],
@@ -1789,24 +1884,8 @@ function generateEscapeRooms() {
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
         choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
-    room.addStory(`You are currently at (1,3).`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-1-4']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-2-3']});
-    choice3 = room.createChoice(`Go South.`);
-    choice3.addAction({type: 'changeRoom', parameters: ['e-1-2']});
 
-    room = createRoom(`e-1-4`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (1,4).`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-1-5']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-2-4']});
-    choice3 = room.createChoice(`Go South.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-1-3']});
-
-    room = createRoom(`e-1-5`, {name: 'escape.jpeg'});
+    room = wastelandGrid.generateRoom([0,4], {name: 'escape.jpeg'});
     room.addAction({type: `getItem`, parameters: [`Food Pack`, 1, 3]});
     room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
@@ -1819,13 +1898,8 @@ function generateEscapeRooms() {
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
         choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
-    room.addStory(`You are currently at (1,5). []`);
-    choice1 = room.createChoice(`Go South.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-1-4']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-2-5']});
 
-    room = createRoom(`e-2-1`, {name: 'escape.jpeg'});
+    room = wastelandGrid.generateRoom([1,0], {name: 'escape.jpeg'});
     room.addAction({type: `getItem`, parameters: [`Microchip`, 1, 1]});
     room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
@@ -1838,51 +1912,15 @@ function generateEscapeRooms() {
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
         choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
-    room.addStory(`You are currently at (2,1).`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-2-2']});
-    choice2 = room.createChoice(`Go East.`);
-    choice2.addAction({type: 'changeRoom', parameters: ['e-3-1']});
-    choice3 = room.createChoice(`Go West.`);
-    choice3.addAction({type: 'changeRoom', parameters: ['e-1-1']});
+
+    room = wastelandGrid.generateRoom([1,1], {name: 'escape.jpeg'});
+    room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO EAST.]`);
+
+    room = wastelandGrid.generateRoom([1,3], {name: 'escape.jpeg'});
+    room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO SOUTH.]`);
 
 
-
-    room = createRoom(`e-2-2`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (2,2). [c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO EAST.]`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-2-3']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-3-2']});
-    choice3 = room.createChoice(`Go South.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-2-1']});
-    let choice4 = room.createChoice(`Go West.`, {repeatable: true});
-    choice4.addAction({type: 'changeRoom', parameters: ['e-1-2']});
-
-    room = createRoom(`e-2-3`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (2,3).`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-2-4']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-3-3']});
-    choice3 = room.createChoice(`Go South.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-2-2']});
-    choice4 = room.createChoice(`Go West.`, {repeatable: true});
-    choice4.addAction({type: 'changeRoom', parameters: ['e-1-3']});
-
-    room = createRoom(`e-2-4`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (2,4).[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO NORTH.]`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-2-5']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-3-4']});
-    choice3 = room.createChoice(`Go South.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-2-3']});
-    choice4 = room.createChoice(`Go West.`, {repeatable: true});
-    choice4.addAction({type: 'changeRoom', parameters: ['e-1-4']});
-
-
-    room = createRoom(`e-2-5`, {name: 'destruction.jpeg'});
+    room = wastelandGrid.generateRoom([1,4], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [[
         new Enemy('FishBat', 20, 20, 5, `Not to be confused with a batfish.`),
     ],
@@ -1900,25 +1938,12 @@ function generateEscapeRooms() {
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
         choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
-    room.addStory(`You are currently at (2,5).`);
-    choice1 = room.createChoice(`Go South.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-2-4']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-3-5']});
-    choice3 = room.createChoice(`Go West.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-1-5']});
 
-    room = createRoom(`e-3-1`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (3,1). [c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO NORTH.]`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-3-2']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-4-1']});
-    choice3 = room.createChoice(`Go West.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-2-1']});
+    room = wastelandGrid.generateRoom([2,0], {name: 'escape.jpeg'});
+    room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO SOUTH.]`);
 
 
-    room = createRoom(`e-3-2`, {name: 'destruction.jpeg'});
+    room = wastelandGrid.generateRoom([2,1], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [[
         new Enemy('Rootwraith', 8, 20, 20, `A horrid mass of roots and vines.`),
         new Enemy('Blightfruit Beast', 30, 2, 2, `A large, mutated fruit with a gaping maw.`)
@@ -1938,29 +1963,12 @@ function generateEscapeRooms() {
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
         choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
-    room.addStory(`You are currently at (3,2).`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-3-3']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-4-2']});
-    choice3 = room.createChoice(`Go South.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-3-1']});
-    choice4 = room.createChoice(`Go West.`, {repeatable: true});
-    choice4.addAction({type: 'changeRoom', parameters: ['e-2-2']});
 
 
-    room = createRoom(`e-3-3`, {name: 'escape.jpeg'});
-    room.addStory('You are currently at (3,3). [c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO SOUTH.]');
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-3-4']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-4-3']});
-    choice3 = room.createChoice(`Go South.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-3-2']});
-    choice4 = room.createChoice(`Go West.`, {repeatable: true});
-    choice4.addAction({type: 'changeRoom', parameters: ['e-2-3']});
+    room = wastelandGrid.generateRoom([2,2], {name: 'escape.jpeg'});
+    room.addStory('[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO NORTH.]');
 
-    room = createRoom(`e-3-4`, {name: 'escape.jpeg'});
+    room = new Room(`e-2-3`, {name: 'escape.jpeg'});
     room.addAction({type: 'getItem', parameters: ['Scrap Metal', 1, 1,]});
     room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
@@ -1973,57 +1981,14 @@ function generateEscapeRooms() {
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
         choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
-    room.addStory(`You are currently at (3,4).`);
-    choice1 = room.createChoice(`Go North.`,    {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-3-5']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-4-4']});
-    choice3 = room.createChoice(`Go South.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-3-3']});
-    choice4 = room.createChoice(`Go West.`, {repeatable: true});
-    choice4.addAction({type: 'changeRoom', parameters: ['e-2-4']});
 
-    room = createRoom(`e-3-5`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (3,5). [c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO WEST.]`);
-    choice1 = room.createChoice(`Go South.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-3-4']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-4-5']});
-    choice3 = room.createChoice(`Go West.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-2-5']});
+    room = wastelandGrid.generateRoom([2,4], {name: 'escape.jpeg'});
+    room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO WEST.]`);
 
-    room = createRoom(`e-4-1`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (4,1).`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-4-2']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-5-1']});
-    choice3 = room.createChoice(`Go West.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-3-1']});
+    room = wastelandGrid.generateRoom([3,1], {name: 'escape.jpeg'});
+    room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO WEST.]`);
 
-    room = createRoom(`e-4-2`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (4,2). [c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO WEST.]`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-4-3']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-5-2']});
-    choice3 = room.createChoice(`Go South.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-4-1']});
-    choice4 = room.createChoice(`Go West.`, {repeatable: true});
-    choice4.addAction({type: 'changeRoom', parameters: ['e-3-2']});
-
-    room = createRoom(`e-4-3`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (4,3).`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-4-4']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-5-3']});
-    choice3 = room.createChoice(`Go South.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-4-2']});
-    choice4 = room.createChoice(`Go West.`, {repeatable: true});
-    choice4.addAction({type: 'changeRoom', parameters: ['e-3-3']});
-
-    room = createRoom(`e-4-4`, {name: 'destruction.jpeg'});
+    room = wastelandGrid.generateRoom([3,3], {name: 'destruction.jpeg'});
     room.addStory(`You are currently at (4,4).`);
     room.addAction({type: 'encounter', parameters: [[
         new Enemy('Heavily Armed Turtle 1', 15, 12, 12, `A mutant turtle with a pair of swords.`),
@@ -2046,26 +2011,8 @@ function generateEscapeRooms() {
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
         choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-4-5']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-5-4']});
-    choice3 = room.createChoice(`Go South.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-4-3']});
-    choice4 = room.createChoice(`Go West.`, {repeatable: true});
-    choice4.addAction({type: 'changeRoom', parameters: ['e-3-4']});
 
-
-    room = createRoom(`e-4-5`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (4,5).`);
-    choice1 = room.createChoice(`Go South.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-4-4']});
-    choice2 = room.createChoice(`Go East.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-5-5']});
-    choice3 = room.createChoice(`Go West.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-4-5']});
-
-    room = createRoom(`e-5-1`, {name: 'destruction.jpeg'});
+    room = wastelandGrid.generateRoom([4,0], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [[
         new Enemy('Blatto', 30, 20, 20, `A giant cockroach with a bad attitude.`),
         new Enemy('Joyama', 20, 15, 15, `A large, spider-like creature with a nasty bite.`)
@@ -2085,13 +2032,8 @@ function generateEscapeRooms() {
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
         choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
-    room.addStory(`You are currently at (5,1).`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-5-2']});
-    choice2 = room.createChoice(`Go West.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-4-1']});
 
-    room = createRoom(`e-5-2`, {name: 'escape.jpeg'});
+    room = wastelandGrid.generateRoom([4,1], {name: 'escape.jpeg'});
     room.addAction({type: 'getItem', parameters: ['Fuel Canister', 1, 1]});
     room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
@@ -2104,24 +2046,8 @@ function generateEscapeRooms() {
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
         choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
-    room.addStory(`You are currently at (5,2).`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-5-3']});
-    choice2 = room.createChoice(`Go South.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-5-1']});
-    choice3 = room.createChoice(`Go West.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-4-2']});
 
-    room = createRoom(`e-5-3`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (5,3).`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-5-4']});
-    choice2 = room.createChoice(`Go South.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-5-2']});
-    choice3 = room.createChoice(`Go West.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-4-3']});
-
-    room = createRoom(`e-5-4`, {name: 'escape.jpeg'});
+    room = wastelandGrid.generateRoom([4,3], {name: 'escape.jpeg'});
     room.addAction({type: 'getItem', parameters: ['Food Pack', 1, 4]});
     room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
@@ -2134,20 +2060,8 @@ function generateEscapeRooms() {
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
         choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
-    room.addStory(`You are currently at (5,4).`);
-    choice1 = room.createChoice(`Go North.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-5-5']});
-    choice2 = room.createChoice(`Go South.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-5-3']});
-    choice3 = room.createChoice(`Go West.`, {repeatable: true});
-    choice3.addAction({type: 'changeRoom', parameters: ['e-4-4']});
 
-    room = createRoom(`e-5-5`, {name: 'escape.jpeg'});
-    room.addStory(`You are currently at (5,5).`);
-    choice1 = room.createChoice(`Go South.`, {repeatable: true});
-    choice1.addAction({type: 'changeRoom', parameters: ['e-5-4']});
-    choice2 = room.createChoice(`Go West.`, {repeatable: true});
-    choice2.addAction({type: 'changeRoom', parameters: ['e-4-5']});
+    wastelandGrid.generateGrid(); // only use once, and after you add all the rooms you want
 
     room = createRoom(`e-finalTask`, {name: 'escape.jpeg'});
     room.addStory(`Hauling all of this stuff back to Idelle is kind of a pain, but you know it's worth it. You can finally get out of this place!`);
