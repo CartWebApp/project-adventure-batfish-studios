@@ -186,6 +186,7 @@ p {
     transform: translateX(-50%);
     z-index: 5;
     clip-path: polygon(0 0, 90% 0, 93% 5%, 100% 5%, 100% 100%, 14% 100%, 11% 95%, 0 95%);
+    max-width: 100%;
 }
 
 #main-nav::before {
@@ -200,6 +201,7 @@ p {
 #main-nav ul {
     list-style: none;
     display: flex;
+    overflow-y: auto;
     gap: 1rem;
 }
 
@@ -336,6 +338,7 @@ p {
 #inventory .item-container {
     cursor: pointer;
     width: fit-content;
+    align-items: center;
     -webkit-tap-highlight-color: transparent;
     transition: 150ms ease;
 }
