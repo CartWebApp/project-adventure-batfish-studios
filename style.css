@@ -388,8 +388,8 @@ p {
     min-height: fit-content;
 }
 
-#inventory-container .content {
-    overflow: hidden;
+#playersheet > #item-info-container > .content {
+    min-height: unset;
 }
 
 #inventory {
@@ -541,7 +541,7 @@ p {
     display: grid;
     justify-content: space-around;
     pointer-events: visiblePainted;
-    grid-template-columns: repeat(auto-fill, clamp(8rem, 25%, 12rem));
+    grid-template-columns: repeat(auto-fill, clamp(8rem, 23%, 12rem));
     gap: 1rem;
 }
 

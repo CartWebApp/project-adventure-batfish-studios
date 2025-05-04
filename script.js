@@ -841,7 +841,7 @@ class TextObject {
 }
 
 class StoryObject extends TextObject {
-    constructor(text, options, speed = 20, variance = 5, animation = 'default', waits = true, waitDelay = 0, skippable = true, maxUses) {
+    constructor(text, options, speed = 20, variance = 5, animation = 'default', waits = true, waitDelay = 0, skippable = true, maxUses = Infinity) {
         super(text, options, speed, variance, animation, skippable, waits, waitDelay);
         this.maxUses = this.maxUses ?? maxUses;
         this.usesLeft = this.maxUses;
@@ -884,13 +884,13 @@ class Choice extends TextObject {
         super(text, options, speed, variance, animation, skippable, true, 0);
         this.hidden = false;
         this.maxUses = maxUses;
-        this.usesLeft = maxUses;
         this.room = room;
         this.id = id;
         this.customID = customID;
         this.actions = [];
         this.requirements = [];
         transferProperties(this.options, this);
+        this.usesLeft = this.maxUses ?? maxUses;
         // if (!this.repeatable && this.room) {
         //     this.addRequirement({ mode: 'show', type: 'madeChoice', inverse: true, parameters: [this.id] })
         // }
@@ -1013,7 +1013,7 @@ class RoomGrid {
         if (typeof this.showCoordinates != 'boolean') this.showCoordinates = showCoordinates;
         this.grid = [];
         this.emptyTemplate = new Room();
-        this.roomQueuelist = {queuelist: [], requirements: []};
+        this.roomQueuelist = [];
         this.randomRooms = [];
         this.filledRooms = {};
         this.unusedCoords = [];
@@ -1055,8 +1055,8 @@ class RoomGrid {
 
     // sets a queuelist that runs every time a room gets explored
     // one use is to set a leave condition by using actions that are not run unless certain conditions are met
-    setRoomQueuelist(queuelist, requirements) {
-        this.roomQueuelist = {queuelist, requirements}
+    addQueuelist(queuelist, requirements) {
+        this.roomQueuelist.push({queue: queuelist, requirements})
     }
 
     generateDefaultRoom(coords) {
@@ -1102,23 +1102,25 @@ class RoomGrid {
         this.iterateGrid((x, y)=> {
             let room = this.grid[x][y];
 
-            for (const queueItem of this.roomQueuelist.queuelist) {
-                for (const requirement of this.roomQueuelist.requirements) {
-                    if (queueItem.type === 'story') {
-                        queueItem.value.addRequirement(requirement);
-                    } else if (queueItem.type === 'actionlist') {
-                        for (const action of queueItem.value) {
-                            action.addRequirement(requirement);
+            for (const queuelist of this.roomQueuelist) {
+                for (const queueItem of queuelist.queue) {
+                    for (const requirement of queuelist.requirements) {
+                        if (queueItem.type === 'story') {
+                            queueItem.value.addRequirement(requirement);
+                        } else if (queueItem.type === 'actionlist') {
+                            for (const action of queueItem.value) {
+                                action.addRequirement(requirement);
+                            }
                         }
-                    }
-                    else if (queueItem.type === 'choicelist') {
-                        for (const choice of queueItem.value) {
-                            choice.addRequirement(requirement);
+                        else if (queueItem.type === 'choicelist') {
+                            for (const choice of queueItem.value) {
+                                choice.addRequirement(requirement);
+                            }
                         }
                     }
                 }
+                room.addQueuelist(queuelist.queue)
             }
-            room.addQueuelist(this.roomQueuelist.queuelist)
 
             if (this.showCoordinates) {
                 room.addStory(`Coordinates: [[c:yellow]${x}[:], [c:yellow]${y}[:]]`, {waits: false, speed: -1});
@@ -1430,7 +1432,7 @@ async function typeText(text, options, element, speed = 10, variance = 0, skippa
 
 // diplays each story part to the dialogue box
 async function showStory(story) {
-    if (story.usesleft <= 0) return;
+    if (story.usesLeft <= 0) return;
     if (!checkRequirements(story, 'show').metRequirements) return;
     const dialogueBox = document.getElementById('dialogue-box');
     const storyElement = document.getElementById('story');
@@ -1446,9 +1448,10 @@ async function showStory(story) {
 function getShownChoices(choices) {
     let shownChoices = []
     for (const choice of choices) {
-        if (!choice.hidden && checkRequirements(choice, 'show').metRequirements) {
-            shownChoices.push(choice);
-        }
+        if (choice.hidden) continue;
+        if (!checkRequirements(choice, 'show').metRequirements) continue;
+        if (choice.usesLeft <= 0) continue;
+        shownChoices.push(choice);
     }
     return shownChoices;
 }
@@ -1795,8 +1798,8 @@ function generateExampleRooms() {
     room.addStory(`This is a [an:text-blur 1s ease][c:red]test[c:] story`);
     room.addStory(`This is a [an:text-glow 1s ease infinite alternate][c:red]test[c:] [fi:blur(1px)]story[fi:] [c:#00ff00][ff:'Doto'][fs:24px]continued[:]!`, { speed: 100, variance: 33, animation: 'impact' });
     room.addStory(`[ts:2px 2px 2px white][c:#c5c5c5]Lorem [rt:90deg]ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et [rt:180deg]dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure [rt:270deg]dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui [rt:]officia deserunt mollit anim id est laborum.`, { speed: 10, variance: 3, animation: 'funky' });
-    let choice1 = room.createChoice('Pick up item');
-    choice1.addAction({ type: 'getItem', parameters: ['Example Item', 1, 10], maxUses: 1 });
+    let choice1 = room.createChoice('Pick up item', {maxUses: 1} );
+    choice1.addAction({ type: 'getItem', parameters: ['Example Item', 1, 10]});
     room.addStory(`This text only shows if you got at least 8 Example Items!`)
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Example Item', 8] });
     room.addStory(`Woah`, { speed: 500, variance: 100, animation: 'shaky' });
@@ -1887,10 +1890,25 @@ function generateExampleRooms() {
     room = createRoom('Example Grid Hub');
     room.createChoice('Back', {color: '[c:var(--back-color)]'})
         .addAction({type: 'changeRoom', parameters: ['Example Hub']});
-    room.createChoice('Grid 1')
+    room.createChoice('Grid 1 x 6')
         .addAction({type: 'changeRoom', parameters: ['example-grid-1-start']});
+    room.createChoice('Grid 20 x 20')
+        .addAction({type: 'changeRoom', parameters: ['example-grid-2-start']});
 
-    let grid = new RoomGrid({name: 'example-grid-1', width: 4, height: 1, showCoordinates: false})
+    let grid = new RoomGrid({name: 'example-grid-1', width: 1, height: 6, showCoordinates: true})
+    room = grid.generateRoom([0, 2]);
+    room.addStory('This story should show twice.', {maxUses: 2})
+    grid.generateGrid();
+
+    grid = new RoomGrid({name: 'example-grid-2', width: 20, height: 20, showCoordinates: true, entrance: [10, 10]})
+    grid.setDefaultRoom(new Room('', {name: 'neutral.jpeg'}))
+    grid.addQueuelist(createQueuelist([
+        new StoryObject(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`),
+    ]), [
+
+    ])
+    room = grid.generateRoom(null, {name: 'transparent.png'}, 200);
+    room.addStory('This room instance was randomly placed');
     grid.generateGrid();
 }
 
@@ -2099,7 +2117,7 @@ function generateEscapeRooms() {
     let defaultRoom = new Room('', {name: 'escape.jpeg'});
     // defaultRoom.addStory('The land is barren');
     wastelandGrid.setDefaultRoom(defaultRoom)
-    wastelandGrid.setRoomQueuelist(createQueuelist([
+    wastelandGrid.addQueuelist(createQueuelist([
         new StoryObject(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`),
         new Choice(`See Idelle.`)
             .addAction({type: 'changeRoom', parameters: ['e-finalTask']})
