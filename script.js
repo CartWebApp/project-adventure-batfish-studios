@@ -245,9 +245,9 @@ class Game {
     }
 
     // writes text
-    async writeText(text, options, speed, variance, animation, waits, waitDelay, skippable, elementID = 'story', clearsText = false) {
+    async writeText(text, options, speed, variance, animation, waits, waitDelay, skippable, maxUses, elementID = 'story', clearsText = false) {
         elementID = options.elementID ?? elementID;
-        let textObj = new StoryObject(text, options, speed, variance, animation, skippable, waits, waitDelay);
+        let textObj = new StoryObject(text, options, speed, variance, animation, skippable, waits, waitDelay, maxUses);
         if (clearsText) clearText(document.getElementById(elementID));
         await typeText(textObj.text,{}, document.getElementById(elementID), textObj.speed, textObj.variance, true, document.getElementById('dialogue-box'), textObj.animation, textControllerSignal, textObj.waits, textObj.waitDelay)
     }
@@ -282,7 +282,7 @@ class Game {
         isGameLoop = false;
         currentEnding = endings[endType];
         if (!history.endings.includes(endType)){
-            currentEnding.createChoice('Restart', {repeatable: true})
+            currentEnding.createChoice('Restart')
                 .addAction({ type: 'restart'});
         }
         history.addEnding(endType);
@@ -290,7 +290,7 @@ class Game {
         for (const item of currentEnding.queuelist) {
             if (item.type === 'story') {
                 clearText(document.getElementById('story'));
-                await showStory([item.value]);
+                await showStory(item.value);
                 clearText(document.getElementById('action-output'));
             } else if (item.type === 'choicelist') {
                 while (getShownChoices(item.value).length > 0) {
@@ -598,7 +598,7 @@ class Battle {
         clearDialogueText();
         typeText(`Name: [c:var(--enemy-name)]${enemy.name}`, {...this.textConfig});
         if (enemy.desc) typeText(`Description: [c:#eeeeee]${enemy.desc}`, {...this.textConfig});
-        typeText(`[class:health]HP: ♥${enemy.hp}/♥${enemy.maxHP}`, {...this.textConfig});
+        typeText(`[class:health]HP: ♥${enemy.hp} / ♥${enemy.maxHP}`, {...this.textConfig});
         typeText(`[class:strength]Strength: ${enemy.strength}`, {...this.textConfig});
         await typeText(`[class:agility]Agility: ${enemy.agility}`, {...this.textConfig, waits: true});
     }
@@ -841,8 +841,10 @@ class TextObject {
 }
 
 class StoryObject extends TextObject {
-    constructor(text, options, speed = 20, variance = 5, animation = 'default', waits = true, waitDelay = 0, skippable = true) {
+    constructor(text, options, speed = 20, variance = 5, animation = 'default', waits = true, waitDelay = 0, skippable = true, maxUses) {
         super(text, options, speed, variance, animation, skippable, waits, waitDelay);
+        this.maxUses = this.maxUses ?? maxUses;
+        this.usesLeft = this.maxUses;
     }
 }
 
@@ -857,12 +859,14 @@ class Requirement {
 }
 
 class Action {
-    constructor(type, parameters=[], waits=false, chance=100) {
+    constructor(type, parameters=[], waits=false, chance=100, maxUses=Infinity) {
         this.type = type;
         this.parameters = parameters;
         this.waits = waits;
         this.chance = chance;
         this.requirements = [];
+        this.maxUses = maxUses;
+        this.usesLeft = maxUses;
     }
 
     addRequirement(options, mode, type, parameters, inverse) {
@@ -876,27 +880,29 @@ class Action {
 }
 
 class Choice extends TextObject {
-    constructor(text, options = {}, repeatable = false, speed = 4, variance = 1, animation = 'default', skippable = true, room = undefined, id = '', customID = '', value='', color = '') {
+    constructor(text, options = {}, maxUses = Infinity, speed = 4, variance = 1, animation = 'default', skippable = true, room = undefined, id = '', customID = '', value='', color = '') {
         super(text, options, speed, variance, animation, skippable, true, 0);
         this.hidden = false;
-        this.repeatable = repeatable;
+        this.maxUses = maxUses;
+        this.usesLeft = maxUses;
         this.room = room;
         this.id = id;
         this.customID = customID;
         this.actions = [];
         this.requirements = [];
         transferProperties(this.options, this);
-        if (!this.repeatable && this.room) {
-            this.addRequirement({ mode: 'show', type: 'madeChoice', inverse: true, parameters: [this.id] })
-        }
+        // if (!this.repeatable && this.room) {
+        //     this.addRequirement({ mode: 'show', type: 'madeChoice', inverse: true, parameters: [this.id] })
+        // }
     }
 
-    addAction(options, type, parameters, waits, chance) {
+    addAction(options, type, parameters, waits, chance, maxUses) {
         type = options.type ?? type;
         parameters = options.parameters ?? parameters;
         waits = options.waits ?? false;
         chance = options.chance ?? chance;
-        this.actions.push(new Action(type, parameters, waits, chance));
+        maxUses = options.maxUses ?? maxUses;
+        this.actions.push(new Action(type, parameters, waits, chance, maxUses));
         return this;
     }
 
@@ -951,9 +957,9 @@ class Room {
     }
 
     // creates a choice and automatically adds it to the room
-    createChoice(text, options, repeatable, speed, variance, animation, skippable, customID, color) {
+    createChoice(text, options, maxUses, speed, variance, animation, skippable, customID, color) {
         const id = this.getChoiceId(this.choices.length + 1);
-        const choice = new Choice(text, options, repeatable, speed, variance, animation, skippable, this, id, customID, color);
+        const choice = new Choice(text, options, maxUses, speed, variance, animation, skippable, this, id, customID, color);
         this.addChoice(choice);
         return choice;
     }
@@ -964,20 +970,21 @@ class Room {
     }
 
     // adds a story line to the room
-    addStory(text, options, speed, variance, animation, waits, waitDelay, skippable) {
-        let storyObject = new StoryObject(text, options, speed, variance, animation, skippable, waits, waitDelay);
+    addStory(text, options, speed, variance, animation, waits, waitDelay, skippable, maxUses) {
+        let storyObject = new StoryObject(text, options, speed, variance, animation, skippable, waits, waitDelay, maxUses);
         this.storyParts.push(storyObject);
         this.queuelist.push({ type: 'story', value: storyObject });
         return storyObject;
     }
 
     // adds an action for a room
-    addAction(options, type, parameters, waits, chance) {
+    addAction(options, type, parameters, waits, chance, maxUses) {
         type = options.type ?? type;
         parameters = options.parameters ?? parameters;
         waits = options.waits ?? waits ?? false;
         chance = options.chance ?? chance
-        const action = new Action(type, parameters, waits, chance);
+        maxUses = options.maxUses ?? maxUses
+        const action = new Action(type, parameters, waits, chance, maxUses);
         this.actions.push(action);
 
         const lastInQueue = this.queuelist[this.queuelist.length - 1]
@@ -1120,22 +1127,22 @@ class RoomGrid {
             // adds move choice if there is a room in the target spot
             if (this.grid?.[x-1]?.[y]) {
                 let westRoom = this.grid[x-1][y];
-                room.createChoice(`Go West.`, {repeatable: true})
+                room.createChoice(`Go West.`)
                     .addAction({type: 'changeRoom', parameters: [westRoom.name]});
             }
             if (this.grid?.[x]?.[y-1]) {
                 let northRoom = this.grid[x][y-1];
-                room.createChoice(`Go North.`, {repeatable: true})
+                room.createChoice(`Go North.`)
                     .addAction({type: 'changeRoom', parameters: [northRoom.name]});
             }
             if (this.grid?.[x]?.[y+1]) {
                 let southRoom = this.grid[x][y+1];
-                room.createChoice(`Go South.`, {repeatable: true})
+                room.createChoice(`Go South.`)
                     .addAction({type: 'changeRoom', parameters: [southRoom.name]});
             }
             if (this.grid?.[x+1]?.[y]) {
                 let eastRoom = this.grid[x+1][y];
-                room.createChoice(`Go East.`, {repeatable: true})
+                room.createChoice(`Go East.`)
                     .addAction({type: 'changeRoom', parameters: [eastRoom.name]});
             }
         })
@@ -1423,16 +1430,16 @@ async function typeText(text, options, element, speed = 10, variance = 0, skippa
 
 // diplays each story part to the dialogue box
 async function showStory(story) {
+    if (story.usesleft <= 0) return;
+    if (!checkRequirements(story, 'show').metRequirements) return;
     const dialogueBox = document.getElementById('dialogue-box');
     const storyElement = document.getElementById('story');
-    for (const part of story) {
-        if (!checkRequirements(part, 'show').metRequirements) return;
-        clearText(storyElement);
-        await typeText(part.text,{}, storyElement, part.speed, part.variance, true, dialogueBox, part.animation, textControllerSignal, part.waits, part.waitDelay);
-        const cleanText = parseStyles(part.text, 'This returns the clean text because nothing matches this.').text;
-        history.addStory(cleanText);
-        clearText(document.getElementById('action-output'));
-    }
+    clearText(storyElement);
+    await typeText(story.text,{}, storyElement, story.speed, story.variance, true, dialogueBox, story.animation, textControllerSignal, story.waits, story.waitDelay);
+    const cleanText = parseStyles(story.text, 'This returns the clean text because nothing matches this.').text;
+    history.addStory(cleanText);
+    clearText(document.getElementById('action-output'));
+    story.usesLeft -= 1;
 }
 
 // returns the choices that are displayed
@@ -1456,6 +1463,7 @@ async function showChoices(choices, container) {
     for (let i = 0; i < choices.length; i++) {
         const choice = choices[i];
         if (choice.hidden || !checkRequirements(choice, 'show').metRequirements) continue;
+        if (choice.usesLeft <= 0) continue;
         let choiceElement = document.createElement('button');
         choiceElement.className = 'choice';
         choiceElement.style.color = choice.color;
@@ -1518,8 +1526,10 @@ async function selectChoice(choiceContainer) {
 
 // tries to run an action
 async function attemptAction(action) {
+    if (action.usesLeft <= 0) return;
     if (action.chance < random(0, 100, 6)) return;
     if (!checkRequirements(action, 'use').metRequirements) return;
+    action.usesLeft -= 1;
     if (action.waits) {
 
         // if the function is within the game object, or is a global function
@@ -1581,6 +1591,7 @@ async function tryChoices(choiceContainer) {
     }
     const cleanText = parseStyles(selectedChoice.text, 'This returns the clean text because nothing matches this.').text;
     history.addChoice(selectedChoice)
+    selectedChoice.usesLeft -= 1;
     return selectedChoice;
 }
 
@@ -1598,7 +1609,7 @@ async function gameLoop() {
                 return;
             }
             if (item.type === 'story') {
-                await showStory([item.value]);
+                await showStory(item.value);
             } else if (item.type === 'choicelist') {
                 while (isGameLoop && getShownChoices(item.value).length > 0 && thisRoom === currentRoom && !leaveChoices) {
                     leaveChoices = false;
@@ -1623,7 +1634,7 @@ async function gameLoop() {
         }
         if (currentRunNumber != runNumber) return;
         else if (thisRoom === currentRoom) {
-            await showStory([new StoryObject('You have hit a dead end. Please add an ending or a way to change rooms here.', { waits: true, waitDelay: 30000 })]);
+            await showStory(new StoryObject('You have hit a dead end. Please add an ending or a way to change rooms here.', { waits: true, waitDelay: 30000 }));
         }
     }
 }
@@ -1758,23 +1769,23 @@ function generateExampleRooms() {
     room = createRoom('Example Room Items');
     room.createChoice('Back', {color: '[c:var(--back-color)]'})
         .addAction({type: 'changeRoom', parameters: ['Example Hub']});
-    room.createChoice('Get item', {repeatable: true})
+    room.createChoice('Get item')
         .addAction({type: ()=> {
             game.getItem(randomString('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 12))
         }, parameters: []});
-    room.createChoice('Get long item', {repeatable: true})
+    room.createChoice('Get long item')
         .addAction({type: ()=> {
             game.getItem(randomString('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 400))
         }, parameters: []});
-        room.createChoice('Get long item + spaces', {repeatable: true})
+        room.createChoice('Get long item + spaces')
         .addAction({type: ()=> {
             game.getItem(randomString('     abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 400))
         }, parameters: []});
-    room.createChoice('Get many item', {repeatable: true})
+    room.createChoice('Get many item')
         .addAction({type: ()=> {
             game.getItem(randomString('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 12), 10e100)
         }, parameters: []});
-    room.createChoice('Get wacky item', {repeatable: true})
+    room.createChoice('Get wacky item')
         .addAction({type: ()=> {
             game.getItem(randomString(' 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ~!@#$%^&*()_+=-[]}{\\|";:/?.>,<~', 50), 1)
         }, parameters: []});
@@ -1785,27 +1796,27 @@ function generateExampleRooms() {
     room.addStory(`This is a [an:text-glow 1s ease infinite alternate][c:red]test[c:] [fi:blur(1px)]story[fi:] [c:#00ff00][ff:'Doto'][fs:24px]continued[:]!`, { speed: 100, variance: 33, animation: 'impact' });
     room.addStory(`[ts:2px 2px 2px white][c:#c5c5c5]Lorem [rt:90deg]ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et [rt:180deg]dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure [rt:270deg]dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui [rt:]officia deserunt mollit anim id est laborum.`, { speed: 10, variance: 3, animation: 'funky' });
     let choice1 = room.createChoice('Pick up item');
-    choice1.addAction({ type: 'getItem', parameters: ['Example Item', 1, 10] });
+    choice1.addAction({ type: 'getItem', parameters: ['Example Item', 1, 10], maxUses: 1 });
     room.addStory(`This text only shows if you got at least 8 Example Items!`)
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Example Item', 8] });
     room.addStory(`Woah`, { speed: 500, variance: 100, animation: 'shaky' });
     room.addStory(`[c:rgb(0,255,255)]Cooleo![c:] This is a neat blur effect! I like it so much, I think I will put [c:yellow][fs:24px]more[:] text!`, { speed: 100, variance: 10, animation: 'blur' });
     room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, { speed: 50, variance: 10, animation: 'fade-alternate' });
     room.addStory("Let's have some choices now!", { waits: false, waitDelay: 0 });
-    let choice2 = room.createChoice('Open door', { repeatable: true });
+    let choice2 = room.createChoice('Open door');
     choice2.addAction({ type: 'changeRoom', parameters: ['Example Room 2'] });
     choice2.addAction({ type: 'removeItem', parameters: ['Example Expendable Key'] });
     choice2.addRequirement({ mode: 'use', type: 'hasItem', parameters: ['Example Reusable Key'] });
     choice2.addRequirement({ mode: 'use', type: 'hasItem', parameters: ['Example Expendable Key'] });
-    let choice3 = room.createChoice('Pick up key');
+    let choice3 = room.createChoice('Pick up key', {maxUses: 1});
     choice3.addAction({ type: 'getItem', parameters: ['Example Reusable Key', 1, 1, '[class:text-glow green]', "yoyo, you got ye an [[class:text-glow green]Example Reusable Key[class:]] yo! Also, this is a [an:text-glow 1s ease infinite alternate][c:cyan]custom action message!"] });
     choice3.addRequirement({ mode: 'show', type: 'madeChoice', inverse: true, parameters: [choice3.id] });
-    let choice4 = room.createChoice('Pick up another key', { repeatable: true });
+    let choice4 = room.createChoice('Pick up another key');
     choice4.addAction({ type: 'getItem', parameters: ['Example Expendable Key'] });
     choice4.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [choice3.id] });
     choice4.addRequirement({ mode: 'show', type: 'hasItem', inverse: true, parameters: ['Example Expendable Key'] });
     // choice5, with different syntax (not using a variable)
-    room.createChoice('Touch spike')
+    room.createChoice('Touch spike', { maxUses: 1 })
         .addAction({ type: 'writeText', parameters: ['[c:yellow]Why did you touch that?', {elementID: 'action-output', waits: false}] })
         .addAction({ type: 'changeHP', parameters: [-5, -10] })
         .addAction({ type: 'changeMaxHP', parameters: [-1, -3] });
@@ -1831,17 +1842,17 @@ function generateExampleRooms() {
     room = createRoom('Example Room Particles', { name: 'neutral.jpeg' });
     room.addAction({type: 'changeParticleAnimation', parameters: ['fog', 1, 1]});
     room.addStory('Lets try out some particles!', {waits: false});
-    room.createChoice('Speed Up', {repeatable: true})
+    room.createChoice('Speed Up')
     .addAction({type: 'changeParticleSpeed', parameters: [.5]});
-    room.createChoice('Slow Down', {repeatable: true})
+    room.createChoice('Slow Down')
     .addAction({type: 'changeParticleSpeed', parameters: [-.5]});
-    room.createChoice('Strengthen', {repeatable: true})
+    room.createChoice('Strengthen')
     .addAction({type: 'changeParticleStrength', parameters: [.5]});
-    room.createChoice('Weaken', {repeatable: true})
+    room.createChoice('Weaken')
     .addAction({type: 'changeParticleStrength', parameters: [-.5]});
-    let ashes = room.createChoice('Next Animation')
+    let ashes = room.createChoice('Next Animation', { maxUses: 1 })
     ashes.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 1, 1]});
-    let smoke = room.createChoice('Next Animation')
+    let smoke = room.createChoice('Next Animation', { maxUses: 1 })
     smoke.addAction({type: 'changeParticleAnimation', parameters: ['smoke top', 1, 1]});
     smoke.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [ashes.id] })
 
@@ -1908,7 +1919,7 @@ function generateStartingRooms() {
     room.addStory(`There doesn't seem to be much left to do or see. Anything that once was is long gone.`, { waits: false });
     choice1 = room.createChoice("Leave the lab.");
     choice1.addAction({ type: 'changeRoom', parameters: ['b-3-hallways'] });
-    choice2 = room.createChoice(`Go back to sleep.`, {repeatable: true});
+    choice2 = room.createChoice(`Go back to sleep.`);
     choice2.addAction({ type: 'writeText', parameters: ['[c:yellow]The cryopod zaps you, clearly malfunctioning', {elementID: 'action-output', waits: false, speed: -1}] });
     choice2.addAction({type: 'changeHP', parameters: [-10, -15, 'cryopod']});
 
@@ -2107,33 +2118,12 @@ function generateEscapeRooms() {
         {name: 'Food Pack', min: 1, max: 4},
         {name: 'Participation Trophy', min: 1, max: 1},
     ], 'an abnormality!'], waits: true});
-    // room.addStory(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`)
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 10] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-    //     choice1 = room.createChoice(`See Idelle.`);
-    //     choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 10] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-    //     choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']})
-    //     choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 10] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-    //     choice1 = room.createChoice(`See Idelle.`);
-    //     choice1.addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Food Pack', 10] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Fuel Canister', 1] })
-    //     .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Microchip', 1] });
-    //     choice1.addAction({type: 'changeRoom', parameters: ['e-finalTask']});
 
     room = wastelandGrid.generateRoom([0,4], {name: 'escape.jpeg'});
     room.addAction({type: `getItem`, parameters: [`Food Pack`, 1, 3]});
 
     room = wastelandGrid.generateRoom([1,0], {name: 'escape.jpeg'});
-    room.addAction({type: `getItem`, parameters: [`Microchip`, 1, 1], waits: true});
+    room.addAction({type: `getItem`, parameters: [`Microchip`, 1, 1], waits: true, maxUses: 1});
 
     room = wastelandGrid.generateRoom([1,1], {name: 'escape.jpeg'});
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO EAST.]`);
@@ -2165,7 +2155,7 @@ function generateEscapeRooms() {
     room.addStory('[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO NORTH.]');
 
     room = wastelandGrid.generateRoom([2,3], {name: 'escape.jpeg'});
-    room.addAction({type: 'getItem', parameters: ['Scrap Metal', 1, 1,], waits: true});
+    room.addAction({type: 'getItem', parameters: ['Scrap Metal', 1, 1,], waits: true, maxUses: 5});
 
     room = wastelandGrid.generateRoom([2,4], {name: 'escape.jpeg'});
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO WEST.]`);
@@ -2196,7 +2186,7 @@ function generateEscapeRooms() {
     ], 'an infestation!'], waits: true});
 
     room = wastelandGrid.generateRoom([4,1], {name: 'escape.jpeg'});
-    room.addAction({type: 'getItem', parameters: ['Fuel Canister', 1, 1]});
+    room.addAction({type: 'getItem', parameters: ['Fuel Canister', 1, 1], waits: true, maxUses: 1});
 
     room = wastelandGrid.generateRoom([4,3], {name: 'escape.jpeg'});
     room.addAction({type: 'getItem', parameters: ['Food Pack', 1, 4]});
@@ -2299,13 +2289,13 @@ function generateEscapeRooms() {
 
     // room = createRoom(`hospital-2-2`, {name: 'neutral.jpeg'});
     // room.addStory(`You are currently at (2,2).`);
-    // choice1 = room.createChoice(`Go North.`, {repeatable: true});
+    // choice1 = room.createChoice(`Go North.`, {maxUses: Infinity});
     // choice1.addAction({type: 'changeRoom', parameters: ['hospital-2-3']});
-    // choice2 = room.createChoice(`Go East.`, {repeatable: true});
+    // choice2 = room.createChoice(`Go East.`, {maxUses: Infinity});
     // choice2.addAction({type: 'changeRoom', parameters: ['hospital-3-2']});
-    // choice3 = room.createChoice(`Go South.`, {repeatable: true});
+    // choice3 = room.createChoice(`Go South.`, {maxUses: Infinity});
     // choice3.addAction({type: 'changeRoom', parameters: ['hospital-2-1']});
-    // choice4 = room.createChoice(`Go West.`, {repeatable: true});
+    // choice4 = room.createChoice(`Go West.`, {maxUses: Infinity});
 
     // room = createRoom(`hospital-2-3`, {name: 'neutral.jpeg'});
     // room.addStory(`You are currently at (2,3).`);
