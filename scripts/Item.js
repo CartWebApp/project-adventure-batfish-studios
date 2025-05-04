@@ -25,10 +25,10 @@ export class Consumable extends Item {
         for (const effect of this.effects) {
             if (effect.type === 'heal') {
                 let regainedHP = target.changeHP(effect.value)
-                messages.push(`[c:lime]+ ${regainedHP} HP`)
+                messages.push(`[class:health]+ ♥${regainedHP} HP`)
             } else if (effect.type === 'gainMaxHP') {
                 target.maxHP += effect.value
-                messages.push(`[class:health]+ ${effect.value} Max HP`)
+                messages.push(`[class:health]+ ♥${effect.value} Max HP`)
             } else if (effect.type === 'gainStrength') {
                 target.strength += effect.value
                 messages.push(`[class:strength]+ ${effect.value} Strength`)
@@ -47,9 +47,9 @@ export class Consumable extends Item {
         let messages = [];
         for (const effect of this.effects) {
             if (effect.type === 'heal') {
-                messages.push(`[c:lime]+ ${effect.value} HP`)
+                messages.push(`[class:health]+ ♥${effect.value} HP`)
             } else if (effect.type === 'gainMaxHP') {
-                messages.push(`[class:health]+ ${effect.value} Max HP`)
+                messages.push(`[class:health]+ ♥${effect.value} Max HP`)
             } else if (effect.type === 'gainStrength') {
                 messages.push(`[class:strength]+ ${effect.value} Strength`)
             } else if (effect.type === 'gainAgility') {

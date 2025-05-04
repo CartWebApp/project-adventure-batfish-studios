@@ -139,3 +139,17 @@ export function looseIndexOf(array, target) {
         }
     }
 }
+
+// generates a random string from a set of characters
+export function randomString(charset, length=1) {
+    let string = '';
+    for (let i = 0; i < length; i++) {
+        string += charset[random(0, charset.length)];
+    }
+    return string;
+}
+
+// returns items that are in one array but not in another
+// export function findMissing(array1, array2) {
+//     f
+// }

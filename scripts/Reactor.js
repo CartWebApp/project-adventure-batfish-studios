@@ -1,3 +1,6 @@
+import { sleep, awaitAnimation } from './Functions.js';
+
+
 export class Reactor {
     constructor(value) {
         this._value = value;
@@ -11,9 +14,10 @@ export class Reactor {
 
     // sets the values and runs each subscriber function
     set value(newVal) {
+        let oldValue = this._value;
         this._value = newVal;
         for (const subscriberFunc of this._subscribers) {
-            subscriberFunc(newVal)
+            subscriberFunc(newVal, oldValue)
         }
     }
 
@@ -24,9 +28,17 @@ export class Reactor {
     }
 
     //binds this to a DOM element via querySelector
-    bindQuery(query, attribute='textContent') {
-        this.subscribe(()=> {
-            document.querySelector(query)[attribute] = this.value;
+    bindQuery(query, animation, attribute='textContent') {
+        this.subscribe(async ()=> {
+            let element = document.querySelector(query);
+            element[attribute] = this.value;
+            if (animation) {
+                element.style.animation = '';
+                await sleep(0);
+                element.style.animation = animation;
+                await awaitAnimation(element);
+                element.style.animation = '';
+            }
         })
     }
 
