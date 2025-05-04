@@ -55,7 +55,7 @@
     },
     "Super Syrum": {
         "name": "Super Syrum",
-        "description": "A supernatural concoction of untold power. You shouldn't have this.",
+        "description": "A supernatural concoction of untold power. [[c:red]DEV ITEM[c:]]].",
         "type": "consumable",
         "effects": [
             {"type": "gainMaxHP", "value": 9999},
@@ -64,6 +64,34 @@
             {"type": "heal", "value": 9999}
         ],
         "hideEffects": true
+    }, 
+    "Super Health Maximiser": {
+        "name": "Super Health Maximiser",
+        "description": "Infuses your constitution with divine power. [[c:red]DEV ITEM[c:]].",
+        "type": "consumable",
+        "effects": [
+            {"type": "gainMaxHP", "value": 500},
+            {"type": "heal", "value": 500}
+        ],
+        "hideEffects": false
+    }, 
+    "Super Strength Maximiser": {
+        "name": "Super Strength Maximiser",
+        "description": "Infuses your muscles with divine power. [[c:red]DEV ITEM[c:]].",
+        "type": "consumable",
+        "effects": [
+            {"type": "gainStrength", "value": 50}
+        ],
+        "hideEffects": false
+    }, 
+    "Super Agility Maximiser": {
+        "name": "Super Agility Maximiser",
+        "description": "Infuses your nervous system with divine power. [[c:red]DEV ITEM[c:]].",
+        "type": "consumable",
+        "effects": [
+            {"type": "gainAgility", "value": 50}
+        ],
+        "hideEffects": false
     }
     
 }

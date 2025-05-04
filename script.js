@@ -113,8 +113,8 @@ class Game {
     }
 
     // Gives an item to the player's inventory
-    getItem(itemName, min=1, max=1, style = '', customMessage = '') {
-        max = max ?? min;
+    getItem(itemName, min=1, max=0, style = '', customMessage = '') {
+        max = max || min;
         let count = random(min, max);
         let messages = [];
         style = style || itemData?.[itemName]?.style || '[c:var(--item-color)]';
@@ -245,9 +245,9 @@ class Game {
     }
 
     // writes text
-    async writeText(text, options, speed, variance, animation, waits, waitDelay, skippable, elementID = 'story', clearsText = false) {
+    async writeText(text, options, speed, variance, animation, waits, waitDelay, skippable, maxUses, elementID = 'story', clearsText = false) {
         elementID = options.elementID ?? elementID;
-        let textObj = new StoryObject(text, options, speed, variance, animation, skippable, waits, waitDelay);
+        let textObj = new StoryObject(text, options, speed, variance, animation, skippable, waits, waitDelay, maxUses);
         if (clearsText) clearText(document.getElementById(elementID));
         await typeText(textObj.text,{}, document.getElementById(elementID), textObj.speed, textObj.variance, true, document.getElementById('dialogue-box'), textObj.animation, textControllerSignal, textObj.waits, textObj.waitDelay)
     }
@@ -258,12 +258,31 @@ class Game {
         await battle.encounter(runNumber);
     }
 
+    // // a chance to initiate combat
+    //  async randomEncounter(enemyPool, rewardPool, groupName) {
+    //     let battle = new Battle({enemies, rewards, groupName})
+    //     await battle.encounter(runNumber);
+    //     [
+    //         {
+    //             enemy: new Enemy('enemy 1', 10, 10, 10),
+    //             weight: 10
+    //         }, 
+    //         {
+    //             team: [
+    //             new Enemy('enemy 1', 10, 10, 10),
+    //             new Enemy('enemy 2', 10, 10, 10)
+    //             ],
+    //             weight: 10
+    //         }
+    //     ]
+    // }
+
     // initiates an ending
     async ending(endType) {
         isGameLoop = false;
         currentEnding = endings[endType];
         if (!history.endings.includes(endType)){
-            currentEnding.createChoice('Restart', {repeatable: true})
+            currentEnding.createChoice('Restart')
                 .addAction({ type: 'restart'});
         }
         history.addEnding(endType);
@@ -271,7 +290,7 @@ class Game {
         for (const item of currentEnding.queuelist) {
             if (item.type === 'story') {
                 clearText(document.getElementById('story'));
-                await showStory([item.value]);
+                await showStory(item.value);
                 clearText(document.getElementById('action-output'));
             } else if (item.type === 'choicelist') {
                 while (getShownChoices(item.value).length > 0) {
@@ -299,15 +318,25 @@ class Game {
         history.resets += 1;
         runNumber += 1;
         history.softReset();
+        document.getElementById('history-content').innerHTML = '';
+        await sleep(10);
+        this.start();
+    }
+
+    // begins the game
+    async start() {
+        player = new Player();
+        if (devMode) {
+            game.getItem('Super Health Maximiser', 10);
+            game.getItem('Super Strength Maximiser', 10);
+            game.getItem('Super Agility Maximiser', 10);
+        }
         game.changeParticleAnimation('none', 1, 1);
         player = new Player();
         generateAllRooms();
         currentRoom = rooms[startingRoom];
-        isGameLoop = true;
-        document.getElementById('history-content').innerHTML = '';
-        await sleep(10);
-        clearDialogueText();
         document.getElementById('background-image').src = 'imgs/backgrounds/transparent.png'
+        clearDialogueText();
         gameLoop();
     }
 
@@ -399,7 +428,7 @@ class Battle {
         clearDialogueText();
         typeText('What item would you like to use?', {...this.textConfig});
         let choices = [];
-        choices.push(new Choice('Back', {speed: -1, value: 'previous', color: '#bbbbbb'}))
+        choices.push(new Choice('Back', {speed: -1, value: 'previous', color: '[c:var(--back-color)]'}))
         for (const item of Object.values(player.inventory)) {
             if (item.type != 'consumable') continue;
             choices.push(new Choice(item.name, {speed: -1, value: item.name, color: 'var(--item-color)'}));
@@ -423,7 +452,7 @@ class Battle {
         typeText(text, {...this.textConfig});
         let selectedEnemy;
         let choices = [];
-        choices.push(new Choice('Back', {speed: -1, value: 'previous', color: '#bbbbbb'}))
+        choices.push(new Choice('Back', {speed: -1, value: 'previous', color: '[c:var(--back-color)]'}))
         for (const enemy of this.remainingEnemies) {
             choices.push(new Choice(enemy.name, {speed: -1, value: enemy, color: 'orange'}));
         }
@@ -452,8 +481,8 @@ class Battle {
         let attackMulti = await this.timedAttack(enemy);
         let finalAttack = Math.round(baseAttack * attackMulti);
         enemy.changeHP(-finalAttack)
-        typeText(`You delt [class:health]${finalAttack}[:] damage to [c:var(--enemy-name)]${enemy.name}.`, {...this.textConfig});
-        await typeText(`Remaining enemy health: [class:health]${enemy.hp}`, {...this.textConfig, waits: true});
+        typeText(`You delt [class:health]♥${finalAttack}[:] damage to [c:var(--enemy-name)]${enemy.name}.`, {...this.textConfig});
+        await typeText(`Remaining enemy health: [class:health]♥${enemy.hp}`, {...this.textConfig, waits: true});
     }
 
     async enemyTurn() {
@@ -465,8 +494,8 @@ class Battle {
         let defenceMulti = await this.timedDefense(enemy);
         let enemyAttack = Math.round(baseAttack / defenceMulti);
         game.changeHP(-enemyAttack, -enemyAttack, 'slain by enemy')
-        typeText(`[c:var(--enemy-name)]${enemy.name}[:] delt [class:health]${enemyAttack}[:] damage.`, {...this.textConfig});
-        await typeText(`Remaining health: [class:health]${player.hp}`, {...this.textConfig, waits: true});
+        typeText(`[c:var(--enemy-name)]${enemy.name}[:] delt [class:health]♥${enemyAttack}[:] damage.`, {...this.textConfig});
+        await typeText(`Remaining health: [class:health]♥${player.hp}`, {...this.textConfig, waits: true});
     }
 
     // runs a timing minigame to get attack multi
@@ -569,7 +598,7 @@ class Battle {
         clearDialogueText();
         typeText(`Name: [c:var(--enemy-name)]${enemy.name}`, {...this.textConfig});
         if (enemy.desc) typeText(`Description: [c:#eeeeee]${enemy.desc}`, {...this.textConfig});
-        typeText(`[class:health]HP: ${enemy.hp}/${enemy.maxHP}`, {...this.textConfig});
+        typeText(`[class:health]HP: ♥${enemy.hp} / ♥${enemy.maxHP}`, {...this.textConfig});
         typeText(`[class:strength]Strength: ${enemy.strength}`, {...this.textConfig});
         await typeText(`[class:agility]Agility: ${enemy.agility}`, {...this.textConfig, waits: true});
     }
@@ -641,10 +670,10 @@ class Player extends Character {
     constructor(hp=100, strength=10, agility=10) {
         super('Player', hp, strength, agility);
         this._inventory = new Reactor({});
-        this._maxHP.bindQuery('#stat-maxHP');
-        this._hp.bindQuery('#stat-hp');
-        this._strength.bindQuery('#stat-strength');
-        this._agility.bindQuery('#stat-agility');
+        this._maxHP.bindQuery('#stat-maxHP', "var(--element-change-animation)");
+        this._hp.bindQuery('#stat-hp', "var(--element-change-animation)");
+        this._strength.bindQuery('#stat-strength', "var(--element-change-animation)");
+        this._agility.bindQuery('#stat-agility', "var(--element-change-animation)");
         this._inventory.subscribe(() => this.refreshInventory(this));
         this.usedItems = new Set();
         this.selectedItem;
@@ -691,6 +720,14 @@ class Player extends Character {
             document.getElementById('item-description').innerHTML = '';
             document.getElementById('item-actions').innerHTML = '';
         }
+
+         // TODO
+        // if item is in inv but not in oldInv, add the element
+        // if item is not in inv but is in oldInv, remove the element
+        // find the element with the item name
+        // for (const invItem of object) {
+            
+        // }
 
         // repopulates inventory gui
         for (const item of Object.values(player.inventory)) {
@@ -804,8 +841,10 @@ class TextObject {
 }
 
 class StoryObject extends TextObject {
-    constructor(text, options, speed = 20, variance = 5, animation = 'default', waits = true, waitDelay = 0, skippable = true) {
+    constructor(text, options, speed = 20, variance = 5, animation = 'default', waits = true, waitDelay = 0, skippable = true, maxUses = Infinity) {
         super(text, options, speed, variance, animation, skippable, waits, waitDelay);
+        this.maxUses = this.maxUses ?? maxUses;
+        this.usesLeft = this.maxUses;
     }
 }
 
@@ -820,12 +859,14 @@ class Requirement {
 }
 
 class Action {
-    constructor(type, parameters=[], waits=false, chance=100) {
+    constructor(type, parameters=[], waits=false, chance=100, maxUses=Infinity) {
         this.type = type;
         this.parameters = parameters;
         this.waits = waits;
         this.chance = chance;
         this.requirements = [];
+        this.maxUses = maxUses;
+        this.usesLeft = maxUses;
     }
 
     addRequirement(options, mode, type, parameters, inverse) {
@@ -839,27 +880,29 @@ class Action {
 }
 
 class Choice extends TextObject {
-    constructor(text, options = {}, repeatable = false, speed = 4, variance = 1, animation = 'default', skippable = true, room = undefined, id = '', customID = '', value='', color = '') {
+    constructor(text, options = {}, maxUses = Infinity, speed = 4, variance = 1, animation = 'default', skippable = true, room = undefined, id = '', customID = '', value='', color = '') {
         super(text, options, speed, variance, animation, skippable, true, 0);
         this.hidden = false;
-        this.repeatable = repeatable;
+        this.maxUses = maxUses;
         this.room = room;
         this.id = id;
         this.customID = customID;
         this.actions = [];
         this.requirements = [];
         transferProperties(this.options, this);
-        if (!this.repeatable && this.room) {
-            this.addRequirement({ mode: 'show', type: 'madeChoice', inverse: true, parameters: [this.id] })
-        }
+        this.usesLeft = this.maxUses ?? maxUses;
+        // if (!this.repeatable && this.room) {
+        //     this.addRequirement({ mode: 'show', type: 'madeChoice', inverse: true, parameters: [this.id] })
+        // }
     }
 
-    addAction(options, type, parameters, waits, chance) {
+    addAction(options, type, parameters, waits, chance, maxUses) {
         type = options.type ?? type;
         parameters = options.parameters ?? parameters;
         waits = options.waits ?? false;
         chance = options.chance ?? chance;
-        this.actions.push(new Action(type, parameters, waits, chance));
+        maxUses = options.maxUses ?? maxUses;
+        this.actions.push(new Action(type, parameters, waits, chance, maxUses));
         return this;
     }
 
@@ -891,6 +934,17 @@ class Room {
         if (this.bg) { this.addAction({ type: 'changeBG', parameters: [this.bg.name, this.bg.transition] }) }
     }
 
+    // returns a copy of this room, optionally with its own name.
+    copy(name) {
+        name = name ?? this.name;
+        let copiedRoom = new Room(name, this.bg);
+        Object.assign(copiedRoom.queuelist, this.queuelist);
+        Object.assign(copiedRoom.choices, this.choices);
+        Object.assign(copiedRoom.actions, this.actions);
+        Object.assign(copiedRoom.storyParts, this.storyParts);
+        return copiedRoom;
+    }
+
     // adds a choice to the room
     addChoice(choice) {
         this.choices.push(choice);
@@ -903,9 +957,9 @@ class Room {
     }
 
     // creates a choice and automatically adds it to the room
-    createChoice(text, options, repeatable, speed, variance, animation, skippable, customID, color) {
+    createChoice(text, options, maxUses, speed, variance, animation, skippable, customID, color) {
         const id = this.getChoiceId(this.choices.length + 1);
-        const choice = new Choice(text, options, repeatable, speed, variance, animation, skippable, this, id, customID, color);
+        const choice = new Choice(text, options, maxUses, speed, variance, animation, skippable, this, id, customID, color);
         this.addChoice(choice);
         return choice;
     }
@@ -916,20 +970,21 @@ class Room {
     }
 
     // adds a story line to the room
-    addStory(text, options, speed, variance, animation, waits, waitDelay, skippable) {
-        let storyObject = new StoryObject(text, options, speed, variance, animation, skippable, waits, waitDelay);
+    addStory(text, options, speed, variance, animation, waits, waitDelay, skippable, maxUses) {
+        let storyObject = new StoryObject(text, options, speed, variance, animation, skippable, waits, waitDelay, maxUses);
         this.storyParts.push(storyObject);
         this.queuelist.push({ type: 'story', value: storyObject });
         return storyObject;
     }
 
     // adds an action for a room
-    addAction(options, type, parameters, waits, chance) {
+    addAction(options, type, parameters, waits, chance, maxUses) {
         type = options.type ?? type;
         parameters = options.parameters ?? parameters;
         waits = options.waits ?? waits ?? false;
         chance = options.chance ?? chance
-        const action = new Action(type, parameters, waits, chance);
+        maxUses = options.maxUses ?? maxUses
+        const action = new Action(type, parameters, waits, chance, maxUses);
         this.actions.push(action);
 
         const lastInQueue = this.queuelist[this.queuelist.length - 1]
@@ -956,18 +1011,39 @@ class RoomGrid {
         if (!this.height) this.height = height;
         if (!this.entrance) this.entrance = entrance;
         if (typeof this.showCoordinates != 'boolean') this.showCoordinates = showCoordinates;
-        this.filledRooms = {};
-        this.usedCoords = [];
         this.grid = [];
         this.emptyTemplate = new Room();
-        this.roomQueuelist = {queuelist: [], requirements: []};
+        this.roomQueuelist = [];
+        this.randomRooms = [];
+        this.filledRooms = {};
+        this.unusedCoords = [];
+        this.iterateGrid((x, y)=> {
+            this.unusedCoords.push([x, y]);
+        })
     }
 
-    // generates a room at a given coordinate
-    generateRoom(coords, bg) {
-        let room = new Room(`${this.name}-${coords[0]}-${coords[1]}`, bg)
-        this.filledRooms[coords[0] + '-' + coords[1]] = room;
-        this.usedCoords.push(coords);
+    // iterates a function through each grid cell (x,y coord)
+    iterateGrid(fn) {
+        for (let x = 0; x < this.width; x++) {
+            for (let y = 0; y < this.height; y++) {
+                fn(x, y)
+            }
+        }
+    }
+
+    // generates a room(s) at a given coordinate or at random
+    generateRoom(coords, bg, count=1) {
+        let room;
+        if (coords) {
+            room = new Room(`${this.name}-${coords[0]}-${coords[1]}`, bg)
+            this.filledRooms[coords[0] + '-' + coords[1]] = room;
+            if (looseIndexOf(this.unusedCoords, coords) >= 0) {
+                this.unusedCoords.splice(looseIndexOf(this.unusedCoords, coords), 1);
+            }
+        } else {
+            room = new Room(``, bg)
+            this.randomRooms.push({room, count})
+        }
         return room;
 
     }
@@ -979,44 +1055,56 @@ class RoomGrid {
 
     // sets a queuelist that runs every time a room gets explored
     // one use is to set a leave condition by using actions that are not run unless certain conditions are met
-    setRoomQueuelist(queuelist, requirements) {
-        this.roomQueuelist = {queuelist, requirements}
+    addQueuelist(queuelist, requirements) {
+        this.roomQueuelist.push({queue: queuelist, requirements})
     }
 
     generateDefaultRoom(coords) {
-        let room = new Room(`${this.name}-${coords[0]}-${coords[1]}`);
-        Object.assign(room.queuelist, this.emptyTemplate.queuelist)
-        Object.assign(room.choices, this.emptyTemplate.choices)
-        Object.assign(room.actions, this.emptyTemplate.actions)
-        Object.assign(room.storyParts, this.emptyTemplate.storyParts)
+        let room = this.emptyTemplate.copy(`${this.name}-${coords[0]}-${coords[1]}`)
         return room;
     }
 
     // populates the grid with rooms
     populateGrid() {
+        for (const rooms of this.randomRooms) {
+            for (let i = 0; i < rooms.count; i++) {
+                if (this.unusedCoords.length === 0) break;
+                let room = rooms.room;
+                let roomCoords = this.unusedCoords[random(0,this.unusedCoords.length - 1)];
+                if (looseIndexOf(this.unusedCoords, roomCoords) >= 0) {
+                    this.unusedCoords.splice(looseIndexOf(this.unusedCoords, roomCoords), 1);
+                }
+                let newRoom = room.copy(`${this.name}-${roomCoords[0]}-${roomCoords[1]}`);
+                this.filledRooms[roomCoords[0] + '-' + roomCoords[1]] = newRoom;
+            }
+            if (this.unusedCoords.length === 0) break;
+        }
+
         for (let x = 0; x < this.width; x++) {
             this.grid.push([]);
-            for (let y = 0; y < this.height; y++) {
-                // adds predefined room or generated room to the grid
-                let room;
-                if (this.filledRooms[`${x}-${y}`]) {
-                    room = this.filledRooms[`${x}-${y}`];
-                } else {
-                    room = this.generateDefaultRoom([x, y]);
-                }
-                this.grid[x].push(room);
-            }
         }
+
+        this.iterateGrid((x, y)=> {
+            // adds predefined room or generated room to the grid
+            let room;
+            if (this.filledRooms[`${x}-${y}`]) {
+                room = this.filledRooms[`${x}-${y}`];
+            } else {
+                room = this.generateDefaultRoom([x, y]);
+            }
+            this.grid[x].push(room);
+        })
+
     }
 
     // connects the rooms by adding direction choices
     connectRooms() {
-        for (let x = 0; x < this.width; x++) {
-            for (let y = 0; y < this.height; y++) {
-                let room = this.grid[x][y];
+        this.iterateGrid((x, y)=> {
+            let room = this.grid[x][y];
 
-                for (const queueItem of this.roomQueuelist.queuelist) {
-                    for (const requirement of this.roomQueuelist.requirements) {
+            for (const queuelist of this.roomQueuelist) {
+                for (const queueItem of queuelist.queue) {
+                    for (const requirement of queuelist.requirements) {
                         if (queueItem.type === 'story') {
                             queueItem.value.addRequirement(requirement);
                         } else if (queueItem.type === 'actionlist') {
@@ -1031,45 +1119,44 @@ class RoomGrid {
                         }
                     }
                 }
-                room.addQueuelist(this.roomQueuelist.queuelist)
-
-                if (this.showCoordinates) {
-                    room.addStory(`Coordinates: [[c:yellow]${x}[:], [c:yellow]${y}[:]]`, {waits: false, speed: -1});
-                }
-
-                // adds move choice if there is a room in the target spot
-                if (this.grid?.[x-1]?.[y]) {
-                    let westRoom = this.grid[x-1][y];
-                    room.createChoice(`Go West.`, {repeatable: true})
-                        .addAction({type: 'changeRoom', parameters: [westRoom.name]});
-                }
-                if (this.grid?.[x]?.[y-1]) {
-                    let northRoom = this.grid[x][y-1];
-                    room.createChoice(`Go North.`, {repeatable: true})
-                        .addAction({type: 'changeRoom', parameters: [northRoom.name]});
-                }
-                if (this.grid?.[x]?.[y+1]) {
-                    let southRoom = this.grid[x][y+1];
-                    room.createChoice(`Go South.`, {repeatable: true})
-                        .addAction({type: 'changeRoom', parameters: [southRoom.name]});
-                }
-                if (this.grid?.[x+1]?.[y]) {
-                    let eastRoom = this.grid[x+1][y];
-                    room.createChoice(`Go East.`, {repeatable: true})
-                        .addAction({type: 'changeRoom', parameters: [eastRoom.name]});
-                }
+                room.addQueuelist(queuelist.queue)
             }
-        }
+
+            if (this.showCoordinates) {
+                room.addStory(`Coordinates: [[c:yellow]${x}[:], [c:yellow]${y}[:]]`, {waits: false, speed: -1});
+            }
+
+            // adds move choice if there is a room in the target spot
+            if (this.grid?.[x-1]?.[y]) {
+                let westRoom = this.grid[x-1][y];
+                room.createChoice(`Go West.`)
+                    .addAction({type: 'changeRoom', parameters: [westRoom.name]});
+            }
+            if (this.grid?.[x]?.[y-1]) {
+                let northRoom = this.grid[x][y-1];
+                room.createChoice(`Go North.`)
+                    .addAction({type: 'changeRoom', parameters: [northRoom.name]});
+            }
+            if (this.grid?.[x]?.[y+1]) {
+                let southRoom = this.grid[x][y+1];
+                room.createChoice(`Go South.`)
+                    .addAction({type: 'changeRoom', parameters: [southRoom.name]});
+            }
+            if (this.grid?.[x+1]?.[y]) {
+                let eastRoom = this.grid[x+1][y];
+                room.createChoice(`Go East.`)
+                    .addAction({type: 'changeRoom', parameters: [eastRoom.name]});
+            }
+        })
     }
 
     // adds the rooms to the global rooms variable
     deployRooms() {
-        for (let x = 0; x < this.width; x++) {
-            for (let y = 0; y < this.height; y++) {
-                let room = this.grid[x][y];
-                rooms[room.name] = room;
-            }
-        }
+        this.iterateGrid((x, y)=> {
+            let room = this.grid[x][y];
+            rooms[room.name] = room;
+        })
+
         rooms[`${this.name}-start`] = this.grid[this.entrance[0]][this.entrance[1]]
     }
 
@@ -1141,8 +1228,9 @@ function createLoadingBuffer(elementID='loading-buffer', count = 8, duration = 2
         imageElement.className = `buffer-img`;
         imageElement.style.rotate = `${360 / count * i}deg`;
         bufferContainer.appendChild(imageElement);
-        timing.delay = duration / count * i / 1,
-            imageElement.animate(keyframes, timing)
+        timing.delay = duration / count * i / 1;
+            let animation = imageElement.animate(keyframes, timing);
+            animation.startTime = -duration;
     }
     let bufferWrapper = document.createElement('div');
     bufferWrapper.className = 'bufferWrapper';
@@ -1177,6 +1265,7 @@ function parseStyles(text, identifier) {
     }
     while (cleanText.includes(`[${identifier}:`)) {
         let match = cleanText.match(new RegExp(String.raw`(\[)(?=${identifier || ':'})(${identifier}:)([^\]]*)(\])`));
+        if (!match) continue;
         let index = match.index;
         let value = match[3];
         data.push({ index, value });
@@ -1343,25 +1432,26 @@ async function typeText(text, options, element, speed = 10, variance = 0, skippa
 
 // diplays each story part to the dialogue box
 async function showStory(story) {
+    if (story.usesLeft <= 0) return;
+    if (!checkRequirements(story, 'show').metRequirements) return;
     const dialogueBox = document.getElementById('dialogue-box');
     const storyElement = document.getElementById('story');
-    for (const part of story) {
-        if (!checkRequirements(part, 'show').metRequirements) return;
-        clearText(storyElement);
-        await typeText(part.text,{}, storyElement, part.speed, part.variance, true, dialogueBox, part.animation, textControllerSignal, part.waits, part.waitDelay);
-        const cleanText = parseStyles(part.text, 'This returns the clean text because nothing matches this.').text;
-        history.addStory(cleanText);
-        clearText(document.getElementById('action-output'));
-    }
+    clearText(storyElement);
+    await typeText(story.text,{}, storyElement, story.speed, story.variance, true, dialogueBox, story.animation, textControllerSignal, story.waits, story.waitDelay);
+    const cleanText = parseStyles(story.text, 'This returns the clean text because nothing matches this.').text;
+    history.addStory(cleanText);
+    clearText(document.getElementById('action-output'));
+    story.usesLeft -= 1;
 }
 
 // returns the choices that are displayed
 function getShownChoices(choices) {
     let shownChoices = []
     for (const choice of choices) {
-        if (!choice.hidden && checkRequirements(choice, 'show').metRequirements) {
-            shownChoices.push(choice);
-        }
+        if (choice.hidden) continue;
+        if (!checkRequirements(choice, 'show').metRequirements) continue;
+        if (choice.usesLeft <= 0) continue;
+        shownChoices.push(choice);
     }
     return shownChoices;
 }
@@ -1376,6 +1466,7 @@ async function showChoices(choices, container) {
     for (let i = 0; i < choices.length; i++) {
         const choice = choices[i];
         if (choice.hidden || !checkRequirements(choice, 'show').metRequirements) continue;
+        if (choice.usesLeft <= 0) continue;
         let choiceElement = document.createElement('button');
         choiceElement.className = 'choice';
         choiceElement.style.color = choice.color;
@@ -1438,8 +1529,10 @@ async function selectChoice(choiceContainer) {
 
 // tries to run an action
 async function attemptAction(action) {
+    if (action.usesLeft <= 0) return;
     if (action.chance < random(0, 100, 6)) return;
     if (!checkRequirements(action, 'use').metRequirements) return;
+    action.usesLeft -= 1;
     if (action.waits) {
 
         // if the function is within the game object, or is a global function
@@ -1501,6 +1594,7 @@ async function tryChoices(choiceContainer) {
     }
     const cleanText = parseStyles(selectedChoice.text, 'This returns the clean text because nothing matches this.').text;
     history.addChoice(selectedChoice)
+    selectedChoice.usesLeft -= 1;
     return selectedChoice;
 }
 
@@ -1518,7 +1612,7 @@ async function gameLoop() {
                 return;
             }
             if (item.type === 'story') {
-                await showStory([item.value]);
+                await showStory(item.value);
             } else if (item.type === 'choicelist') {
                 while (isGameLoop && getShownChoices(item.value).length > 0 && thisRoom === currentRoom && !leaveChoices) {
                     leaveChoices = false;
@@ -1543,7 +1637,7 @@ async function gameLoop() {
         }
         if (currentRunNumber != runNumber) return;
         else if (thisRoom === currentRoom) {
-            await showStory([new StoryObject('You have hit a dead end. Please add an ending or a way to change rooms here.', { waits: true, waitDelay: 30000 })]);
+            await showStory(new StoryObject('You have hit a dead end. Please add an ending or a way to change rooms here.', { waits: true, waitDelay: 30000 }));
         }
     }
 }
@@ -1581,7 +1675,7 @@ function createEventListeners() {
 }
 
 // creates multi-layer buffers
-function bufferTesting(elementID=undefined, iterations=1,count = 8, duration = 2000, animatedNumber = 1, image = 'icons/circle_white.png', imageSize = 16, radius = 120, keyframes = null, modifiers = null) {
+function multiBuffer(elementID=undefined, iterations=1,count = 8, duration = 2000, animatedNumber = 1, image = 'icons/circle_white.png', imageSize = 16, radius = 120, keyframes = null, modifiers = null) {
 
     for (let i = 0; i < iterations; i++) {
         let newKeyframes = JSON.parse(JSON.stringify(keyframes));
@@ -1596,36 +1690,38 @@ function bufferTesting(elementID=undefined, iterations=1,count = 8, duration = 2
     }
 }
 
+
 // initializes the rooms and player
 async function init() {
-    itemData = await fnExports.parseJSON('items.json');
-    bufferTesting('loading-buffer', 1, 10, 2000, 1, undefined, 20, 128, [
+    multiBuffer('loading-buffer', 1, 10, 3000, 1, undefined, 30, 228, [
         { opacity: 1},
         { opacity: 0, offset: 1 },
     ], [{},{}]);
+    // multiBuffer('loading-buffer', 1, 128, 50000, 64, 'backgrounds/destruction.jpeg', 20, 128, [
+    //     { opacity: 1, scale: 1, filter: 'invert(0)' },
+    //     { opacity: 0, scale: .5, offset: 1, filter: 'invert(0)' },
+    // ], [{},{scale: (base, index)=>base + index*1 * (1 + index % 2 * -2)}]);
+    // multiBuffer('loading-buffer', 1, 128, 20000, 32, 'icons/x.svg', 20, 128, [
+    //     { opacity: 1, scale: 1, filter: 'invert(0)' },
+    //     { opacity: 0, scale: .5, offset: 1, filter: 'invert(0)' },
+    // ], [{},{scale: (base, index)=>base + index*1 * (1 + index % 2 * -2)}]);
+    multiBuffer('loading-buffer', 4, 10, 3000, 3, undefined, 10, 60, [
+        { opacity: 1, scale: 1, filter: 'invert(1)' },
+        { opacity: 0, scale: .5, offset: 1, filter: 'invert(0)' },
+    ], [{},{scale: (base, index)=>base + index*1 * (1 + index % 2 * -2)}]);
     preloadImages();
+    itemData = await fnExports.parseJSON('items.json');
     particleHandler = new CanvasHandler(document.getElementById('particle-canvas'), undefined, 1, 1)
-    // bufferTesting('loading-buffer-2', 1, 128, 2000, 64, 'backgrounds/destruction.jpeg', 20, 128, [
-    //     { opacity: 1, scale: 1, filter: 'invert(0)' },
-    //     { opacity: 0, scale: .5, offset: 1, filter: 'invert(0)' },
-    // ], [{},{scale: (base, index)=>base + index*1 * (1 + index % 2 * -2)}]);
-    // bufferTesting('loading-buffer-3', 1, 128, 2000, 32, 'icons/x.svg', 20, 128, [
-    //     { opacity: 1, scale: 1, filter: 'invert(0)' },
-    //     { opacity: 0, scale: .5, offset: 1, filter: 'invert(0)' },
-    // ], [{},{scale: (base, index)=>base + index*1 * (1 + index % 2 * -2)}]);
-    // bufferTesting('loading-buffer-4', 4, 128, 1000, 3, undefined, 20, 128, [
-    //     { opacity: 1, scale: 1, filter: 'invert(1)' },
-    //     { opacity: 0, scale: .5, offset: 1, filter: 'invert(0)' },
-    // ], [{},{scale: (base, index)=>base + index*1 * (1 + index % 2 * -2)}]);
     createEventListeners();
-    player = new Player();
     history = new History();
     game = new Game();
     generateAllRooms();
     generateEndings();
     await sleep(1000);
     document.getElementById('loading-screen').classList.add('hidden');
-    gameLoop();
+    game.start();
+    await fnExports.awaitEvent(document.getElementById('loading-screen'));
+    document.getElementById('loading-buffer').innerHTML = '';
 }
 
 // generates all the rooms
@@ -1653,10 +1749,15 @@ function generateExampleRooms() {
         .addAction({type: 'changeRoom', parameters: ['Example Room Battle']});
     room.createChoice('Grid Testing')
         .addAction({type: 'changeRoom', parameters: ['Example Grid Hub']});
+    room.createChoice('Items')
+        .addAction({type: 'changeRoom', parameters: ['Example Room Items']});
     room.createChoice('Teleporter')
         .addAction({type: 'changeRoom', parameters: ['Example Teleporter Hub']});
 
+    // teleporter hub
     room = createRoom('Example Teleporter Hub')
+    room.createChoice('Back', {color: '[c:var(--back-color)]'})
+        .addAction({type: 'changeRoom', parameters: ['Example Hub']});
     room.createChoice('Main Story')
         .addAction({type: ()=> {
             startingRoom = 'b-start';
@@ -1668,32 +1769,57 @@ function generateExampleRooms() {
             game.restart();
         }});
 
+    room = createRoom('Example Room Items');
+    room.createChoice('Back', {color: '[c:var(--back-color)]'})
+        .addAction({type: 'changeRoom', parameters: ['Example Hub']});
+    room.createChoice('Get item')
+        .addAction({type: ()=> {
+            game.getItem(randomString('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 12))
+        }, parameters: []});
+    room.createChoice('Get long item')
+        .addAction({type: ()=> {
+            game.getItem(randomString('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 400))
+        }, parameters: []});
+        room.createChoice('Get long item + spaces')
+        .addAction({type: ()=> {
+            game.getItem(randomString('     abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 400))
+        }, parameters: []});
+    room.createChoice('Get many item')
+        .addAction({type: ()=> {
+            game.getItem(randomString('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 12), 10e100)
+        }, parameters: []});
+    room.createChoice('Get wacky item')
+        .addAction({type: ()=> {
+            game.getItem(randomString(' 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ~!@#$%^&*()_+=-[]}{\\|";:/?.>,<~', 50), 1)
+        }, parameters: []});
+    
+
     room = createRoom('Example Room', { name: 'neutral.jpeg' });
     room.addStory(`This is a [an:text-blur 1s ease][c:red]test[c:] story`);
     room.addStory(`This is a [an:text-glow 1s ease infinite alternate][c:red]test[c:] [fi:blur(1px)]story[fi:] [c:#00ff00][ff:'Doto'][fs:24px]continued[:]!`, { speed: 100, variance: 33, animation: 'impact' });
     room.addStory(`[ts:2px 2px 2px white][c:#c5c5c5]Lorem [rt:90deg]ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et [rt:180deg]dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure [rt:270deg]dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui [rt:]officia deserunt mollit anim id est laborum.`, { speed: 10, variance: 3, animation: 'funky' });
-    let choice1 = room.createChoice('Pick up item');
-    choice1.addAction({ type: 'getItem', parameters: ['Example Item', 1, 10] });
+    let choice1 = room.createChoice('Pick up item', {maxUses: 1} );
+    choice1.addAction({ type: 'getItem', parameters: ['Example Item', 1, 10]});
     room.addStory(`This text only shows if you got at least 8 Example Items!`)
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Example Item', 8] });
     room.addStory(`Woah`, { speed: 500, variance: 100, animation: 'shaky' });
     room.addStory(`[c:rgb(0,255,255)]Cooleo![c:] This is a neat blur effect! I like it so much, I think I will put [c:yellow][fs:24px]more[:] text!`, { speed: 100, variance: 10, animation: 'blur' });
     room.addStory(`Or maybe try [c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]l[c:rgb(136, 255, 0)]t[c:rgb(0, 255, 98)]e[c:rgb(136, 255, 0)]r[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]a[c:rgb(0, 255, 98)]t[c:rgb(136, 255, 0)]i[c:rgb(0, 255, 98)]n[c:rgb(136, 255, 0)]g[c:] text? This can do that too! Lets see how this looks like when it's long: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`, { speed: 50, variance: 10, animation: 'fade-alternate' });
     room.addStory("Let's have some choices now!", { waits: false, waitDelay: 0 });
-    let choice2 = room.createChoice('Open door', { repeatable: true });
+    let choice2 = room.createChoice('Open door');
     choice2.addAction({ type: 'changeRoom', parameters: ['Example Room 2'] });
     choice2.addAction({ type: 'removeItem', parameters: ['Example Expendable Key'] });
     choice2.addRequirement({ mode: 'use', type: 'hasItem', parameters: ['Example Reusable Key'] });
     choice2.addRequirement({ mode: 'use', type: 'hasItem', parameters: ['Example Expendable Key'] });
-    let choice3 = room.createChoice('Pick up key');
+    let choice3 = room.createChoice('Pick up key', {maxUses: 1});
     choice3.addAction({ type: 'getItem', parameters: ['Example Reusable Key', 1, 1, '[class:text-glow green]', "yoyo, you got ye an [[class:text-glow green]Example Reusable Key[class:]] yo! Also, this is a [an:text-glow 1s ease infinite alternate][c:cyan]custom action message!"] });
     choice3.addRequirement({ mode: 'show', type: 'madeChoice', inverse: true, parameters: [choice3.id] });
-    let choice4 = room.createChoice('Pick up another key', { repeatable: true });
+    let choice4 = room.createChoice('Pick up another key');
     choice4.addAction({ type: 'getItem', parameters: ['Example Expendable Key'] });
     choice4.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [choice3.id] });
     choice4.addRequirement({ mode: 'show', type: 'hasItem', inverse: true, parameters: ['Example Expendable Key'] });
     // choice5, with different syntax (not using a variable)
-    room.createChoice('Touch spike')
+    room.createChoice('Touch spike', { maxUses: 1 })
         .addAction({ type: 'writeText', parameters: ['[c:yellow]Why did you touch that?', {elementID: 'action-output', waits: false}] })
         .addAction({ type: 'changeHP', parameters: [-5, -10] })
         .addAction({ type: 'changeMaxHP', parameters: [-1, -3] });
@@ -1719,17 +1845,17 @@ function generateExampleRooms() {
     room = createRoom('Example Room Particles', { name: 'neutral.jpeg' });
     room.addAction({type: 'changeParticleAnimation', parameters: ['fog', 1, 1]});
     room.addStory('Lets try out some particles!', {waits: false});
-    room.createChoice('Speed Up', {repeatable: true})
+    room.createChoice('Speed Up')
     .addAction({type: 'changeParticleSpeed', parameters: [.5]});
-    room.createChoice('Slow Down', {repeatable: true})
+    room.createChoice('Slow Down')
     .addAction({type: 'changeParticleSpeed', parameters: [-.5]});
-    room.createChoice('Strengthen', {repeatable: true})
+    room.createChoice('Strengthen')
     .addAction({type: 'changeParticleStrength', parameters: [.5]});
-    room.createChoice('Weaken', {repeatable: true})
+    room.createChoice('Weaken')
     .addAction({type: 'changeParticleStrength', parameters: [-.5]});
-    let ashes = room.createChoice('Next Animation')
+    let ashes = room.createChoice('Next Animation', { maxUses: 1 })
     ashes.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 1, 1]});
-    let smoke = room.createChoice('Next Animation')
+    let smoke = room.createChoice('Next Animation', { maxUses: 1 })
     smoke.addAction({type: 'changeParticleAnimation', parameters: ['smoke top', 1, 1]});
     smoke.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [ashes.id] })
 
@@ -1762,10 +1888,27 @@ function generateExampleRooms() {
 
     // grid testing
     room = createRoom('Example Grid Hub');
-    room.createChoice('Grid 1')
+    room.createChoice('Back', {color: '[c:var(--back-color)]'})
+        .addAction({type: 'changeRoom', parameters: ['Example Hub']});
+    room.createChoice('Grid 1 x 6')
         .addAction({type: 'changeRoom', parameters: ['example-grid-1-start']});
+    room.createChoice('Grid 20 x 20')
+        .addAction({type: 'changeRoom', parameters: ['example-grid-2-start']});
 
-    let grid = new RoomGrid({name: 'example-grid-1', width: 4, height: 1, showCoordinates: false})
+    let grid = new RoomGrid({name: 'example-grid-1', width: 1, height: 6, showCoordinates: true})
+    room = grid.generateRoom([0, 2]);
+    room.addStory('This story should show twice.', {maxUses: 2})
+    grid.generateGrid();
+
+    grid = new RoomGrid({name: 'example-grid-2', width: 20, height: 20, showCoordinates: true, entrance: [10, 10]})
+    grid.setDefaultRoom(new Room('', {name: 'neutral.jpeg'}))
+    grid.addQueuelist(createQueuelist([
+        new StoryObject(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`),
+    ]), [
+
+    ])
+    room = grid.generateRoom(null, {name: 'transparent.png'}, 200);
+    room.addStory('This room instance was randomly placed');
     grid.generateGrid();
 }
 
@@ -1794,7 +1937,7 @@ function generateStartingRooms() {
     room.addStory(`There doesn't seem to be much left to do or see. Anything that once was is long gone.`, { waits: false });
     choice1 = room.createChoice("Leave the lab.");
     choice1.addAction({ type: 'changeRoom', parameters: ['b-3-hallways'] });
-    choice2 = room.createChoice(`Go back to sleep.`, {repeatable: true});
+    choice2 = room.createChoice(`Go back to sleep.`);
     choice2.addAction({ type: 'writeText', parameters: ['[c:yellow]The cryopod zaps you, clearly malfunctioning', {elementID: 'action-output', waits: false, speed: -1}] });
     choice2.addAction({type: 'changeHP', parameters: [-10, -15, 'cryopod']});
 
@@ -1974,7 +2117,7 @@ function generateEscapeRooms() {
     let defaultRoom = new Room('', {name: 'escape.jpeg'});
     // defaultRoom.addStory('The land is barren');
     wastelandGrid.setDefaultRoom(defaultRoom)
-    wastelandGrid.setRoomQueuelist(createQueuelist([
+    wastelandGrid.addQueuelist(createQueuelist([
         new StoryObject(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`),
         new Choice(`See Idelle.`)
             .addAction({type: 'changeRoom', parameters: ['e-finalTask']})
@@ -1998,14 +2141,13 @@ function generateEscapeRooms() {
     room.addAction({type: `getItem`, parameters: [`Food Pack`, 1, 3]});
 
     room = wastelandGrid.generateRoom([1,0], {name: 'escape.jpeg'});
-    room.addAction({type: `getItem`, parameters: [`Microchip`, 1, 1], waits: true});
+    room.addAction({type: `getItem`, parameters: [`Microchip`, 1, 1], waits: true, maxUses: 1});
 
     room = wastelandGrid.generateRoom([1,1], {name: 'escape.jpeg'});
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO EAST.]`);
 
     room = wastelandGrid.generateRoom([1,3], {name: 'escape.jpeg'});
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO SOUTH.]`);
-
     room = wastelandGrid.generateRoom([1,4], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [[
         new Enemy('FishBat', 20, 20, 5, `Not to be confused with a batfish.`),
@@ -2031,7 +2173,7 @@ function generateEscapeRooms() {
     room.addStory('[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO NORTH.]');
 
     room = wastelandGrid.generateRoom([2,3], {name: 'escape.jpeg'});
-    room.addAction({type: 'getItem', parameters: ['Scrap Metal', 1, 1,], waits: true});
+    room.addAction({type: 'getItem', parameters: ['Scrap Metal', 1, 1,], waits: true, maxUses: 5});
 
     room = wastelandGrid.generateRoom([2,4], {name: 'escape.jpeg'});
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO WEST.]`);
@@ -2062,7 +2204,7 @@ function generateEscapeRooms() {
     ], 'an infestation!'], waits: true});
 
     room = wastelandGrid.generateRoom([4,1], {name: 'escape.jpeg'});
-    room.addAction({type: 'getItem', parameters: ['Fuel Canister', 1, 1]});
+    room.addAction({type: 'getItem', parameters: ['Fuel Canister', 1, 1], waits: true, maxUses: 1});
 
     room = wastelandGrid.generateRoom([4,3], {name: 'escape.jpeg'});
     room.addAction({type: 'getItem', parameters: ['Food Pack', 1, 4]});
@@ -2165,13 +2307,13 @@ function generateEscapeRooms() {
 
     // room = createRoom(`hospital-2-2`, {name: 'neutral.jpeg'});
     // room.addStory(`You are currently at (2,2).`);
-    // choice1 = room.createChoice(`Go North.`, {repeatable: true});
+    // choice1 = room.createChoice(`Go North.`, {maxUses: Infinity});
     // choice1.addAction({type: 'changeRoom', parameters: ['hospital-2-3']});
-    // choice2 = room.createChoice(`Go East.`, {repeatable: true});
+    // choice2 = room.createChoice(`Go East.`, {maxUses: Infinity});
     // choice2.addAction({type: 'changeRoom', parameters: ['hospital-3-2']});
-    // choice3 = room.createChoice(`Go South.`, {repeatable: true});
+    // choice3 = room.createChoice(`Go South.`, {maxUses: Infinity});
     // choice3.addAction({type: 'changeRoom', parameters: ['hospital-2-1']});
-    // choice4 = room.createChoice(`Go West.`, {repeatable: true});
+    // choice4 = room.createChoice(`Go West.`, {maxUses: Infinity});
 
     // room = createRoom(`hospital-2-3`, {name: 'neutral.jpeg'});
     // room.addStory(`You are currently at (2,3).`);
