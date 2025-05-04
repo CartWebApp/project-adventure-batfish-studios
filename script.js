@@ -23,7 +23,7 @@ let currentEnding = 'unset';
 let endings = {}; // holds the possible ending names and text
 let particleHandler;
 let leaveChoices = false;
-let startingRoom = 'e-finalTask'; // [ 'Example Hub' ][ 'b-start' ]
+let startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
 let runNumber = 0;
 let itemData;
 
