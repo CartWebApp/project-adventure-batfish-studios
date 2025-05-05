@@ -16,6 +16,7 @@ export class CanvasHandler {
         this.createAnimations();
         this.currentAnimation = this.animations['ashes'];
         this.looping = true;
+        this.state = 'idle'; // ['running', 'despawning', 'idle']
         
         // enables canvas to respond to size changes
         window.addEventListener('resize', ()=>this.handleResize())
@@ -27,14 +28,26 @@ export class CanvasHandler {
     }
 
     async changeAnimation(animationName) {
+        this.state = 'despawning';
         for (const particle of this.particles) {
-            particle.despawnFunction();
+            particle.despawn();
         }
-        await sleep(this.transitionDuration);
+        let awaitDespawning = async()=> {
+            while (this.particles.length > 0) {
+                console.log(this.particles);
+                await sleep(5);
+            }
+        }
+        await Promise.race([sleep(10000), awaitDespawning()]);
         this.looping = false
         await sleep(2);
         this.particles = []
         this.currentAnimation = this.animations[animationName];
+        if (!this.animations[animationName] || this.currentAnimation === this.animations['none']) {
+            this.state = 'idle';
+            return;
+        }
+        this.state = 'running'
         if (this.currentAnimation.generatorOptions) {
             this.generateParticles(this.currentAnimation.generatorOptions);
         }
@@ -49,7 +62,7 @@ export class CanvasHandler {
             this.ctx.clearRect(0, 0, this.width, this.height);
         }
 
-        if (this.currentAnimation.loopOptions) {
+        if (this.currentAnimation.loopOptions && this.state === 'running') {
             this.generateParticles(this.currentAnimation.loopOptions);
         }
 
@@ -57,8 +70,13 @@ export class CanvasHandler {
             this.particles[i]?.update();
             this.particles[i]?.draw();
             this.particles[i]?.checkForDeletion();
+            if (this.state === 'despawning') this.particles[i]?.despawn;
         }
 
+        if (!this.currentAnimation || this.currentAnimation === this.animations['none']) {
+            this.state = 'idle';
+            return;
+        }
         if (this.looping) {
             requestAnimationFrame(()=>this.loop());
         }
@@ -186,6 +204,7 @@ class Ball {
         this.delta = 0;
         this.opacity = 1;
         this.updateMod = updateMod;
+        this.state = 'spawning';
         if (!this.updateMod) {
             this.updateMod = ()=>{};
         }
@@ -193,7 +212,7 @@ class Ball {
         if (!this.spawnFunction) {
             this.spawnFunction = async () => {
                 this.opacity = 0;
-                while (this.opacity < 1) {
+                while (this.opacity < 1 && this.state === 'spawning') {
                     this.opacity = clamp(this.opacity + .01 * controller.speed, 0, 1);
                     await sleep(controller.transitionDuration / 100);
                 }
@@ -202,7 +221,8 @@ class Ball {
         this.despawnFunction = despawnFunction;
         if (!this.despawnFunction) {
             this.despawnFunction = async () => {
-                while (this.opacity > 0) {
+                this.state = 'despawning';
+                while (this.opacity > 0 && this.state === 'despawning') {
                     this.opacity = clamp(this.opacity - .01 * controller.speed, 0, 1);
                     await sleep(controller.transitionDuration / 100);
                 }
@@ -246,8 +266,15 @@ class Ball {
     }
 
     async delete() {
+        this.state = 'deleted';
         let particleArray = this.controller.particles;
         particleArray.splice(particleArray.indexOf(this), 1);
+    }
+
+    async despawn() {
+        this.state = 'despawning';
+        await this.despawnFunction();
+        this.delete();
     }
 
 }

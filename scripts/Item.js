@@ -19,7 +19,8 @@ export class Consumable extends Item {
 
     // uses the consumable
     use(target) {
-        if (this.count === 0) return ['Missing ' + this.name]
+        if (this.count === 0) return ['Missing ' + this.name];
+        if (target.hp === 0)  return ['You cannot use items while dead'];
         let messages = [];
         messages.push(`Used ${this.style}${this.name}`)
         for (const effect of this.effects) {

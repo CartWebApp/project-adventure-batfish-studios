@@ -482,7 +482,7 @@ p {
     flex-direction: column;
     overflow: auto;
     color: white;
-    height: fit-content;
+    height: 100%;
     max-height: calc(100% - 2rem);
     width: calc(100% - 2rem);
     top: 50%;
@@ -545,18 +545,6 @@ p {
     gap: 1rem;
 }
 
-.choice:hover,
-.choice:focus-visible {
-    box-shadow: inset 0 0 10px 4px;
-    outline: none;
-}
-
-.choice .text-line {
-    margin: auto;
-    width: fit-content;
-    justify-content: center;
-}
-
 .choice {
     background: none;
     margin-top: 1rem;
@@ -568,6 +556,23 @@ p {
     width: 100%;
     -webkit-tap-highlight-color: transparent;
     transition: 200ms ease;
+}
+
+.choice.disabled {
+    cursor: not-allowed;
+    filter: grayscale(.7) opacity(.5);
+}
+
+.choice:not(.disabled):hover,
+.choice:not(.disabled):focus-visible {
+    box-shadow: inset 0 0 10px 4px;
+    outline: none;
+}
+
+.choice .text-line {
+    margin: auto;
+    width: fit-content;
+    justify-content: center;
 }
   
 .text-line {
@@ -634,6 +639,40 @@ p {
 
 .green {
     color: rgb(0, 199, 0);
+}
+
+.rainbow-overlay {
+    position: relative;
+}
+
+.rainbow-overlay::before {
+    content: '';
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    position: absolute;
+    opacity: .25;
+    filter: blur(16px);
+    z-index: -1;
+    background-size: 200% 100%;
+    background-image: linear-gradient(90deg,rgba(131, 58, 180, 1) 0%, rgba(253, 29, 29, 1) 25%, rgba(252, 176, 69, 1) 50%, rgba(253, 29, 29, 1) 75%, rgba(131, 58, 180, 1) 100%);
+    animation: background-slide 2000ms linear infinite;
+}
+
+.rainbow-overlay::after {
+    content: '';
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    position: absolute;
+    opacity: .25;
+    filter: blur(16px);
+    z-index: -1;
+    background-size: 200% 100%;
+    background-image: linear-gradient(90deg,rgba(42, 123, 155, 1) 0%, rgba(87, 199, 133, 1) 25%, rgba(237, 221, 83, 1) 50%, rgba(87, 199, 133, 1) 75%, rgba(42, 123, 155, 1) 100%);
+    animation: background-slide 1500ms linear infinite reverse;
 }
 
 .text-glow {
@@ -785,6 +824,11 @@ p {
 @keyframes rotate {
     from {rotate: 0deg}
     to {rotate: 360deg}
+}
+
+@keyframes background-slide {
+    from {background-position: 100%}
+    to {background-position: -100%}
 }
 
 @keyframes shake {

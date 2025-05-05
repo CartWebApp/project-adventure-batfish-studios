@@ -10,22 +10,14 @@ Object.entries(fnExports).forEach(([name, exported]) => window[name] = exported)
 
 let devMode = false;
 
-let rooms = {};
-let currentRoom;
 let player;
-let isGameLoop = true;
 let textController; // makes text writing cancellable
 let textControllerSignal;
 let textCancelled = false;
 let game;
 let history;
-let currentEnding = 'unset';
-let endings = {}; // holds the possible ending names and text
-let particleHandler;
-let leaveChoices = false;
-let startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
-let runNumber = 0;
 let itemData;
+let particleHandler;
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [:]
@@ -109,7 +101,14 @@ class History {
 // Holds game logic methods
 class Game {
     constructor() {
-
+        this.rooms = {};
+        this.currentRoom = '';
+        this.isGameLoop = true;
+        this.currentEnding = 'unset';
+        this.endings = {}; // holds the possible ending names and text
+        this.leaveChoices = false; // choices get left if this is true
+        this.startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
+        this.runNumber = -1;
     }
 
     // Gives an item to the player's inventory
@@ -137,7 +136,7 @@ class Game {
 
     // leaves the current choice block
     leaveChoice() {
-        leaveChoices = true;
+        game.leaveChoices = true;
     }
 
     // changes the players health
@@ -147,7 +146,7 @@ class Game {
         let messages = [];
         player.changeHP(amount);
         if (player.hp <= 0) {
-            currentEnding = endings[cause] ? cause : 'default death';
+            game.currentEnding = game.endings[cause] ? cause : 'default death';
         }
         if (amount >= 0) {
             messages.push(customMessage || `[c:lime]HP +${amount}`);
@@ -178,12 +177,12 @@ class Game {
 
     // changes the current room to a new room
     changeRoom(room) {
-    if (!rooms[room]) {
+    if (!game.rooms[room]) {
         typeText('This room does not exist', {element: document.getElementById('action-output')});
         return;
     }
         history.addRoom(room);
-        currentRoom = rooms[room];
+        game.currentRoom = game.rooms[room];
     }
 
     // changes the background
@@ -252,10 +251,15 @@ class Game {
         await typeText(textObj.text,{}, document.getElementById(elementID), textObj.speed, textObj.variance, true, document.getElementById('dialogue-box'), textObj.animation, textControllerSignal, textObj.waits, textObj.waitDelay)
     }
 
+    // has a given chance to return true
+    chanceRoll(chance) {
+        return chance >= random(0, 100, 10);
+    }
+
     // a chance to initiate combat
     async encounter(enemies, rewards, groupName) {
         let battle = new Battle({enemies, rewards, groupName})
-        await battle.encounter(runNumber);
+        await battle.encounter(game.runNumber);
     }
 
     // // a chance to initiate combat
@@ -279,23 +283,25 @@ class Game {
 
     // initiates an ending
     async ending(endType) {
-        isGameLoop = false;
-        currentEnding = endings[endType];
+        game.isGameLoop = false;
+        game.currentEnding = game.endings[endType];
         if (!history.endings.includes(endType)){
-            currentEnding.createChoice('Restart')
+            game.currentEnding.createChoice('Restart')
                 .addAction({ type: 'restart'});
         }
         history.addEnding(endType);
         clearDialogueText();
-        for (const item of currentEnding.queuelist) {
+        for (const item of game.currentEnding.queuelist) {
             if (item.type === 'story') {
                 clearText(document.getElementById('story'));
                 await showStory(item.value);
                 clearText(document.getElementById('action-output'));
             } else if (item.type === 'choicelist') {
-                while (getShownChoices(item.value).length > 0) {
-                    showChoices(item.value);
+                let selectedChoices = [];
+                while (getShownChoices(item.value, selectedChoices).length > 0) {
+                    showChoices(item.value, document.getElementById('choices'), selectedChoices);
                     let selectedChoice = await tryChoices(document.getElementById('choices'));
+                    selectedChoices.push(selectedChoice);
                     history.addChoice(selectedChoice);
                     clearText(document.getElementById('action-output'))
                     clearText(document.getElementById('choices'))
@@ -315,8 +321,9 @@ class Game {
 
     // resets the player and game
     async restart() {
+        game.isGameLoop = false;
         history.resets += 1;
-        runNumber += 1;
+        game.runNumber += 1;
         history.softReset();
         document.getElementById('history-content').innerHTML = '';
         await sleep(10);
@@ -332,11 +339,11 @@ class Game {
             game.getItem('Super Agility Maximiser', 10);
         }
         game.changeParticleAnimation('none', 1, 1);
-        player = new Player();
         generateAllRooms();
-        currentRoom = rooms[startingRoom];
-        document.getElementById('background-image').src = 'imgs/backgrounds/transparent.png'
+        game.currentRoom = game.rooms[game.startingRoom];
+        document.getElementById('background-image').src = 'imgs/backgrounds/transparent.png';
         clearDialogueText();
+        game.isGameLoop = true;
         gameLoop();
     }
 
@@ -399,7 +406,7 @@ class Battle {
             showChoices(menuChoices, this.inputContainer);
             selectedChoice = await tryChoices(this.inputContainer);
             selectedChoice = selectedChoice.text.toLowerCase();
-            if (currentRunNumber != runNumber) return;
+            if (currentRunNumber != game.runNumber) return;
 
             // check what option is clicked, and run that function
             if (selectedChoice === 'fight') {
@@ -411,7 +418,7 @@ class Battle {
             } else if (selectedChoice === 'item') {
                 await this.selectItem();
             }
-            if (currentRunNumber != runNumber) return;
+            if (currentRunNumber != game.runNumber) return;
         }
 
         // end of fight
@@ -489,7 +496,7 @@ class Battle {
         clearDialogueText();
 
         // select random enemy from alive enemies
-        let enemy = this.remainingEnemies[random(0, this.remainingEnemies.length - 1)];
+        let enemy = this.remainingEnemies[random(0, this.remainingEnemies.length)];
         let baseAttack = enemy.getAttack();
         let defenceMulti = await this.timedDefense(enemy);
         let enemyAttack = Math.round(baseAttack / defenceMulti);
@@ -526,7 +533,7 @@ class Battle {
         }
 
         let offset = await this.timingGame(speedMulti, 'in');
-        let multi = 1.8 - (offset) ** .5;
+        let multi = 2 - (offset * 1.4) ** .5;
         return multi;
     }
 
@@ -880,13 +887,15 @@ class Action {
 }
 
 class Choice extends TextObject {
-    constructor(text, options = {}, maxUses = Infinity, speed = 4, variance = 1, animation = 'default', skippable = true, room = undefined, id = '', customID = '', value='', color = '') {
+    constructor(text, options={}, maxUses=Infinity, speed=4, variance=1, animation='default', skippable=true, room=undefined, id='', customID='', value='', color='', classList=[], persistant=false) {
         super(text, options, speed, variance, animation, skippable, true, 0);
         this.hidden = false;
         this.maxUses = maxUses;
         this.room = room;
         this.id = id;
         this.customID = customID;
+        this.classList = classList;
+        this.persistant = persistant; // weather the choice can be selected multiple times in a row
         this.actions = [];
         this.requirements = [];
         transferProperties(this.options, this);
@@ -948,18 +957,18 @@ class Room {
     // adds a choice to the room
     addChoice(choice) {
         this.choices.push(choice);
-        const lastInQueue = this.queuelist[this.queuelist.length - 1]
+        const lastInQueue = this.queuelist[this.queuelist.length - 1];
         if (lastInQueue && lastInQueue.type === 'choicelist') {
-            lastInQueue.value.push(choice)
+            lastInQueue.value.push(choice);
         } else {
-            this.queuelist.push({ type: 'choicelist', value: [choice] });
+            this.queuelist.push({ type: 'choicelist', value: [choice]});
         }
     }
 
     // creates a choice and automatically adds it to the room
-    createChoice(text, options, maxUses, speed, variance, animation, skippable, customID, color) {
+    createChoice(text, options, maxUses, speed, variance, animation, skippable, customID, color, classList, persistant) {
         const id = this.getChoiceId(this.choices.length + 1);
-        const choice = new Choice(text, options, maxUses, speed, variance, animation, skippable, this, id, customID, color);
+        const choice = new Choice(text, options, maxUses, speed, variance, animation, skippable, this, id, customID, color, classList, persistant);
         this.addChoice(choice);
         return choice;
     }
@@ -997,8 +1006,12 @@ class Room {
     }
 
     // appends a queuelist to the rooms queuelist
-    addQueuelist(queuelist) {
-        this.queuelist.push(...queuelist)
+    addQueuelist(queuelist, timing='end') {
+        if (timing === 'start') {
+            this.queuelist = [...queuelist, ...this.queuelist];
+        } else if (timing = 'end') {
+            this.queuelist = [...this.queuelist, ...queuelist];
+        }
     }
 }
 
@@ -1013,7 +1026,8 @@ class RoomGrid {
         if (typeof this.showCoordinates != 'boolean') this.showCoordinates = showCoordinates;
         this.grid = [];
         this.emptyTemplate = new Room();
-        this.roomQueuelist = [];
+        this.startQueuelist = [];
+        this.endQueuelist = [];
         this.randomRooms = [];
         this.filledRooms = {};
         this.unusedCoords = [];
@@ -1055,8 +1069,30 @@ class RoomGrid {
 
     // sets a queuelist that runs every time a room gets explored
     // one use is to set a leave condition by using actions that are not run unless certain conditions are met
-    addQueuelist(queuelist, requirements) {
-        this.roomQueuelist.push({queue: queuelist, requirements})
+    addQueuelist(timing, queuelist, requirements) {
+        timing = timing ?? 'end'
+        for (const queueItem of queuelist) {
+            for (const requirement of requirements) {
+                if (queueItem.type === 'story') {
+                    queueItem.value.addRequirement(requirement);
+                } else if (queueItem.type === 'actionlist') {
+                    for (const action of queueItem.value) {
+                        action.addRequirement(requirement);
+                    }
+                }
+                else if (queueItem.type === 'choicelist') {
+                    for (const choice of queueItem.value) {
+                        choice.addRequirement(requirement);
+                    }
+                }
+            }
+        }
+
+        if (timing === 'start') {
+            this.startQueuelist.push(...queuelist)
+        } else if (timing === 'end') {
+            this.endQueuelist.push(...queuelist)
+        }
     }
 
     generateDefaultRoom(coords) {
@@ -1097,30 +1133,12 @@ class RoomGrid {
 
     }
 
-    // connects the rooms by adding direction choices
+    // connects the rooms by adding direction choices and injects queues to rooms
     connectRooms() {
         this.iterateGrid((x, y)=> {
             let room = this.grid[x][y];
-
-            for (const queuelist of this.roomQueuelist) {
-                for (const queueItem of queuelist.queue) {
-                    for (const requirement of queuelist.requirements) {
-                        if (queueItem.type === 'story') {
-                            queueItem.value.addRequirement(requirement);
-                        } else if (queueItem.type === 'actionlist') {
-                            for (const action of queueItem.value) {
-                                action.addRequirement(requirement);
-                            }
-                        }
-                        else if (queueItem.type === 'choicelist') {
-                            for (const choice of queueItem.value) {
-                                choice.addRequirement(requirement);
-                            }
-                        }
-                    }
-                }
-                room.addQueuelist(queuelist.queue)
-            }
+            if (this.startQueuelist.length > 0) room.addQueuelist(this.startQueuelist, 'start');
+            if (this.endQueuelist.length > 0) room.addQueuelist(this.endQueuelist, 'end');
 
             if (this.showCoordinates) {
                 room.addStory(`Coordinates: [[c:yellow]${x}[:], [c:yellow]${y}[:]]`, {waits: false, speed: -1});
@@ -1131,21 +1149,29 @@ class RoomGrid {
                 let westRoom = this.grid[x-1][y];
                 room.createChoice(`Go West.`)
                     .addAction({type: 'changeRoom', parameters: [westRoom.name]});
+            } else {
+                room.createChoice(`Go West.`, {classList: ['disabled']});
             }
             if (this.grid?.[x]?.[y-1]) {
                 let northRoom = this.grid[x][y-1];
                 room.createChoice(`Go North.`)
                     .addAction({type: 'changeRoom', parameters: [northRoom.name]});
+            } else {
+                room.createChoice(`Go North.`, {classList: ['disabled']});
             }
             if (this.grid?.[x]?.[y+1]) {
                 let southRoom = this.grid[x][y+1];
                 room.createChoice(`Go South.`)
                     .addAction({type: 'changeRoom', parameters: [southRoom.name]});
+            } else {
+                room.createChoice(`Go South.`, {classList: ['disabled']});
             }
             if (this.grid?.[x+1]?.[y]) {
                 let eastRoom = this.grid[x+1][y];
                 room.createChoice(`Go East.`)
                     .addAction({type: 'changeRoom', parameters: [eastRoom.name]});
+            } else {
+                room.createChoice(`Go East.`, {classList: ['disabled']});
             }
         })
     }
@@ -1154,10 +1180,10 @@ class RoomGrid {
     deployRooms() {
         this.iterateGrid((x, y)=> {
             let room = this.grid[x][y];
-            rooms[room.name] = room;
+            game.rooms[room.name] = room;
         })
 
-        rooms[`${this.name}-start`] = this.grid[this.entrance[0]][this.entrance[1]]
+        game.rooms[`${this.name}-start`] = this.grid[this.entrance[0]][this.entrance[1]]
     }
 
     // generates the grid. DO NOT CALL MORE THAN ONCE
@@ -1190,7 +1216,7 @@ function createQueuelist(itemList) {
             if (lastInQueue && lastInQueue.type === 'choicelist') {
                 lastInQueue.value.push(item.value)
             } else {
-                queuelist.push({ type: 'choicelist', value: [item] });
+                queuelist.push({ type: 'choicelist', value: [item]});
             }
         } else if (item.constructor.name === 'Action') {
             const lastInQueue = queuelist[queuelist.length - 1]
@@ -1243,14 +1269,14 @@ function createLoadingBuffer(elementID='loading-buffer', count = 8, duration = 2
 // creates a room and adds it to rooms
 function createRoom(name, bg) {
     const newRoom = new Room(name, bg);
-    rooms[newRoom.name] = newRoom;
+    game.rooms[newRoom.name] = newRoom;
     return newRoom;
 }
 
 // creates an ending and adds it to endings
 function createEnding(name, bg) {
     const newEnding = new Ending(name, bg);
-    endings[newEnding.name] = newEnding;
+    game.endings[newEnding.name] = newEnding;
     return newEnding;
 }
 
@@ -1445,30 +1471,34 @@ async function showStory(story) {
 }
 
 // returns the choices that are displayed
-function getShownChoices(choices) {
+function getShownChoices(choices, selectedChoices) {
     let shownChoices = []
     for (const choice of choices) {
         if (choice.hidden) continue;
         if (!checkRequirements(choice, 'show').metRequirements) continue;
         if (choice.usesLeft <= 0) continue;
+        if (!choice.persistant && selectedChoices.indexOf(choice) != -1) continue;
         shownChoices.push(choice);
     }
     return shownChoices;
 }
 
 // diplays each choice to the dialogue box
-async function showChoices(choices, container) {
+async function showChoices(choices, container, selectedChoices=[]) {
     const dialogueBox = document.getElementById('dialogue-box');
     const choiceContainer = container ?? document.getElementById('choices');
     let choiceElements = [];
     let choiceTexts = [];
 
-    for (let i = 0; i < choices.length; i++) {
-        const choice = choices[i];
-        if (choice.hidden || !checkRequirements(choice, 'show').metRequirements) continue;
-        if (choice.usesLeft <= 0) continue;
+    let shownChoices = getShownChoices(choices, selectedChoices);
+
+    for (let i = 0; i < shownChoices.length; i++) {
+        const choice = shownChoices[i];
         let choiceElement = document.createElement('button');
         choiceElement.className = 'choice';
+        for (const className of choice.classList) {
+            choiceElement.classList.add(className);
+        }
         choiceElement.style.color = choice.color;
         choiceElement.id = `choice-${i}`;
         choiceElement.object = choice;
@@ -1520,17 +1550,20 @@ async function cancelText() {
 // waits for user to pick a choice
 async function selectChoice(choiceContainer) {
     let selectedChoice;
+    let clickableChoices = []
     for (const choiceElement of choiceContainer.children) {
+        if (choiceElement.classList.contains('disabled')) continue;
+        clickableChoices.push(choiceElement);
         choiceElement.addEventListener('click', () => { selectedChoice = choiceElement.object })
     }
-    await awaitClickList(choiceContainer.children);
+    await awaitClickList(clickableChoices);
     return selectedChoice;
 }
 
 // tries to run an action
 async function attemptAction(action) {
     if (action.usesLeft <= 0) return;
-    if (action.chance < random(0, 100, 6)) return;
+    if (!game.chanceRoll(action.chance)) return;
     if (!checkRequirements(action, 'use').metRequirements) return;
     action.usesLeft -= 1;
     if (action.waits) {
@@ -1558,10 +1591,10 @@ async function attemptAction(action) {
 
 // tries to run a list of actions or an action
 async function attemptActionsWithText(actions) {
-    let currentRunNumber = runNumber;
+    let currentRunNumber = game.runNumber;
     if (Object.prototype.toString.call(actions) != '[object Array]') actions = [actions];
     for (const action of actions) {
-        if (currentRunNumber != runNumber) return;
+        if (currentRunNumber != game.runNumber) return;
         let actionResult = await attemptAction(action);
         if (actionResult && actionResult?.messages) {
             for (const message of actionResult.messages) {
@@ -1577,7 +1610,7 @@ async function attemptActionsWithText(actions) {
 }
 
 // loops until a choice is selected that has all requirements met
-async function tryChoices(choiceContainer) {
+async function tryChoices(choiceContainer, selectedChoices) {
     let selectedChoice;
     let metReqirements = false;
     while (!metReqirements) {
@@ -1600,28 +1633,31 @@ async function tryChoices(choiceContainer) {
 
 // repeats every room
 async function gameLoop() {
-    currentRoom = rooms[startingRoom];
-    let currentRunNumber = runNumber;
+    game.currentRoom = game.rooms[game.startingRoom];
+    let currentRunNumber = game.runNumber;
     const choiceContainer = document.getElementById('choices');
-    while (isGameLoop) {
-        let thisRoom = currentRoom;
-        for (const item of currentRoom.queuelist) {
-            if (currentRunNumber != runNumber) return;
+    while (game.isGameLoop) {
+        let thisRoom = game.currentRoom;
+        for (const item of game.currentRoom.queuelist) {
+            if (currentRunNumber != game.runNumber) return;
             if (player.hp <= 0) {
-                game.ending(currentEnding);
+                game.ending(game.currentEnding);
                 return;
             }
             if (item.type === 'story') {
                 await showStory(item.value);
             } else if (item.type === 'choicelist') {
-                while (isGameLoop && getShownChoices(item.value).length > 0 && thisRoom === currentRoom && !leaveChoices) {
-                    leaveChoices = false;
+                let selectedChoices = [];
+                game.leaveChoices = false;
+                while (game.isGameLoop && getShownChoices(item.value, selectedChoices).length > 0 && thisRoom === game.currentRoom && !game.leaveChoices) {
+                    game.leaveChoices = false;
                     if (player.hp <= 0) {
-                        game.ending(currentEnding);
+                        game.ending(game.currentEnding);
                         return;
                     }
-                    showChoices(item.value);
+                    showChoices(item.value, choiceContainer, selectedChoices);
                     let selectedChoice = await tryChoices(choiceContainer);
+                    selectedChoices.push(selectedChoice);
                     clearText(document.getElementById('action-output'))
                     clearText(document.getElementById('choices'))
                     await attemptActionsWithText(selectedChoice.actions);
@@ -1629,14 +1665,14 @@ async function gameLoop() {
             } else if (item.type === 'actionlist') {
                 await attemptActionsWithText(item.value);
             }
-            if (thisRoom != currentRoom || !isGameLoop) { break }
+            if (thisRoom != game.currentRoom || !game.isGameLoop) { break }
         }
         if (player.hp <= 0) {
-            game.ending(currentEnding);
+            game.ending(game.currentEnding);
             return;
         }
-        if (currentRunNumber != runNumber) return;
-        else if (thisRoom === currentRoom) {
+        if (currentRunNumber != game.runNumber) return;
+        else if (thisRoom === game.currentRoom) {
             await showStory(new StoryObject('You have hit a dead end. Please add an ending or a way to change rooms here.', { waits: true, waitDelay: 30000 }));
         }
     }
@@ -1669,8 +1705,9 @@ function createEventListeners() {
     })
 
     document.getElementById('enter-example-rooms').addEventListener('click', ()=> {
-        startingRoom = 'Example Hub';
+        game.startingRoom = 'Example Hub';
         game.restart();
+        document.getElementById('menu-toggle').click();
     })
 }
 
@@ -1717,7 +1754,7 @@ async function init() {
     game = new Game();
     generateAllRooms();
     generateEndings();
-    await sleep(1000);
+    if (!devMode) await sleep(1500);
     document.getElementById('loading-screen').classList.add('hidden');
     game.start();
     await fnExports.awaitEvent(document.getElementById('loading-screen'));
@@ -1760,35 +1797,35 @@ function generateExampleRooms() {
         .addAction({type: 'changeRoom', parameters: ['Example Hub']});
     room.createChoice('Main Story')
         .addAction({type: ()=> {
-            startingRoom = 'b-start';
+            game.startingRoom = 'b-start';
             game.restart();
         }});
     room.createChoice('Escape Wasteland')
         .addAction({type: ()=> {
-            startingRoom = 'e-wasteland-start';
+            game.startingRoom = 'e-wasteland-start';
             game.restart();
         }});
 
     room = createRoom('Example Room Items');
     room.createChoice('Back', {color: '[c:var(--back-color)]'})
         .addAction({type: 'changeRoom', parameters: ['Example Hub']});
-    room.createChoice('Get item')
+    room.createChoice('Get item', {persistant: true})
         .addAction({type: ()=> {
             game.getItem(randomString('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 12))
         }, parameters: []});
-    room.createChoice('Get long item')
+    room.createChoice('Get long item', {persistant: true})
         .addAction({type: ()=> {
             game.getItem(randomString('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 400))
         }, parameters: []});
-        room.createChoice('Get long item + spaces')
+        room.createChoice('Get long item + spaces', {persistant: true})
         .addAction({type: ()=> {
             game.getItem(randomString('     abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 400))
         }, parameters: []});
-    room.createChoice('Get many item')
+    room.createChoice('Get many item', {persistant: true})
         .addAction({type: ()=> {
             game.getItem(randomString('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 12), 10e100)
         }, parameters: []});
-    room.createChoice('Get wacky item')
+    room.createChoice('Get wacky item', {persistant: true})
         .addAction({type: ()=> {
             game.getItem(randomString(' 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ~!@#$%^&*()_+=-[]}{\\|";:/?.>,<~', 50), 1)
         }, parameters: []});
@@ -1838,31 +1875,36 @@ function generateExampleRooms() {
     room.addStory('1...', { waitDelay: 1000, waits: false });
     room.addAction({ type: 'changeBG', parameters: ['escape.jpeg', { waitsOut: true }] });
     room.addStory('El fin');
-    room.addAction({ type: 'ending', parameters: ['Example Ending'] });
+    room.createChoice('Return to hub', {classList: ['rainbow-overlay'], color: 'yellow'})
+        .addAction({type: 'changeRoom', parameters: ['Example Hub']});
     
 
     // particle testing
     room = createRoom('Example Room Particles', { name: 'neutral.jpeg' });
     room.addAction({type: 'changeParticleAnimation', parameters: ['fog', 1, 1]});
     room.addStory('Lets try out some particles!', {waits: false});
-    room.createChoice('Speed Up')
+    room.createChoice('Speed Up', {persistant: true})
     .addAction({type: 'changeParticleSpeed', parameters: [.5]});
-    room.createChoice('Slow Down')
+    room.createChoice('Slow Down', {persistant: true})
     .addAction({type: 'changeParticleSpeed', parameters: [-.5]});
-    room.createChoice('Strengthen')
+    room.createChoice('Strengthen', {persistant: true})
     .addAction({type: 'changeParticleStrength', parameters: [.5]});
-    room.createChoice('Weaken')
+    room.createChoice('Weaken', {persistant: true})
     .addAction({type: 'changeParticleStrength', parameters: [-.5]});
-    let ashes = room.createChoice('Next Animation', { maxUses: 1 })
+    let ashes = room.createChoice('Next Animation')
     ashes.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 1, 1]});
-    let smoke = room.createChoice('Next Animation', { maxUses: 1 })
+    let smoke = room.createChoice('Next Animation')
     smoke.addAction({type: 'changeParticleAnimation', parameters: ['smoke top', 1, 1]});
     smoke.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [ashes.id] })
+    room.createChoice('Return to hub', {classList: ['rainbow-overlay'], color: 'yellow'})
+        .addAction({type: 'changeRoom', parameters: ['Example Hub']})
+        .addAction({type: 'changeParticleAnimation', parameters: ['adawda', 1, 1]})
+        .addRequirement({ mode: 'show', type: 'madeChoice', parameters: [smoke.id] })
 
 
     // battle testing
     room = createRoom('Example Room Battle', { name: 'neutral.jpeg' });
-    room.addAction({ type: 'getItem', parameters: ['Lume Fruit', 2, 3]});
+    room.addAction({ type: 'getItem', parameters: ['Lume Fruit', 2, 3], waits: true});
     room.addAction({type: 'encounter', parameters: [
     [
         new Enemy('Example Enemy', 10, 2, 5),
@@ -1884,6 +1926,8 @@ function generateExampleRooms() {
         {name: 'Wacky Thing', min: 1, max: 1},
         {name: 'Super Syrum', min: 1, max: 1}
     ], 'The Wacky Gang'], waits: true})
+    room.createChoice('Return to hub', {classList: ['rainbow-overlay'], color: 'yellow'})
+        .addAction({type: 'changeRoom', parameters: ['Example Hub']});
 
 
     // grid testing
@@ -1902,13 +1946,24 @@ function generateExampleRooms() {
 
     grid = new RoomGrid({name: 'example-grid-2', width: 20, height: 20, showCoordinates: true, entrance: [10, 10]})
     grid.setDefaultRoom(new Room('', {name: 'neutral.jpeg'}))
-    grid.addQueuelist(createQueuelist([
-        new StoryObject(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`),
+    grid.addQueuelist('start', createQueuelist([
+        new StoryObject(`This text should have a 5% chance of appearing at the start of any room`),
     ]), [
-
+        new Requirement({mode: 'show', type: 'chanceRoll', parameters: [5]})
     ])
-    room = grid.generateRoom(null, {name: 'transparent.png'}, 200);
+    grid.addQueuelist('end', createQueuelist([
+        new StoryObject(`This text should have a 10% chance of at the end of any room`),
+    ]), [
+        new Requirement({mode: 'show', type: 'chanceRoll', parameters: [10]})
+    ])
+    room = grid.generateRoom(null, {name: 'transparent.png'}, 50);
     room.addStory('This room instance was randomly placed');
+    room = grid.generateRoom([0,0], {name: 'savior.jpeg'});
+    room.addStory('You found the exit!', {waits: false});
+    room.createChoice('Return to hub', {classList: ['rainbow-overlay'], color: 'yellow'})
+        .addAction({type: 'changeRoom', parameters: ['Example Hub']});
+    room.createChoice('Stay')
+        .addAction({type: 'leaveChoice', parameters: []});
     grid.generateGrid();
 }
 
@@ -1947,9 +2002,9 @@ function generateStartingRooms() {
     room.addStory(`[c:var(--escape)]Left, [c:var(--destruction)]right, [c:]or [c:var(--savior)]straight ahead?`);
     choice1 = room.createChoice("Go left.");
     choice1.addAction({ type: 'changeRoom', parameters: ['e-start'] }); //escape route
-    choice2 = room.createChoice("Go right.");
+    choice2 = room.createChoice("Go right.", {classList: ['disabled']});
     choice2.addAction({ type: 'changeRoom', parameters: ['d-start'] }); //destruction route
-    let choice3 = room.createChoice("Go straight.");
+    let choice3 = room.createChoice("Go straight.", {classList: ['disabled']});
     choice3.addAction({ type: 'changeRoom', parameters: ['s-start'] }); //savior route
 
     room = createRoom(`b-return`, { name: 'neutral.jpeg' }); // changed mind at some point
@@ -2117,7 +2172,7 @@ function generateEscapeRooms() {
     let defaultRoom = new Room('', {name: 'escape.jpeg'});
     // defaultRoom.addStory('The land is barren');
     wastelandGrid.setDefaultRoom(defaultRoom)
-    wastelandGrid.addQueuelist(createQueuelist([
+    wastelandGrid.addQueuelist('end', createQueuelist([
         new StoryObject(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`),
         new Choice(`See Idelle.`)
             .addAction({type: 'changeRoom', parameters: ['e-finalTask']})
