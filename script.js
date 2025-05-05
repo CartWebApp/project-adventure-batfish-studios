@@ -821,6 +821,14 @@ class Enemy extends Character {
     }
 }
 
+/**
+ * @typedef {Object} TextObjectConfig
+ * @property {Number} speed - Delay in ms between each added character
+ * @property {Number} variance - Random added delay between 0 and n
+ * @property {String} animation - Animation for each character when getting added
+ * @property {Boolean} skippable - Whether clicking the skip element can make it type faster
+ */
+
 
 // default text object for writing to the page
 class TextObject {
@@ -886,23 +894,39 @@ class Action {
     }
 }
 
+
 class Choice extends TextObject {
-    constructor(text, options={}, maxUses=Infinity, speed=4, variance=1, animation='default', skippable=true, room=undefined, id='', customID='', value='', color='', classList=[], persistant=false) {
-        super(text, options, speed, variance, animation, skippable, true, 0);
-        this.hidden = false;
-        this.maxUses = maxUses;
-        this.room = room;
-        this.id = id;
-        this.customID = customID;
-        this.classList = classList;
-        this.persistant = persistant; // weather the choice can be selected multiple times in a row
+
+    /**
+     * @typedef {Object} ChoiceConfig_
+     * @property {Number} maxUses - The max number of times this choice can be selected in a run
+     * @property {Room} room - The room that this choice is a part of
+     * @property {String} id - Auto generated id
+     * @property {String} customID - Custom id for reference use
+     * @property {*} value - idk I don't remember
+     * @property {String} color - The color of the choice
+     * @property {Array} classList - Classes for the choice element
+     * @property {Boolean} persistant - Whether the choice can be selected multiple times per room entrance
+     * @typedef {TextObjectConfig & ChoiceConfig_} ChoiceConfig
+     */
+
+    /**
+     * 
+     * @param {string} text - The text that shows up on the choice element
+     * @param {ChoiceConfig} options - Various configuration options
+     */
+
+    constructor(text, options={}) {
+        let defaultParams = {
+            maxUses:Infinity, speed:4, variance:1, animation:'default', skippable:true, room:undefined, id:'', customID:'', value:'', color:'', classList:[], persistant:false
+        }
+        let props = {}
+        Object.assign(props, defaultParams, options);
+        super(text, props, props.speed, props.variance, props.animation, props.skippable, true, 0);
+        Object.assign(this, props);
+        this.usesLeft = this.maxUses;
         this.actions = [];
         this.requirements = [];
-        transferProperties(this.options, this);
-        this.usesLeft = this.maxUses ?? maxUses;
-        // if (!this.repeatable && this.room) {
-        //     this.addRequirement({ mode: 'show', type: 'madeChoice', inverse: true, parameters: [this.id] })
-        // }
     }
 
     addAction(options, type, parameters, waits, chance, maxUses) {
@@ -912,7 +936,7 @@ class Choice extends TextObject {
         chance = options.chance ?? chance;
         maxUses = options.maxUses ?? maxUses;
         this.actions.push(new Action(type, parameters, waits, chance, maxUses));
-        return this;
+        return this; 
     }
 
     addRequirement(options, mode, type, parameters, inverse = false) {
@@ -965,10 +989,14 @@ class Room {
         }
     }
 
+    /**@param {ChoiceParameters} options - Various configuration options */
+
     // creates a choice and automatically adds it to the room
-    createChoice(text, options, maxUses, speed, variance, animation, skippable, customID, color, classList, persistant) {
+    createChoice(text, options={}) {
         const id = this.getChoiceId(this.choices.length + 1);
-        const choice = new Choice(text, options, maxUses, speed, variance, animation, skippable, this, id, customID, color, classList, persistant);
+        options.room = this;
+        options.id = id;
+        const choice = new Choice(text, options);
         this.addChoice(choice);
         return choice;
     }
