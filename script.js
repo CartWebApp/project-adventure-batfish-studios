@@ -243,13 +243,23 @@ class Game {
         particleHandler.strength = strength;
     }
 
+    /** 
+     * @typedef {Object} WriteTextConfig
+     * @prop {String} options.elementID - The ID of the element to be written on
+     * @prop {Boolean} options.clearsText - Whether the previous text should be overwritten
+     * @param {StoryConfig & WriteTextConfig} options - Various configuration options 
+    */
+
     // writes text
-    async writeText(text, options, speed, variance, animation, waits, waitDelay, skippable, maxUses, elementID = 'story', clearsText = false) {
-        elementID = options.elementID ?? elementID;
-        let textObj = new StoryObject(text, options, speed, variance, animation, skippable, waits, waitDelay, maxUses);
+    async writeText(text, options) {
+        let textObj = new StoryObject(text, options);
+        let elementID = options.elementID ?? 'story';
+        let clearsText = options.clearsText ?? false;
         if (clearsText) clearText(document.getElementById(elementID));
-        await typeText(textObj.text,{}, document.getElementById(elementID), textObj.speed, textObj.variance, true, document.getElementById('dialogue-box'), textObj.animation, textControllerSignal, textObj.waits, textObj.waitDelay)
+
+        await typeText(textObj.text,{}, document.getElementById(elementID), textObj.speed, textObj.variance, true, document.getElementById('dialogue-box'), textObj.animation, textControllerSignal, textObj.waits, textObj.waitDelay);
     }
+    
 
     // has a given chance to return true
     chanceRoll(chance) {
@@ -258,7 +268,7 @@ class Game {
 
     // a chance to initiate combat
     async encounter(enemies, rewards, groupName) {
-        let battle = new Battle({enemies, rewards, groupName})
+        let battle = new Battle({enemies, rewards, groupName});
         await battle.encounter(game.runNumber);
     }
 
@@ -827,22 +837,25 @@ class Enemy extends Character {
  * @property {Number} variance - Random added delay between 0 and n
  * @property {String} animation - Animation for each character when getting added
  * @property {Boolean} skippable - Whether clicking the skip element can make it type faster
+ * @property {Boolean} waits - Whether it awaits the user clicking it before continuing
+ * @property {Number} waitDelay - How long it halts (ms) after it is finished writing before it continues
  */
-
 
 // default text object for writing to the page
 class TextObject {
-    constructor(text, options, speed, variance, animation, skippable, waits, waitDelay) {
+
+    /**
+     * 
+     * @param {String} text - The text that is displayed
+     * @param {TextObjectConfig} options 
+     */
+    constructor(text, options={}) {
+        let defaultParams = {
+            text:'', speed:0, variance:0, animation:'none', skippable:false, waits:false, waitDelay:0
+        }
+        Object.assign(this, defaultParams, options);
         this.text = text ?? '';
-        this.speed = speed ?? 0;
-        this.variance = variance ?? 0;
-        this.animation = animation ?? 'none';
-        this.skippable = skippable ?? false;
-        this.waits = waits ?? false;
-        this.waitDelay = waitDelay ?? 0
-        this.options = options ?? {};
         this.requirements = [];
-        transferProperties(this.options, this);
     }
 
     addRequirement(options, mode, type, parameters, inverse) {
@@ -856,8 +869,24 @@ class TextObject {
 }
 
 class StoryObject extends TextObject {
-    constructor(text, options, speed = 20, variance = 5, animation = 'default', waits = true, waitDelay = 0, skippable = true, maxUses = Infinity) {
-        super(text, options, speed, variance, animation, skippable, waits, waitDelay);
+
+    /**
+     * @typedef {Object} StoryConfig_
+     * @prop {Number} maxUses - The number of times this object can be used. Infinity for unlimited uses
+     * 
+     * @typedef {TextObjectConfig & StoryConfig_} StoryConfig
+     */
+
+    /**
+     * @param {String} text 
+     * @param {StoryConfig} options 
+     */
+    constructor(text, options) {
+        let defaults = {
+            speed:20, variance:5, animation:'default', waits:true, waitDelay:0, skippable:true, maxUses:Infinity
+        }
+
+        super(text, Object.assign(defaults, options));
         this.maxUses = this.maxUses ?? maxUses;
         this.usesLeft = this.maxUses;
     }
@@ -918,12 +947,12 @@ class Choice extends TextObject {
 
     constructor(text, options={}) {
         let defaultParams = {
-            maxUses:Infinity, speed:4, variance:1, animation:'default', skippable:true, room:undefined, id:'', customID:'', value:'', color:'', classList:[], persistant:false
+            maxUses:Infinity, speed:4, variance:1, animation:'default', skippable:true, room:undefined, id:'', customID:'', value:'', color:'', classList:[], persistant:false, waits:true, waitDelay:0
         }
         let props = {}
         Object.assign(props, defaultParams, options);
-        super(text, props, props.speed, props.variance, props.animation, props.skippable, true, 0);
-        Object.assign(this, props);
+
+        super(text, props, true, 0);
         this.usesLeft = this.maxUses;
         this.actions = [];
         this.requirements = [];
@@ -989,7 +1018,7 @@ class Room {
         }
     }
 
-    /**@param {ChoiceParameters} options - Various configuration options */
+    /**@param {ChoiceConfig} options - Various configuration options */
 
     // creates a choice and automatically adds it to the room
     createChoice(text, options={}) {
@@ -1007,8 +1036,12 @@ class Room {
     }
 
     // adds a story line to the room
-    addStory(text, options, speed, variance, animation, waits, waitDelay, skippable, maxUses) {
-        let storyObject = new StoryObject(text, options, speed, variance, animation, skippable, waits, waitDelay, maxUses);
+    /**
+     * @param {string} text 
+     * @param {StoryConfig} options 
+     */
+    addStory(text, options) {
+        let storyObject = new StoryObject(text, options);
         this.storyParts.push(storyObject);
         this.queuelist.push({ type: 'story', value: storyObject });
         return storyObject;
@@ -1785,7 +1818,7 @@ async function init() {
     if (!devMode) await sleep(1500);
     document.getElementById('loading-screen').classList.add('hidden');
     game.start();
-    await fnExports.awaitEvent(document.getElementById('loading-screen'));
+    await fnExports.awaitEvent(document.getElementById('loading-screen'), 'transitionend');
     document.getElementById('loading-buffer').innerHTML = '';
 }
 
@@ -2020,8 +2053,8 @@ function generateStartingRooms() {
     room.addStory(`There doesn't seem to be much left to do or see. Anything that once was is long gone.`, { waits: false });
     choice1 = room.createChoice("Leave the lab.");
     choice1.addAction({ type: 'changeRoom', parameters: ['b-3-hallways'] });
-    choice2 = room.createChoice(`Go back to sleep.`);
-    choice2.addAction({ type: 'writeText', parameters: ['[c:yellow]The cryopod zaps you, clearly malfunctioning', {elementID: 'action-output', waits: false, speed: -1}] });
+    choice2 = room.createChoice(`Go back to sleep.`, {persistant: true});
+    choice2.addAction({ type: 'writeText', parameters: ['[c:yellow]The cryopod zaps you, clearly malfunctioning', {elementID: 'action-output', waits: false, speed: -1}]});
     choice2.addAction({type: 'changeHP', parameters: [-10, -15, 'cryopod']});
 
     room = createRoom('b-3-hallways', { name: '', transition: { out: '', in: '' } }); // beginning-3
