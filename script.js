@@ -3,12 +3,14 @@
 import { Reactor } from './scripts/Reactor.js';
 import { CanvasHandler } from './scripts/CanvasOverlay.js';
 import { Consumable, Item } from './scripts/Item.js';
+import { Character } from './scripts/Character.js';
+import { Enemy } from './scripts/Enemies.js';
 
 // imports general use functions and sets their namespace to this window
 import * as fnExports from './scripts/Functions.js';
 Object.entries(fnExports).forEach(([name, exported]) => window[name] = exported);
 
-let devMode = false;
+let devMode = true;
 
 let player;
 let textController; // makes text writing cancellable
@@ -510,7 +512,7 @@ class Battle {
         let baseAttack = enemy.getAttack();
         let defenceMulti = await this.timedDefense(enemy);
         let enemyAttack = Math.round(baseAttack / defenceMulti);
-        game.changeHP(-enemyAttack, -enemyAttack, 'slain by enemy')
+        game.changeHP({min: -enemyAttack, max: -enemyAttack, cause: 'slain by enemy'})
         typeText(`[c:var(--enemy-name)]${enemy.name}[:] delt [class:health]♥${enemyAttack}[:] damage.`, {...this.textConfig});
         await typeText(`Remaining health: [class:health]♥${player.hp}`, {...this.textConfig, waits: true});
     }
@@ -626,66 +628,19 @@ class Battle {
             typeText(`You have defeated ${this.groupName}`, {...this.textConfig});
             let rewardActions = []
             for (const reward of this.rewards) {
-                rewardActions.push(new Action({name: 'getItem', parameters: [reward.name, reward.min, reward.max], waits: false}))
+                rewardActions.push(new Action({type: 'getItem', parameters: [reward.name, reward.min, reward.max], waits: false}))
             }
             await attemptActionsWithText(rewardActions);
     }
 }
 
-// generic character class
-class Character {
-    constructor(name, hp=100, strength=10, agility=10, desc='') {
-        this.name = name;
-        this._maxHP = new Reactor(hp);
-        this._hp = new Reactor(this._maxHP.value);
-        this._strength = new Reactor(strength);
-        this._agility = new Reactor(agility);
-        this._desc = new Reactor(desc);
-    }
-
-    // creates getters and setters
-    get maxHP() { return this._maxHP.value; }
-    set maxHP(newValue) { this._maxHP.value = newValue; }
-    get hp() { return this._hp.value; }
-    set hp(newValue) { this._hp.value = newValue; }
-    get strength() { return this._strength.value; }
-    set strength(newValue) { this._strength.value = newValue; }
-    get agility() { return this._agility.value; }
-    set agility(newValue) { this._agility.value = newValue; }
-    get desc() { return this._desc.value; }
-    set desc(newValue) { this._desc.value = newValue; }
-
-    // returns a cloned instance
-    clone() {
-        return new Character(this.name, this.hp, this.strength, this.agility, this.desc)
-    }
-
-    // changes the characters hp
-    changeHP(amount) {
-        let previousHP = this.hp;
-        this.hp = clamp(this.hp + amount, 0, this.maxHP);
-        return this.hp - previousHP;
-    }
-
-    // changes the characters max hp
-    changeMaxHP(amount) {
-        this.maxHP = clamp(this.maxHP + amount, 1, Infinity);
-        this.hp = clamp(this.hp, 0, this.maxHP);
-        return this.maxHP;
-    }
-
-    getAttack() {
-        return this.strength * fnExports.random(.9, 1.1, 1);
-    }
-
-    getSpeed() {
-        return this.agility;
-    }
-
-}
 class Player extends Character {
-    constructor(hp=100, strength=10, agility=10) {
-        super('Player', hp, strength, agility);
+    /**
+     * @param {CharacterConfig} options 
+     */
+    constructor(options={}) {
+        options.name = 'Player';
+        super(options);
         this._inventory = new Reactor({});
         this._maxHP.bindQuery('#stat-maxHP', "var(--element-change-animation)");
         this._hp.bindQuery('#stat-hp', "var(--element-change-animation)");
@@ -825,11 +780,7 @@ class Player extends Character {
 
 }
 
-class Enemy extends Character {
-    constructor(name, hp, strength, agility, desc) {
-        super(name, hp, strength, agility, desc)
-    }
-}
+
 
 /**
  * @typedef {Object} TextObjectConfig
@@ -1833,7 +1784,7 @@ function multiBuffer(elementID=undefined, iterations=1,count = 8, duration = 200
 
 
 // initializes the rooms and player
-async function init() {
+export async function init() {
     multiBuffer('loading-buffer', 1, 10, 3000, 1, undefined, 30, 228, [
         { opacity: 1},
         { opacity: 0, offset: 1 },
@@ -2011,8 +1962,8 @@ function generateExampleRooms() {
     room.addAction({ type: 'getItem', parameters: ['Lume Fruit', 2, 3], waits: true});
     room.addAction({type: 'encounter', parameters: [{
         enemies: [
-            new Enemy('Example Enemy', 10, 2, 5),
-            new Enemy('Example Enemy 2', 20, 6, 10, 'This guy has a description, [c:green]Neat!')
+            new Enemy({name: 'Example Enemy', hp: 10, strength: 2, agility: 5}),
+            new Enemy({name: 'Example Enemy 2', hp: 20, strength: 6, agility: 10, desc: 'This guy has a description, [c:green]Neat!'})
         ],
         rewards: [
             {name: 'Example Reward', min: 1, max: 5},
@@ -2023,13 +1974,13 @@ function generateExampleRooms() {
     waits: true, chance: 100})
     room.addAction({type: 'encounter', parameters: [{
         enemies:[
-            new Enemy('Weak Enemy', 10, 2, 2),
-            new Enemy('OP Enemy', 200, 100, 100, `You [fst:italic]really[:] don't want to mess with this guy`),
-            new Enemy('Enemy 3', 5, 1, 1),
-            new Enemy('Enemy 4', 5, 1, 2),
-            new Enemy('Enemy 5', 5, 1, 4),
-            new Enemy('Enemy 6', 5, 1, 6),
-            new Enemy('Enemy 7', 5, 1, 8)
+            new Enemy({name: 'Weak Enemy', hp: 10, strength: 2, agility: 2}),
+            new Enemy({name: 'OP Enemy', hp: 200, strength: 100, agility: 100, desc: `You [fst:italic]really[:] don't want to mess with this guy`}),
+            new Enemy({name: 'Enemy 3', hp: 5, strength: 1, agility: 1}),
+            new Enemy({name: 'Enemy 4', hp: 5, strength: 1, agility: 2}),
+            new Enemy({name: 'Enemy 5', hp: 5, strength: 1, agility: 4}),
+            new Enemy({name: 'Enemy 6', hp: 5, strength: 1, agility: 6}),
+            new Enemy({name: 'Enemy 7', hp: 5, strength: 1, agility: 8})
         ], 
         rewards: [
             {name: 'Wacky Thing', min: 1, max: 1},
@@ -2297,7 +2248,7 @@ function generateEscapeRooms() {
     room = wastelandGrid.generateRoom([0,2], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [{
         enemies: [
-            new Enemy('Average Joe', 15, 10, 10, `Jack of all trades, master of none.`)
+            new Enemy({name: 'Average Joe', hp: 15, strength: 10, agility: 10, desc: `Jack of all trades, master of none.`})
         ],
         rewards: [
             {name: 'Food Pack', min: 1, max: 4},
@@ -2320,7 +2271,7 @@ function generateEscapeRooms() {
     room = wastelandGrid.generateRoom([1,4], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [{
         enemies: [
-            new Enemy('FishBat', 20, 20, 5, `Not to be confused with a batfish.`),
+            new Enemy({name: 'FishBat', hp: 20, strength: 20, agility: 5, desc: `Not to be confused with a batfish.`}),
         ],
         rewards: [
             {name: 'Food Pack', min: 1, max: 4}
@@ -2334,8 +2285,8 @@ function generateEscapeRooms() {
     room = wastelandGrid.generateRoom([2,1], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [{
         enemies: [
-            new Enemy('Rootwraith', 8, 20, 20, `A horrid mass of roots and vines.`),
-            new Enemy('Blightfruit Beast', 30, 2, 2, `A large, mutated fruit with a gaping maw.`)
+            new Enemy({name: 'Rootwraith', hp: 8, strength: 20, agility: 20, desc: `A horrid mass of roots and vines.`}),
+            new Enemy({name: 'Blightfruit Beast', hp: 30, strength: 2, agility: 2, desc: `A large, mutated fruit with a gaping maw.`})
         ],
         rewards: [
             {name: 'Food Pack', min: 1, max: 4},
@@ -2359,10 +2310,10 @@ function generateEscapeRooms() {
     room = wastelandGrid.generateRoom([3,3], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [{
         enemies: [
-            new Enemy('Heavily Armed Turtle 1', 15, 12, 12, `A mutant turtle with a pair of swords.`),
-            new Enemy('Heavily Armed Turtle 2', 15, 12, 12, `A mutant turtle with a pair of small blades.`),
-            new Enemy('Heavily Armed Turtle 3', 15, 12, 12, `A mutant turtle with some sick nunchucks.`),
-            new Enemy('Heavily Armed Turtle 4', 15, 12, 12, `A mutant turtle with a big stick.`)
+            new Enemy({name: 'Heavily Armed Turtle 1', hp: 15, strength: 12, agility: 12, desc: `A mutant turtle with a pair of swords.`}),
+            new Enemy({name: 'Heavily Armed Turtle 2', hp: 15, strength: 12, agility: 12, desc: `A mutant turtle with a pair of small blades.`}),
+            new Enemy({name: 'Heavily Armed Turtle 3', hp: 15, strength: 12, agility: 12, desc: `A mutant turtle with some sick nunchucks.`}),
+            new Enemy({name: 'Heavily Armed Turtle 4', hp: 15, strength: 12, agility: 12, desc: `A mutant turtle with a big stick.`})
         ],
         rewards: [
             {name: 'Food Pack', min: 1, max: 7},
@@ -2374,8 +2325,8 @@ function generateEscapeRooms() {
     room = wastelandGrid.generateRoom([4,0], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [{
         enemies: [
-            new Enemy('Blatto', 30, 20, 20, `A giant cockroach with a bad attitude.`),
-            new Enemy('Joyama', 20, 15, 15, `A large, spider-like creature with a nasty bite.`)
+            new Enemy({name: 'Blatto', hp: 30, strength: 20, agility: 20, desc: `A giant cockroach with a bad attitude.`}),
+            new Enemy({name: 'Joyama', hp: 20, strength: 15, agility: 15, desc: `A large, spider-like creature with a nasty bite.`})
         ],
         rewards: [
             {name: 'Food Pack', min: 1, max: 3},
@@ -2518,9 +2469,9 @@ function generateEscapeRooms() {
     room.addStory(`IDELLE!?`);
     room.addAction({type: 'encounter', parameters: [{
         enemies: [
-            new Enemy('Blatto Lackey 1', 20, 8, 8, `A tall, lanky fellow. All brain, no brawn.`),
-            new Enemy('Palmetto', 40, 15, 15, `A rootin', tootin', mutasnt shootin' cockroach. No...a glockroach.`),
-            new Enemy('Blatto Lackey 2', 20, 8, 8, `A short, dumpy fellow. All brawn, no brain.`),
+            new Enemy({name: 'Blatto Lackey 1', hp: 20, strength: 8, agility: 8, desc: `A tall, lanky fellow. All brain, no brawn.`}),
+            new Enemy({name: 'Palmetto',hp:  40, strength: 15, agility: 15, desc: `A rootin', tootin', mutasnt shootin' cockroach. No...a glockroach.`}),
+            new Enemy({name: 'Blatto Lackey 2', hp: 20, strength: 8, agility: 8, desc: `A short, dumpy fellow. All brawn, no brain.`}),
         ],
         rewards: [
             {name: 'Unnecessary Trauma', min: 1, max: 1},
@@ -2586,7 +2537,3 @@ function preloadImage(src) {
     img.src = src;
 }
 
-
-window.addEventListener('DOMContentLoaded', () => {
-    init();
-})
