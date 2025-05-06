@@ -257,7 +257,7 @@ class Game {
         let clearsText = options.clearsText ?? false;
         if (clearsText) clearText(document.getElementById(elementID));
 
-        await typeText(textObj.text,{}, document.getElementById(elementID), textObj.speed, textObj.variance, true, document.getElementById('dialogue-box'), textObj.animation, textControllerSignal, textObj.waits, textObj.waitDelay);
+        await typeText(textObj.text,{element: document.getElementById(elementID), speed: textObj.speed, variance: textObj.variance, skippable: options.skippable, skipElement: document.getElementById('dialogue-box'), animation: textObj.animation, textControllerSignal, waits: textObj.waits, waitdelay: textObj.waitDelay});
     }
     
 
@@ -626,7 +626,7 @@ class Battle {
             typeText(`You have defeated ${this.groupName}`, {...this.textConfig});
             let rewardActions = []
             for (const reward of this.rewards) {
-                rewardActions.push(new Action('getItem', [reward.name, reward.min, reward.max], false))
+                rewardActions.push(new Action({name: 'getItem', parameters: [reward.name, reward.min, reward.max], waits: false}))
             }
             await attemptActionsWithText(rewardActions);
     }
@@ -858,12 +858,11 @@ class TextObject {
         this.requirements = [];
     }
 
-    addRequirement(options, mode, type, parameters, inverse) {
-        mode = options.mode ?? mode;
-        type = options.type ?? type;
-        inverse = options.inverse ?? inverse; // makes it required to NOT meet the requirement
-        parameters = options.parameters ?? parameters ?? [];
-        this.requirements.push(new Requirement({}, mode, type, parameters, inverse ));
+    /**
+     * @param {RequirementConfig} options 
+     */
+    addRequirement(options) {
+        this.requirements.push(new Requirement(options));
         return this;
     }
 }
@@ -893,32 +892,55 @@ class StoryObject extends TextObject {
 }
 
 class Requirement {
-    constructor(options, mode, type, parameters=[], inverse = false) {
-        Object.assign(this, options);
-        this.type = this.type ?? type;
-        this.mode = this.mode ?? mode;
-        this.parameters = this.parameters ?? parameters;
-        this.inverse = this.inverse ?? inverse;
+
+    /**
+     * 
+     * @typedef {Object} RequirementConfig 
+     * @prop {String} mode - The way in ehich the requirement affects the item. 'show', 'use
+     * @prop {*} type 
+     * @prop {*} parameters 
+     * @prop {*} inverse 
+     * 
+     * @param {RequirementConfig} options 
+     */
+
+    constructor(options) {
+        let defaults = {
+            mode:'show', parameters:[], inverse:false
+        }
+        Object.assign(this, Object.assign(defaults, options));
     }
 }
 
 class Action {
-    constructor(type, parameters=[], waits=false, chance=100, maxUses=Infinity) {
-        this.type = type;
-        this.parameters = parameters;
-        this.waits = waits;
-        this.chance = chance;
+
+    /**
+     * @typedef {Object} ActionConfig - Config options for the Action class
+     * @prop {String} type - The name of the function within game object you want to run
+     * @prop {Array} parameters - parameters for the function
+     * @prop {Boolean} waits - Whether the function is awaited
+     * @prop {Number} chance - (0-100) The chance for the function to be run
+     * @prop {Number} maxUses The nymber of times this action be run in a run
+     * 
+     * @param {ActionConfig} options
+     */
+
+    constructor(options) {
+        let defaults = {
+            type:'', parameters:[], waits:false, chance:100, maxUses:Infinity
+        }
+        
+        Object.assign(this, Object.assign(defaults, options))
         this.requirements = [];
-        this.maxUses = maxUses;
-        this.usesLeft = maxUses;
+        this.usesLeft = this.maxUses;
     }
 
-    addRequirement(options, mode, type, parameters, inverse) {
-        mode = options.mode ?? mode ?? 'use';
-        type = options.type ?? type;
-        inverse = options.inverse ?? inverse;
-        parameters = options.parameters ?? parameters ?? [];
-        this.requirements.push(new Requirement({}, mode, type, parameters, inverse ));
+    /**
+     * @param {RequirementConfig} options 
+     */
+    addRequirement(options) {
+        options.mode = options.mode ?? 'use';;
+        this.requirements.push(new Requirement(options));
         return this;
     }
 }
@@ -958,22 +980,19 @@ class Choice extends TextObject {
         this.requirements = [];
     }
 
-    addAction(options, type, parameters, waits, chance, maxUses) {
-        type = options.type ?? type;
-        parameters = options.parameters ?? parameters;
-        waits = options.waits ?? false;
-        chance = options.chance ?? chance;
-        maxUses = options.maxUses ?? maxUses;
-        this.actions.push(new Action(type, parameters, waits, chance, maxUses));
+    /**
+     * @param {ActionConfig} options
+     */
+    addAction(options) {
+        this.actions.push(new Action(options));
         return this; 
     }
 
-    addRequirement(options, mode, type, parameters, inverse = false) {
-        mode = options.mode ?? mode;
-        type = options.type ?? type;
-        inverse = options.inverse ?? inverse; // makes it required to NOT meet the requirement
-        parameters = options.parameters ?? parameters ?? [];
-        this.requirements.push(new Requirement({}, mode, type, parameters, inverse));
+    /**
+    * @param {RequirementConfig} options 
+    */
+    addRequirement(options) {
+        this.requirements.push(new Requirement(options));
         return this;
     }
 
@@ -1048,13 +1067,11 @@ class Room {
     }
 
     // adds an action for a room
-    addAction(options, type, parameters, waits, chance, maxUses) {
-        type = options.type ?? type;
-        parameters = options.parameters ?? parameters;
-        waits = options.waits ?? waits ?? false;
-        chance = options.chance ?? chance
-        maxUses = options.maxUses ?? maxUses
-        const action = new Action(type, parameters, waits, chance, maxUses);
+    /**
+    * @param {ActionConfig} options
+    */
+    addAction(options) {
+        const action = new Action(options);
         this.actions.push(action);
 
         const lastInQueue = this.queuelist[this.queuelist.length - 1]
@@ -1439,17 +1456,29 @@ function clearDialogueText() {
     clearText(document.getElementById('battle-input'));
 }
 
+/**
+ * 
+ * @typeDef {typeTextConfig} options 
+ * @prop {Object} element 
+ * @prop {number} speed 
+ * @prop {number} variance 
+ * @prop {boolean} skippable 
+ * @prop {Object} skipElement 
+ * @prop {String} animation 
+ * @prop {Boolean} waits 
+ * @prop {Number} waitDelay  
+ * @prop {*} signal - idk man. It somehow makes the text work
+ */
+
+/**
+ * 
+ * @param {String} text 
+ * @param {typeTextConfig} options 
+ */
+
 // types out text (can be skipped by clicking on element)
-async function typeText(text, options, element, speed = 10, variance = 0, skippable = true, skipElement = null, animation = 'none', signal = textControllerSignal, waits = false, waitDelay = 0) {
-    element = options.element ?? element;
-    speed = options.speed ?? speed;
-    variance = options.variance ?? variance;
-    skippable = options.skippable ?? skippable;
-    skipElement = options.skipElement ?? skipElement ?? document.getElementById('dialogue-box');
-    animation = options.animation ?? animation;
-    signal = options.signal ?? signal;
-    waits = options.waits ?? waits;
-    waitDelay = options.waitDelay ?? waitDelay;
+async function typeText(text, {element, speed = 10, variance = 0, skippable = true, skipElement = null, animation = 'none', signal = textControllerSignal, waits = false, waitDelay = 0}={}) {
+    skipElement = skipElement ?? document.getElementById('dialogue-box');
 
     let skipped = false;
 
@@ -1524,7 +1553,7 @@ async function showStory(story) {
     const dialogueBox = document.getElementById('dialogue-box');
     const storyElement = document.getElementById('story');
     clearText(storyElement);
-    await typeText(story.text,{}, storyElement, story.speed, story.variance, true, dialogueBox, story.animation, textControllerSignal, story.waits, story.waitDelay);
+    await typeText(story.text, {element: storyElement, speed: story.speed, variance: story.variance, skippable: true, skipElement: dialogueBox, animation: story.animation, signal:textControllerSignal, waits: story.waits, waitDelay: story.waitDelay});
     const cleanText = parseStyles(story.text, 'This returns the clean text because nothing matches this.').text;
     history.addStory(cleanText);
     clearText(document.getElementById('action-output'));
@@ -1566,7 +1595,7 @@ async function showChoices(choices, container, selectedChoices=[]) {
         choiceContainer.appendChild(choiceElement);
         choiceElements.push(choiceElement);
         choiceTexts.push(choice.text);
-        typeText(choice.text,{}, choiceElement, choice.speed, choice.variance, true, dialogueBox, choice.animation, textControllerSignal);
+        typeText(choice.text,{element: choiceElement, speed:choice.speed, variance:choice.variance, skippable:choice.skippable, dialogueBox, animation: choice.animation, textControllerSignal});
     }
 }
 
@@ -1659,7 +1688,7 @@ async function attemptActionsWithText(actions) {
         let actionResult = await attemptAction(action);
         if (actionResult && actionResult?.messages) {
             for (const message of actionResult.messages) {
-                typeText(message,{}, document.getElementById('action-output'));
+                typeText(message, {element: document.getElementById('action-output')});
                 const cleanText = parseStyles(message, 'This returns the clean text because nothing matches this.').text;
                 history.addAction(cleanText);
             }
@@ -1681,7 +1710,7 @@ async function tryChoices(choiceContainer, selectedChoices) {
         let requirementsResult = checkRequirements(selectedChoice, 'use');
         metReqirements = requirementsResult.metRequirements;
         for (const message of requirementsResult.messages) {
-            typeText(message,{}, document.getElementById('action-output'));
+            typeText(message, {element: document.getElementById('action-output')});
             const cleanText = parseStyles(message, 'This returns the clean text because nothing matches this.').text;
             history.addAction(cleanText)
         }
