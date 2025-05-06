@@ -140,8 +140,8 @@ class Game {
     }
 
     // changes the players health
-    changeHP(min, max, cause='default', customMessage = '') {
-        max = max ?? min;
+    changeHP({min=0, max=0, cause='default', customMessage = ''}={}) {
+        max = max || min;
         let amount = random(min, max)
         let messages = [];
         player.changeHP(amount);
@@ -267,7 +267,7 @@ class Game {
     }
 
     // a chance to initiate combat
-    async encounter(enemies, rewards, groupName) {
+    async encounter({enemies, rewards, groupName}={}) {
         let battle = new Battle({enemies, rewards, groupName});
         await battle.encounter(game.runNumber);
     }
@@ -897,11 +897,11 @@ class Requirement {
      * 
      * @typedef {Object} RequirementConfig 
      * @prop {String} mode - The way in ehich the requirement affects the item. 'show', 'use
-     * @prop {*} type 
-     * @prop {*} parameters 
-     * @prop {*} inverse 
+     * @prop {String} type - The name of the function to check if it returns true/false
+     * @prop {Array} parameters - The arguments to pass into the function
+     * @prop {Boolean} inverse - Reverses the result of the function. 
      * 
-     * @param {RequirementConfig} options 
+     * @param {RequirementConfig} options - Requirement options
      */
 
     constructor(options) {
@@ -944,7 +944,6 @@ class Action {
         return this;
     }
 }
-
 
 class Choice extends TextObject {
 
@@ -1095,8 +1094,23 @@ class Room {
 
 // generates rooms in a grid pattern
 class RoomGrid {
-    constructor(options, name='', width=3, height=3, entrance=[0,0], showCoordinates=true) {
-        Object.assign(this, options);
+
+    /**
+     * @typedef {Object} RoomGridConfig
+     * @prop {String} name 
+     * @prop {Number} width 
+     * @prop {Number} height 
+     * @prop {Array} entrance 
+     * @prop {Boolean} showCoordinates 
+     * 
+     * @param {RoomGridConfig} options
+     */
+
+    constructor(options) {
+        let defaults = {
+            name:'', width:3, height:3, entrance:[0,0], showCoordinates:true
+        }
+        Object.assign(this, Object.assign(defaults, options));
         if (!this.name) this.name = name;
         if (!this.width) this.width = width;
         if (!this.height) this.height = height;
@@ -1948,10 +1962,10 @@ function generateExampleRooms() {
     // choice5, with different syntax (not using a variable)
     room.createChoice('Touch spike', { maxUses: 1 })
         .addAction({ type: 'writeText', parameters: ['[c:yellow]Why did you touch that?', {elementID: 'action-output', waits: false}] })
-        .addAction({ type: 'changeHP', parameters: [-5, -10] })
+        .addAction({ type: 'changeHP', parameters: [{min:-10, max:-5}] })
         .addAction({ type: 'changeMaxHP', parameters: [-1, -3] });
     room.createChoice('Look at squeegee')
-        .addAction({ type: 'changeHP', parameters: [-9999, -9999, 'squeegee'] })
+        .addAction({ type: 'changeHP', parameters: [{min:-10, cause:'squeegee'}] })
         .addAction({ type: 'writeText', parameters: ['I have no way to explain this', {elementID: 'story', clearsText: true}] });
 
     room = createRoom('Example Room 2', { name: 'savior.jpeg' });
@@ -1995,27 +2009,34 @@ function generateExampleRooms() {
     // battle testing
     room = createRoom('Example Room Battle', { name: 'neutral.jpeg' });
     room.addAction({ type: 'getItem', parameters: ['Lume Fruit', 2, 3], waits: true});
-    room.addAction({type: 'encounter', parameters: [
-    [
-        new Enemy('Example Enemy', 10, 2, 5),
-        new Enemy('Example Enemy 2', 20, 6, 10, 'This guy has a description, [c:green]Neat!')
-    ],
-    [
-        {name: 'Example Reward', min: 1, max: 5},
-        {name: 'Example Reward 2', min: 1, max: 5}
-    ], 'a couple of example enemies'], waits: true, chance: 100})
-    room.addAction({type: 'encounter', parameters: [[
-        new Enemy('Weak Enemy', 10, 2, 2),
-        new Enemy('OP Enemy', 200, 100, 100, `You [fst:italic]really[:] don't want to mess with this guy`),
-        new Enemy('Enemy 3', 5, 1, 1),
-        new Enemy('Enemy 4', 5, 1, 2),
-        new Enemy('Enemy 5', 5, 1, 4),
-        new Enemy('Enemy 6', 5, 1, 6),
-        new Enemy('Enemy 7', 5, 1, 8)
-    ], [
-        {name: 'Wacky Thing', min: 1, max: 1},
-        {name: 'Super Syrum', min: 1, max: 1}
-    ], 'The Wacky Gang'], waits: true})
+    room.addAction({type: 'encounter', parameters: [{
+        enemies: [
+            new Enemy('Example Enemy', 10, 2, 5),
+            new Enemy('Example Enemy 2', 20, 6, 10, 'This guy has a description, [c:green]Neat!')
+        ],
+        rewards: [
+            {name: 'Example Reward', min: 1, max: 5},
+            {name: 'Example Reward 2', min: 1, max: 5}
+        ], 
+        groupName: 'a couple of example enemies'
+    }],
+    waits: true, chance: 100})
+    room.addAction({type: 'encounter', parameters: [{
+        enemies:[
+            new Enemy('Weak Enemy', 10, 2, 2),
+            new Enemy('OP Enemy', 200, 100, 100, `You [fst:italic]really[:] don't want to mess with this guy`),
+            new Enemy('Enemy 3', 5, 1, 1),
+            new Enemy('Enemy 4', 5, 1, 2),
+            new Enemy('Enemy 5', 5, 1, 4),
+            new Enemy('Enemy 6', 5, 1, 6),
+            new Enemy('Enemy 7', 5, 1, 8)
+        ], 
+        rewards: [
+            {name: 'Wacky Thing', min: 1, max: 1},
+            {name: 'Super Syrum', min: 1, max: 1}
+        ],
+        groupName: 'The Wacky Gang'
+    }], waits: true})
     room.createChoice('Return to hub', {classList: ['rainbow-overlay'], color: 'yellow'})
         .addAction({type: 'changeRoom', parameters: ['Example Hub']});
 
@@ -2084,7 +2105,7 @@ function generateStartingRooms() {
     choice1.addAction({ type: 'changeRoom', parameters: ['b-3-hallways'] });
     choice2 = room.createChoice(`Go back to sleep.`, {persistant: true});
     choice2.addAction({ type: 'writeText', parameters: ['[c:yellow]The cryopod zaps you, clearly malfunctioning', {elementID: 'action-output', waits: false, speed: -1}]});
-    choice2.addAction({type: 'changeHP', parameters: [-10, -15, 'cryopod']});
+    choice2.addAction({type: 'changeHP', parameters: [{min:-15, max:-10, cause:'cryopod'}]});
 
     room = createRoom('b-3-hallways', { name: '', transition: { out: '', in: '' } }); // beginning-3
     room.addStory(`After just a bit of effort, the doors (usually automatic, you remember) give way, leading you to three different corridors.`);
@@ -2147,7 +2168,7 @@ function generateEscapeRooms() {
     room.addAction({type: 'styleBG', parameters: ['[an:shake 50ms 7 linear alternate][sc:1.2]']});
     room.addStory(`[fst:italic][c:var(--actions)](DONK!)`);
     room.addAction({type: 'styleBG', parameters: ['[an:blur-out 3s ease-out,fade-out 5s ease-out][fi:blur(10px)][op:0][sc:1.2]']});
-    room.addAction({type: 'changeHP', parameters: [-5]})
+    room.addAction({type: 'changeHP', parameters: [{min: -5}]})
     room.addStory(`[an:text-shiver .3s ease-in-out infinite alternate]Your head hurts...`, {waits: false, waitDelay: 4500});
     room.addAction({type: 'changeRoom', parameters: ['e-goodFaction']});
 
@@ -2274,13 +2295,16 @@ function generateEscapeRooms() {
     ])
 
     room = wastelandGrid.generateRoom([0,2], {name: 'destruction.jpeg'});
-    room.addAction({type: 'encounter', parameters: [[
-        new Enemy('Average Joe', 15, 10, 10, `Jack of all trades, master of none.`)
-    ],
-    [
-        {name: 'Food Pack', min: 1, max: 4},
-        {name: 'Participation Trophy', min: 1, max: 1},
-    ], 'an abnormality!'], waits: true});
+    room.addAction({type: 'encounter', parameters: [{
+        enemies: [
+            new Enemy('Average Joe', 15, 10, 10, `Jack of all trades, master of none.`)
+        ],
+        rewards: [
+            {name: 'Food Pack', min: 1, max: 4},
+            {name: 'Participation Trophy', min: 1, max: 1},
+        ], 
+        groupName: 'an abnormality!'
+    }], waits: true});
 
     room = wastelandGrid.generateRoom([0,4], {name: 'escape.jpeg'});
     room.addAction({type: `getItem`, parameters: [`Food Pack`, 1, 3]});
@@ -2294,25 +2318,31 @@ function generateEscapeRooms() {
     room = wastelandGrid.generateRoom([1,3], {name: 'escape.jpeg'});
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO SOUTH.]`);
     room = wastelandGrid.generateRoom([1,4], {name: 'destruction.jpeg'});
-    room.addAction({type: 'encounter', parameters: [[
-        new Enemy('FishBat', 20, 20, 5, `Not to be confused with a batfish.`),
-    ],
-    [
-        {name: 'Food Pack', min: 1, max: 4}
-    ], 'an abnormality!'], waits: true});
+    room.addAction({type: 'encounter', parameters: [{
+        enemies: [
+            new Enemy('FishBat', 20, 20, 5, `Not to be confused with a batfish.`),
+        ],
+        rewards: [
+            {name: 'Food Pack', min: 1, max: 4}
+        ], 
+        groupName: 'an abnormality!'
+    }], waits: true});
 
     room = wastelandGrid.generateRoom([2,0], {name: 'escape.jpeg'});
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO SOUTH.]`);
 
     room = wastelandGrid.generateRoom([2,1], {name: 'destruction.jpeg'});
-    room.addAction({type: 'encounter', parameters: [[
-        new Enemy('Rootwraith', 8, 20, 20, `A horrid mass of roots and vines.`),
-        new Enemy('Blightfruit Beast', 30, 2, 2, `A large, mutated fruit with a gaping maw.`)
-    ],
-    [
-        {name: 'Food Pack', min: 1, max: 4},
-        {name: 'Opinionated Seedling', min: 1, max: 1},
-    ], 'some bad apples!'], waits: true});
+    room.addAction({type: 'encounter', parameters: [{
+        enemies: [
+            new Enemy('Rootwraith', 8, 20, 20, `A horrid mass of roots and vines.`),
+            new Enemy('Blightfruit Beast', 30, 2, 2, `A large, mutated fruit with a gaping maw.`)
+        ],
+        rewards: [
+            {name: 'Food Pack', min: 1, max: 4},
+            {name: 'Opinionated Seedling', min: 1, max: 1},
+        ],
+        groupName: 'some bad apples!'
+    }], waits: true});
 
     room = wastelandGrid.generateRoom([2,2], {name: 'escape.jpeg'});
     room.addStory('[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO NORTH.]');
@@ -2327,26 +2357,32 @@ function generateEscapeRooms() {
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO WEST.]`);
 
     room = wastelandGrid.generateRoom([3,3], {name: 'destruction.jpeg'});
-    room.addAction({type: 'encounter', parameters: [[
-        new Enemy('Heavily Armed Turtle 1', 15, 12, 12, `A mutant turtle with a pair of swords.`),
-        new Enemy('Heavily Armed Turtle 2', 15, 12, 12, `A mutant turtle with a pair of small blades.`),
-        new Enemy('Heavily Armed Turtle 3', 15, 12, 12, `A mutant turtle with some sick nunchucks.`),
-        new Enemy('Heavily Armed Turtle 4', 15, 12, 12, `A mutant turtle with a big stick.`)
-    ],
-    [
-        {name: 'Food Pack', min: 1, max: 7},
-        {name: 'Slice of Brotherhood', min: 1, max: 1}
-    ], 'a clan of mutants!'], waits: true});
+    room.addAction({type: 'encounter', parameters: [{
+        enemies: [
+            new Enemy('Heavily Armed Turtle 1', 15, 12, 12, `A mutant turtle with a pair of swords.`),
+            new Enemy('Heavily Armed Turtle 2', 15, 12, 12, `A mutant turtle with a pair of small blades.`),
+            new Enemy('Heavily Armed Turtle 3', 15, 12, 12, `A mutant turtle with some sick nunchucks.`),
+            new Enemy('Heavily Armed Turtle 4', 15, 12, 12, `A mutant turtle with a big stick.`)
+        ],
+        rewards: [
+            {name: 'Food Pack', min: 1, max: 7},
+            {name: 'Slice of Brotherhood', min: 1, max: 1}
+        ],
+        groupName: 'a clan of mutants!'
+    }], waits: true});
 
     room = wastelandGrid.generateRoom([4,0], {name: 'destruction.jpeg'});
-    room.addAction({type: 'encounter', parameters: [[
-        new Enemy('Blatto', 30, 20, 20, `A giant cockroach with a bad attitude.`),
-        new Enemy('Joyama', 20, 15, 15, `A large, spider-like creature with a nasty bite.`)
-    ],
-    [
-        {name: 'Food Pack', min: 1, max: 3},
-        {name: 'Questionable Mixtape', min: 1, max: 1}
-    ], 'an infestation!'], waits: true});
+    room.addAction({type: 'encounter', parameters: [{
+        enemies: [
+            new Enemy('Blatto', 30, 20, 20, `A giant cockroach with a bad attitude.`),
+            new Enemy('Joyama', 20, 15, 15, `A large, spider-like creature with a nasty bite.`)
+        ],
+        rewards: [
+            {name: 'Food Pack', min: 1, max: 3},
+            {name: 'Questionable Mixtape', min: 1, max: 1}
+        ],
+        groupName: 'an infestation!'
+    }], waits: true});
 
     room = wastelandGrid.generateRoom([4,1], {name: 'escape.jpeg'});
     room.addAction({type: 'getItem', parameters: ['Fuel Canister', 1, 1], waits: true, maxUses: 1});
@@ -2366,7 +2402,7 @@ function generateEscapeRooms() {
         .addRequirement({ mode: 'show', type: 'hasStat', parameters: ['hp', 0, 40] })
     choice1 = room.createChoice(`Use the medical supplies.`)
         .addRequirement({ mode: 'show', type: 'hasStat', parameters: ['hp', 0, 40] });
-    choice1.addAction({type: 'changeHP', parameters: [100]});
+    choice1.addAction({type: 'changeHP', parameters: [{min: 100}]});
     room.addStory(`[c:var(--dialogue)]"Now that you're here, there's one more thing we have to do. I've got a stash of medical supplies somewhere out here, and I need all hands on deck to get it."`);
     room.addStory(`[c:var(--character)]Idelle [c:]pulls out a map and shows you where the stash is located.`);
     room.addStory(`[c:var(--dialogue)]"It's a bit of a trek, but I think we can make it. We're [fst:italic][fst:bold]this [fst:]close to getting out of here!"`);
@@ -2480,15 +2516,18 @@ function generateEscapeRooms() {
     room.addAction({type: 'styleBG', parameters: '[an: shake 70ms 9 linear alternate][sc:1.2]'});
     room.addStory(`[c:var(--actions)](Thud!)`);
     room.addStory(`IDELLE!?`);
-    room.addAction({type: 'encounter', parameters: [[
-        new Enemy('Blatto Lackey 1', 20, 8, 8, `A tall, lanky fellow. All brain, no brawn.`),
-        new Enemy('Palmetto', 40, 15, 15, `A rootin', tootin', mutasnt shootin' cockroach. No...a glockroach.`),
-        new Enemy('Blatto Lackey 2', 20, 8, 8, `A short, dumpy fellow. All brawn, no brain.`),
-    ],
-    [
-        {name: 'Unnecessary Trauma', min: 1, max: 1},
-        {name: 'The Glockinator', min: 3, max: 3}
-    ], 'the Six-Legged Syndicate!'], waits: true});
+    room.addAction({type: 'encounter', parameters: [{
+        enemies: [
+            new Enemy('Blatto Lackey 1', 20, 8, 8, `A tall, lanky fellow. All brain, no brawn.`),
+            new Enemy('Palmetto', 40, 15, 15, `A rootin', tootin', mutasnt shootin' cockroach. No...a glockroach.`),
+            new Enemy('Blatto Lackey 2', 20, 8, 8, `A short, dumpy fellow. All brawn, no brain.`),
+        ],
+        rewards: [
+            {name: 'Unnecessary Trauma', min: 1, max: 1},
+            {name: 'The Glockinator', min: 3, max: 3}
+        ],
+        groupName: 'the Six-Legged Syndicate!'
+    }], waits: true});
 
     room.addStory(`You quickly rush to [c:var(--character)]Idelle's [c:]aide as the others chase the bandits away.`);
     room.addStory(`[c:var(--destruction)]...This isn't good at all.`);
