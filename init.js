@@ -1,4 +1,4 @@
-import { init } from './script.js';
+import { init } from './scripts/GameLogic.js';
 
 
 window.addEventListener('DOMContentLoaded', () => {
