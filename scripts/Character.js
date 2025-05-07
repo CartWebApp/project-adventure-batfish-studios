@@ -23,6 +23,7 @@ export class Character {
             name:'Default Character', hp:100, strength:10, agility:10, desc:''
         }
         options = Object.assign(defaults, options);
+        this.name = options.name;
         this._maxHP = new Reactor(options.hp);
         this._hp = new Reactor(this._maxHP.value);
         this._strength = new Reactor(options.strength);

@@ -389,14 +389,22 @@ class Game {
 
 // represents a battle
 class Battle {
-    constructor(parameters, enemies, rewards, groupName, inputContainer, outputContainer, advanceElement) {
-        this.enemies = enemies;
-        this.rewards = rewards ?? [];
-        this.groupName = groupName ?? 'some enemies';
-        this.inputContainer = inputContainer ?? document.getElementById('battle-input');
-        this.outputContainer = outputContainer ?? document.getElementById('story');
-        this.advanceElement = advanceElement ?? document.getElementById('dialogue-box');
-        if (parameters) transferProperties(parameters, this);
+    /**
+     * @typedef {Object} BattleConfig
+     * @prop {Array} enemies - List of enemies in the battle
+     * @prop {Array} rewards - List of rewards completing the battle gives
+     * @prop {String} groupName - Name of the group of enemies
+     * 
+     * @param {BattleConfig} options - Config for the battle
+     */
+    constructor(options) {
+        let defaults = {
+            enemies: [], rewards: [], groupName: 'some enemies'
+        }
+        Object.assign(this, Object.assign(defaults, options));
+        this.inputContainer = document.getElementById('battle-input');
+        this.outputContainer = document.getElementById('story');
+        this.advanceElement = document.getElementById('dialogue-box');
         this.textConfig = this.textConfig ?? {element: this.outputContainer, speed: 0, skipElement: this.advanceElement, skippable: true};
         this.enemies = this.enemies.map(enemy => enemy.clone());
         this.remainingEnemies = this.enemies;
