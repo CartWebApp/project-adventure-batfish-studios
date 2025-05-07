@@ -24,6 +24,17 @@
         "description": "An example of an item gained as a battle reward",
         "type": "generic"
     },
+    "missingNo": {
+        "name": "missingNo",
+        "description": "̸̢̡̡̢͓̺͈͙̺̦͉̩̟̠̑̆̽͘̕ͅᴚ̶̡̻̼̻̱͍͖̳̰̣̞̭͓̫́͜͜͜͝ͅͅᴚ̷̟̌Ǝ̸̨̡̦͚͉̩̭̼͇̯̹̳̣͚̬̥̌̒̊͆͌͂́̌͂͛̃̿́̇́̈́͂̀̿̇̍̚̚͜͠͝ ̷̢̥̫̭͇̟̜̺͎̳͚̫͇̜̞̘͚̞̲̒̊̂̂͊̈́̿̇͋͐͆̈́̆͊̑͂͂̀̀̊̕͜͝͠ͅᴚ̷̢̢̡͙̹̩̝͕̠͙́̅̈́͝O̴̧͈͔͔̫̥͍͔̘̫̦̻̲͉̙̪̺̟͐̓͌̿̅͑̀͋̒̿̏́̈́̎͌͛̕͝ͅᴚ̶̛͕̣͓͕̞͇̳̺͇̰̺͕͛͗̀͛̑͆͒̏͜ᴚ̴̳̻͇̍͊̑͒̈́̚Ǝ",
+        "type": "consumable",
+        "effects": [
+            {"type": "gainMaxHP", "value": 0},
+            {"type": "heal", "value": 0},
+            {"type": "gainStrength", "value": 0},
+            {"type": "gainAgility", "value": 0}
+        ]
+    },
     "Wacky Thing": {
         "name": "Wacky Thing",
         "description": "How did you get this? You would have had to fight off a very powerful foe to get this...",

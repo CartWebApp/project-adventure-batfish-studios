@@ -3,7 +3,17 @@
         "name": "Example Enemy",
         "hp": 10,
         "strength": 2,
-        "agility": 5
+        "agility": 5,
+        "lootTable": [
+            {
+                "name": "Example Drop",
+                "chance": 100
+            },
+            {
+                "name": "Example Drop 2",
+                "chance": 50
+            }
+        ]
     },
     "ThisNameDoesNotMatterAsLongAsItsAPropertyNameInItemData": {
         "name": "Example Enemy 2",

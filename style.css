@@ -184,7 +184,7 @@ p {
     background-repeat: no-repeat;
 }
 
-#background-image {
+[id^=background-image] {
     position: absolute;
     object-fit: cover;
     width: 100%;
@@ -801,6 +801,11 @@ p {
 @keyframes fade-in {
     from {opacity: 0;}
     to {opacity: unset;}
+}
+
+@keyframes blink-weak {
+    from {opacity: 0;}
+    to {opacity: .5;}
 }
 
 @keyframes blur-out {

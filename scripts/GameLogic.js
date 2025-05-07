@@ -190,13 +190,13 @@ class Game {
 
     // changes the background
     // ex: changeBG('escape.jpg');
-    async changeBG(name, transition = {}) {
+    async changeBG(name, transition = {}, id='background-image') {
         transition.out = transition.out ?? '[an:fade-out .5s ease]';
         transition.in = transition.in ?? '[an:fade-in .5s ease]';
         transition.waitsOut = transition.waitsOut ?? false;
         transition.waitsIn = transition.waitsIn ?? false;
         clearDialogueText();
-        const background = document.getElementById('background-image');
+        const background = document.getElementById(id);
         if (transition.out && transition.waitsOut) {
             game.styleBG(transition.out)
             await awaitAnimation(background);
@@ -215,8 +215,8 @@ class Game {
     }
 
     // applies styles given by a string of style identifiers to the background
-    styleBG(string) {
-        applyStyle(document.getElementById('background-image'), generateStyleList(string));
+    styleBG(style, id='background-image') {
+        applyStyle(document.getElementById(id), generateStyleList(style));
     }
 
     // changes the background particle animation
@@ -270,7 +270,7 @@ class Game {
     }
 
     // a chance to initiate combat
-    async encounter({enemies, rewards, groupName}={}) {
+    async encounter({enemies, rewards, groupName, useEnemyLoot=true}={}) {
         let generatedEnemies = [];
         for (const enemy of enemies) {
             if (enemy instanceof Enemy) {
@@ -283,7 +283,7 @@ class Game {
                 }
             }
         }
-        let battle = new Battle({enemies: generatedEnemies, rewards, groupName});
+        let battle = new Battle({enemies: generatedEnemies, rewards, groupName, useEnemyLoot});
         await battle.encounter(game.runNumber);
     }
 
@@ -407,6 +407,7 @@ class Battle {
      * @prop {Array} enemies - List of enemies in the battle
      * @prop {Array} rewards - List of rewards completing the battle gives
      * @prop {String} groupName - Name of the group of enemies
+     * @prop {Boolean} useEnemyLoot - Whether the enemies add their loot table to the rewards
      * 
      * @param {BattleConfig} options - Config for the battle
      */
@@ -420,7 +421,7 @@ class Battle {
         this.advanceElement = document.getElementById('dialogue-box');
         this.textConfig = this.textConfig ?? {element: this.outputContainer, speed: 0, skipElement: this.advanceElement, skippable: true};
         this.enemies = this.enemies.map(enemy => enemy.clone());
-        this.remainingEnemies = this.enemies;
+        this.remainingEnemies = this.enemies.map(enemy => enemy.clone());
     }
 
     async encounter(currentRunNumber) {
@@ -650,6 +651,12 @@ class Battle {
             let rewardActions = []
             for (const reward of this.rewards) {
                 rewardActions.push(new Action({type: 'getItem', parameters: [{name: reward.name, min: reward.min, max: reward.max}], waits: false}))
+            }
+            if (this.useEnemyLoot) for (const enemy of this.enemies) {
+                for (const itemData of enemy.lootTable) {
+                    if (!game.chanceRoll(itemData.chance ?? 1)) continue;
+                    rewardActions.push(new Action({type: 'getItem', parameters: [{name: itemData.name, min: itemData.min ?? 1, max: itemData.max}], waits: false}))
+                }
             }
             await attemptActionsWithText(rewardActions);
     }
@@ -1870,7 +1877,8 @@ async function clearBuffers() {
 async function loadData() {
     let itemPaths = [
         '../data/items/misc_items.json',
-        '../data/items/consumables.json'
+        '../data/items/consumables.json',
+        '../data/items/quest_items.json'
     ]
     let enemyPaths = [
         '../data/enemies/example_enemies.json',

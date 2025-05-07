@@ -116,7 +116,9 @@ function generate() {
     room.addAction({type: 'changeParticleAnimation', parameters: ['fog', 1, 1]});
     room.addStory('Lets try out some particles!', {waits: false});
     room.createChoice('Speed Up', {persistant: true})
-    .addAction({type: 'changeParticleSpeed', parameters: [.5]});
+    .addAction({type: 'changeParticleSpeed', parameters: [.5]})
+    .addAction({type: 'changeBG', parameters: ['destruction.jpeg', {}, 'background-image-2']})
+    .addAction({type: 'styleBG', parameters: ['[an:blink-weak 500ms ease infinite alternate]', 'background-image-2']});
     room.createChoice('Slow Down', {persistant: true})
     .addAction({type: 'changeParticleSpeed', parameters: [-.5]});
     room.createChoice('Strengthen', {persistant: true})
@@ -144,7 +146,8 @@ function generate() {
         ],
         rewards: [
             {name: 'Example Reward', min: 1, max: 5},
-            {name: 'Example Reward 2', min: 1, max: 5}
+            {name: 'Example Reward 2', min: 1, max: 5},
+            {name: 'missingNo', min: 1, max: 1}
         ], 
         groupName: 'a couple of example enemies'
     }],

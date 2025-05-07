@@ -56,6 +56,7 @@ export class CanvasHandler {
     }
 
     async loop() {
+        if (!this.currentAnimation) return;
         if (this.currentAnimation.background) {
             this.currentAnimation.background(this);
         } else {
