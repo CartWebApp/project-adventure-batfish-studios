@@ -36,7 +36,7 @@ function generate() {
     room.addStory(`Oh, neat! It appears they have a nice little storage rack set up in the corner. There's plenty of new, futuristic (at least, on your end) foods at your disposal.`);
     room.addStory(`And yeah, it doesn't belong to you, but...`);
     room.addStory(`In your defense, you've been starving for decades...`);
-    room.addAction({type: `getItem`, parameters: [`Astrostew`, 1, 5]});
+    room.addAction({type: `getItem`, parameters: [{name: `Astrostew`, min: 1, max: 5}]});
     choice1 = room.createChoice(`Quit being nosy.`);
     room.addStory(`You got quite a few stews!`)
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Astrostew', 4] });
@@ -185,10 +185,10 @@ function generate() {
     }], waits: true});
 
     room = wastelandGrid.generateRoom([0,4], {name: 'escape.jpeg'});
-    room.addAction({type: `getItem`, parameters: [`Food Pack`, 1, 3]});
+    room.addAction({type: `getItem`, parameters: [{name: `Food Pack`, min: 1, max: 3}]});
 
     room = wastelandGrid.generateRoom([1,0], {name: 'escape.jpeg'});
-    room.addAction({type: `getItem`, parameters: [`Microchip`, 1, 1], waits: true, maxUses: 1});
+    room.addAction({type: `getItem`, parameters: [{name: `Microchip`, min: 1}], waits: true, maxUses: 1});
 
     room = wastelandGrid.generateRoom([1,1], {name: 'escape.jpeg'});
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO EAST.]`);
@@ -225,8 +225,8 @@ function generate() {
     room = wastelandGrid.generateRoom([2,2], {name: 'escape.jpeg'});
     room.addStory('[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO NORTH.]');
 
-    room = wastelandGrid.generateRoom([2,3], {name: 'escape.jpeg'});
-    room.addAction({type: 'getItem', parameters: ['Scrap Metal', 1, 1,], waits: true, maxUses: 5});
+    room = wastelandGrid.generateRoom(null, {name: 'escape.jpeg'}, 5);
+    room.addAction({type: 'getItem', parameters: [{name: 'Scrap Metal', min: 1, max: 1}], waits: true, maxUses: 1});
 
     room = wastelandGrid.generateRoom([2,4], {name: 'escape.jpeg'});
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO WEST.]`);
@@ -263,10 +263,10 @@ function generate() {
     }], waits: true});
 
     room = wastelandGrid.generateRoom([4,1], {name: 'escape.jpeg'});
-    room.addAction({type: 'getItem', parameters: ['Fuel Canister', 1, 1], waits: true, maxUses: 1});
+    room.addAction({type: 'getItem', parameters: [{name: 'Fuel Canister', min: 1}], waits: true, maxUses: 1});
 
     room = wastelandGrid.generateRoom([4,3], {name: 'escape.jpeg'});
-    room.addAction({type: 'getItem', parameters: ['Food Pack', 1, 4]});
+    room.addAction({type: 'getItem', parameters: [{name: 'Food Pack', min: 1, max: 4}]});
 
     wastelandGrid.generateGrid(); // only use once, and after you add all the rooms you want
 

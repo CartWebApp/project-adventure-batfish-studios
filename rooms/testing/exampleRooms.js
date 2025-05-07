@@ -43,23 +43,23 @@ function generate() {
         .addAction({type: 'changeRoom', parameters: ['Example Hub']});
     room.createChoice('Get item', {persistant: true})
         .addAction({type: ()=> {
-            game.getItem(randomString('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 12))
+            game.getItem({name: randomString('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 12)})
         }, parameters: []});
     room.createChoice('Get long item', {persistant: true})
         .addAction({type: ()=> {
-            game.getItem(randomString('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 400))
+            game.getItem({name: randomString('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 400)})
         }, parameters: []});
         room.createChoice('Get long item + spaces', {persistant: true})
         .addAction({type: ()=> {
-            game.getItem(randomString('     abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 400))
+            game.getItem({name: randomString('     abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 400)})
         }, parameters: []});
     room.createChoice('Get many item', {persistant: true})
         .addAction({type: ()=> {
-            game.getItem(randomString('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 12), 10e100)
+            game.getItem({name: randomString('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ', 12), min: 10e100})
         }, parameters: []});
     room.createChoice('Get wacky item', {persistant: true})
         .addAction({type: ()=> {
-            game.getItem(randomString(' 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ~!@#$%^&*()_+=-[]}{\\|";:/?.>,<~', 50), 1)
+            game.getItem({name: randomString(' 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFVXYZ~!@#$%^&*()_+=-[]}{\\|";:/?.>,<~', 50), min: 1})
         }, parameters: []});
     
 
@@ -68,7 +68,7 @@ function generate() {
     room.addStory(`This is a [an:text-glow 1s ease infinite alternate][c:red]test[c:] [fi:blur(1px)]story[fi:] [c:#00ff00][ff:'Doto'][fs:24px]continued[:]!`, { speed: 100, variance: 33, animation: 'impact' });
     room.addStory(`[ts:2px 2px 2px white][c:#c5c5c5]Lorem [rt:90deg]ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et [rt:180deg]dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure [rt:270deg]dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui [rt:]officia deserunt mollit anim id est laborum.`, { speed: 10, variance: 3, animation: 'funky' });
     let choice1 = room.createChoice('Pick up item', {maxUses: 1} );
-    choice1.addAction({ type: 'getItem', parameters: ['Example Item', 1, 10]});
+    choice1.addAction({ type: 'getItem', parameters: [{name: 'Example Item', min: 1, max: 10}]});
     room.addStory(`This text only shows if you got at least 8 Example Items!`)
         .addRequirement({ mode: 'show', type: 'hasItem', parameters: ['Example Item', 8] });
     room.addStory(`Woah`, { speed: 500, variance: 100, animation: 'shaky' });
@@ -81,10 +81,10 @@ function generate() {
     choice2.addRequirement({ mode: 'use', type: 'hasItem', parameters: ['Example Reusable Key'] });
     choice2.addRequirement({ mode: 'use', type: 'hasItem', parameters: ['Example Expendable Key'] });
     let choice3 = room.createChoice('Pick up key', {maxUses: 1});
-    choice3.addAction({ type: 'getItem', parameters: ['Example Reusable Key', 1, 1, '[class:text-glow green]', "yoyo, you got ye an [[class:text-glow green]Example Reusable Key[class:]] yo! Also, this is a [an:text-glow 1s ease infinite alternate][c:cyan]custom action message!"] });
+    choice3.addAction({ type: 'getItem', parameters: [{name: 'Example Reusable Key', min: 1, max: 1, style: '[class:text-glow green]', desc: "yoyo, you got ye an [[class:text-glow green]Example Reusable Key[class:]] yo! Also, this is a [an:text-glow 1s ease infinite alternate][c:cyan]custom action message!"}] });
     choice3.addRequirement({ mode: 'show', type: 'madeChoice', inverse: true, parameters: [choice3.id] });
     let choice4 = room.createChoice('Pick up another key');
-    choice4.addAction({ type: 'getItem', parameters: ['Example Expendable Key'] });
+    choice4.addAction({ type: 'getItem', parameters: [{name: 'Example Expendable Key'}] });
     choice4.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [choice3.id] });
     choice4.addRequirement({ mode: 'show', type: 'hasItem', inverse: true, parameters: ['Example Expendable Key'] });
     // choice5, with different syntax (not using a variable)
@@ -136,11 +136,11 @@ function generate() {
 
     // battle testing
     room = createRoom('Example Room Battle', { name: 'neutral.jpeg' });
-    room.addAction({ type: 'getItem', parameters: ['Lume Fruit', 2, 3], waits: true});
+    room.addAction({ type: 'getItem', parameters: [{name: 'Lume Fruit', min: 2, max: 3}], waits: true});
     room.addAction({type: 'encounter', parameters: [{
         enemies: [
-            new Enemy({name: 'Example Enemy', hp: 10, strength: 2, agility: 5}),
-            new Enemy({name: 'Example Enemy 2', hp: 20, strength: 6, agility: 10, desc: 'This guy has a description, [c:green]Neat!'})
+            {id: 'Example Enemy', overrides: {name: 'JOJO'}},
+            {id: 'ThisNameDoesNotMatterAsLongAsItsAPropertyNameInItemData'}
         ],
         rewards: [
             {name: 'Example Reward', min: 1, max: 5},

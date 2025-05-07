@@ -1,0 +1,17 @@
+{
+    "Microchip": {
+        "name": "Microchip",
+        "description": "A small device with countless electrical components",
+        "type": "generic"
+    },
+    "Scrap Metal": {
+        "name": "Scrap Metal",
+        "description": "Looks like it has been rusting for a while",
+        "type": "generic"
+    },
+    "Fuel Canister": {
+        "name": "Fuel Canister",
+        "description": "A juice box for machines",
+        "type": "generic"
+    }
+}

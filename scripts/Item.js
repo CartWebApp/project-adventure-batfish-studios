@@ -4,17 +4,39 @@
 import * as functionExports from './Functions.js';
 
 export class Item {
-    constructor(data, name, count=1, type='generic', description='', style='') {
-        Object.assign(this, {name, count, type, description, style}, data)
+    /**
+     * @typedef {Object} ItemConfig
+     * @prop {String} name - The item's display name
+     * @prop {Number} count - The number of the item
+     * @prop {String} type - The category of item. ex: consumable
+     * @prop {String} desc - The items description
+     * @prop {String} style - The css styling of the item. ex: '[c:red]'
+     * 
+     * @param {ItemConfig} data 
+     */
+    constructor(data) {
+        let defaults = {
+            name: '', count:1, type:'generic', desc:'', style:''
+        }
+        Object.assign(this, defaults, data)
     }
 }
 
 export class Consumable extends Item {
-    constructor(data, name, count, type, description, style, effects=[], hideEffects = false) {
-        super(data, name, count, type, description, style)
-        if (!this.effects) this.effects = effects;
-        if (!this.hideEffects) this.hideEffects = hideEffects;
 
+    /**
+     * @typedef {Object} ConsumableConfig_
+     * @prop {Array} effects - Array of effects. ex: [{"type": "heal", "value": 15}]
+     * @prop {Boolean} hideEffects - Whether the player needs to have consumed the item at least once to see it's effects
+     * @typedef {ItemConfig & ConsumableConfig_} ConsumableConfig
+     * 
+     * @param {ConsumableConfig} data 
+     */
+    constructor(data) {
+        let defaults = {
+            effects: [], hideEffects: false
+        }
+        super(Object.assign(defaults, data))
     }
 
     // uses the consumable
