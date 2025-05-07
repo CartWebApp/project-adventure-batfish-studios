@@ -109,7 +109,7 @@ class Game {
         this.currentEnding = 'unset';
         this.endings = {}; // holds the possible ending names and text
         this.leaveChoices = false; // choices get left if this is true
-        this.startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
+        this.startingRoom = 'd-start'; // [ 'Example Hub' ][ 'b-start' ]
         this.runNumber = -1;
     }
 
@@ -1821,6 +1821,7 @@ function generateAllRooms() {
     generateExampleRooms();
     generateStartingRooms();
     generateEscapeRooms();
+    generateDestructionRooms();
 }
 
 // generates the example rooms
@@ -2062,18 +2063,26 @@ function generateStartingRooms() {
     room.addStory(`After just a bit of effort, the doors (usually automatic, you remember) give way, leading you to three different corridors.`);
     room.addStory(`Unfortunately, your memory of the layout is hazy at best. To be fair, you HAD been quite nervous at the time, keeping your eyes lowered throughout the walk. If only you had paid more attention...`);
     room.addStory(`[c:var(--escape)]Left, [c:var(--destruction)]right, [c:]or [c:var(--savior)]straight ahead?`);
-    choice1 = room.createChoice("Go left.");
+    choice1 = room.createChoice("Go left.", {customID: 'escape'});
     choice1.addAction({ type: 'changeRoom', parameters: ['e-start'] }); //escape route
-    choice2 = room.createChoice("Go right.", {classList: ['disabled']});
+    choice2 = room.createChoice("Go right.", {customID: 'destruction'});
     choice2.addAction({ type: 'changeRoom', parameters: ['d-start'] }); //destruction route
-    let choice3 = room.createChoice("Go straight.", {classList: ['disabled']});
+    let choice3 = room.createChoice("Go straight.", {customID: 'savior', classList: ['disabled']});
     choice3.addAction({ type: 'changeRoom', parameters: ['s-start'] }); //savior route
 
     room = createRoom(`b-return`, { name: 'neutral.jpeg' }); // changed mind at some point
     room.addStory(`Returning to the lab, you find that the way back to your cryopod is now blocked off. The ceiling has collapsed, and the only way back out is through one of the other hallways.`);
     room.addStory(`You can either go [c:var(--escape)]left, [c:var(--destruction)]right, [c:]or [c:var(--savior)]straight ahead.`);
-    // choice1 = room.createChoice("Go left.");
-     // .addRequirement({ mode: 'show', type: 'madeChoice', parameters: []});
+    choice1 = room.createChoice("Go left.");
+    choice1.addAction({ type: 'changeRoom', parameters: ['e-start'] });
+    choice1.addRequirement({ mode: 'show', type: 'madeChoice', inverse: true, parameters: ['escape']});
+    choice2 = room.createChoice("Go right.");
+    choice2.addAction({ type: 'changeRoom', parameters: ['d-start'] });
+    choice2.addRequirement({ mode: 'show', type: 'madeChoice', inverse: true, parameters: ['destruction']});
+    choice3 = room.createChoice("Go straight.");
+    choice3.addAction({ type: 'changeRoom', parameters: ['s-start'] });
+    choice3.addRequirement({ mode: 'show', type: 'madeChoice', inverse: true, parameters: ['savior']});
+
 }
 // Escape
 function generateEscapeRooms() {
@@ -2466,12 +2475,13 @@ function generateEscapeRooms() {
     room.addStory(`[c:var(--dialogue)][fst:italic]"AUGH!"`);
     room.addAction({type: 'styleBG', parameters: '[an: shake 70ms 9 linear alternate][sc:1.2]'});
     room.addStory(`[c:var(--actions)](Thud!)`);
-    room.addStory(`IDELLE!?`);
+    room.addStory(`You quickly turn to the source of the noise, and your heart sinks as you see [c:var(--character)]Idelle [c:]on the ground, clutching her side.`);
+    room.addStory(`Above her stands [c:var(--destruction)]a large, hulking figure with a massive sword strapped to their back, and a pair of glowing red eyes that seem to pierce through the darkness.`);
     room.addAction({type: 'encounter', parameters: [{
         enemies: [
-            new Enemy({name: 'Blatto Lackey 1', hp: 20, strength: 8, agility: 8, desc: `A tall, lanky fellow. All brain, no brawn.`}),
+            new Enemy({name: 'Blatto Lackey 1', hp: 20, strength: 5, agility: 10, desc: `A tall, lanky fellow. All brain, no brawn.`}),
             new Enemy({name: 'Palmetto',hp:  40, strength: 15, agility: 15, desc: `A rootin', tootin', mutasnt shootin' cockroach. No...a glockroach.`}),
-            new Enemy({name: 'Blatto Lackey 2', hp: 20, strength: 8, agility: 8, desc: `A short, dumpy fellow. All brawn, no brain.`}),
+            new Enemy({name: 'Blatto Lackey 2', hp: 20, strength: 10, agility: 5, desc: `A short, dumpy fellow. All brawn, no brain.`}),
         ],
         rewards: [
             {name: 'Unnecessary Trauma', min: 1, max: 1},
@@ -2482,9 +2492,9 @@ function generateEscapeRooms() {
 
     room.addStory(`You quickly rush to [c:var(--character)]Idelle's [c:]aide as the others chase the bandits away.`);
     room.addStory(`[c:var(--destruction)]...This isn't good at all.`);
-    room.addStory(`[fs:8px][c:var(--dialogue)]"Go..."`);
+    room.addStory(`[fs:12px][c:var(--dialogue)]"Go..."`);
     room.addStory(`She coughs out, her own grip on you loosening.`);
-    room.addStory(`[c:var(--dialogue)][fs:8px]"My keys...take my keys..."`);
+    room.addStory(`[c:var(--dialogue)][fs:12px]"My keys...take my keys..."`);
     room.addStory(`[c:var(--dialogue)]"...Save them, [c:var(--Gali)]Gali.[c:var(--dialogue)]"`)
     room.addStory(`You hold [c:var(--character)]Idelle [c:]until the glow from her scales fades away.`);
     room.addStory(`Rummaging through her pockets, you manage to pick up the ship's activation keycard. Nodding towards the others, they start to head towards the ship.`);
@@ -2494,6 +2504,20 @@ function generateEscapeRooms() {
 
 }
 
+function generateDestructionRooms() {
+    let room = createRoom(`d-start`, {name: 'destruction.jpeg'});
+    room.addStory(`Heading to the [c:var(--destruction)]right, [c:]you can hear the chants of several people. Perhaps you aren't that alone after all.`);
+    room.addStory(`It's quite uniform, too. Rhythmic thuds echo through the building, a single light shining through a doorway at the end of the hall.`);
+    room.addStory(`Approaching the door, you peek in to see a large, inter-species group of survivors, all donning dark masks, cloaks, hoods, and hats. There's a line of them running out of the broken window, hauling out looted supplies and equipment one by one.`);
+    room.addStory(`Most, if not all of them are armed to the teeth, and they all seem to be in a trance, chanting in unison as they work.`);
+    room.addStory(`Among them, [c:var(--character)]one [c:]appears to have much more authority than the others.`);
+    room.addStory(`A large, hulking figure with a massive sword strapped to their back, and a pair of glowing red eyes that seem to pierce through the darkness.`);
+    room.addStory(`Their exoskeleton is visibly cracked, paired with four large, leathery wings. You can see the figure is wearing a mask with a different insignia than the rest, but you can't make out any of their features.`);
+    let choice1 = room.createChoice(`Approach the group.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['d-looting']});
+    let choice2 = room.createChoice(`Get out of there.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['b-return']});
+}
 
 // endings
 function generateEndings() {
