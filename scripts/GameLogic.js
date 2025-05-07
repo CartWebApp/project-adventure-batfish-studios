@@ -1006,23 +1006,28 @@ export class Room {
     clone(name) {
         name = name ?? this.name;
         let clonedRoom = new Room(name, this.bg);
+        let firstAction = true;
         for (let queueItem of this.queuelist) {
-            if (queueItem.type === 'choiceList') {
+            if (queueItem.type === 'choicelist') {
                 for (let choice of queueItem.value) {
-                    clonedRoom.createChoice(...choice.clone());
+                    clonedRoom.createChoice(choice.clone());
                 }
-            } else if (queueItem.type === 'actionList') {
+            } else if (queueItem.type === 'actionlist') {
                 for (let action of queueItem.value) {
-                    clonedRoom.addAction(...action.clone());
+                    if (firstAction) {
+                        firstAction = false;
+                        continue;
+                    };
+                    clonedRoom.addAction(action.clone());
                 }
             } else if (queueItem.type === 'story') {
                 clonedRoom.addStory(queueItem.value.text, queueItem.value)
             }
         }
-        Object.assign(copiedRoom.queuelist, this.queuelist);
-        Object.assign(copiedRoom.choices, this.choices);
-        Object.assign(copiedRoom.actions, this.actions);
-        Object.assign(copiedRoom.storyParts, this.storyParts);
+        // Object.assign(clonedRoom.queuelist, this.queuelist);
+        // Object.assign(clonedRoom.choices, this.choices);
+        // Object.assign(clonedRoom.actions, this.actions);
+        // Object.assign(clonedRoom.storyParts, this.storyParts);
         return clonedRoom;
     }
 
@@ -1202,6 +1207,9 @@ export class RoomGrid {
                 let roomCoords = this.unusedCoords[random(0,this.unusedCoords.length - 1)];
                 if (looseIndexOf(this.unusedCoords, roomCoords) >= 0) {
                     this.unusedCoords.splice(looseIndexOf(this.unusedCoords, roomCoords), 1);
+                }
+                if (roomCoords[0] === 0 && roomCoords[1] === 0) {
+                    let test;
                 }
                 let newRoom = room.clone(`${this.name}-${roomCoords[0]}-${roomCoords[1]}`);
                 this.filledRooms[roomCoords[0] + '-' + roomCoords[1]] = newRoom;

@@ -225,7 +225,7 @@ function generate() {
     room = wastelandGrid.generateRoom([2,2], {name: 'escape.jpeg'});
     room.addStory('[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO NORTH.]');
 
-    room = wastelandGrid.generateRoom(null, {name: 'escape.jpeg'}, 50);
+    room = wastelandGrid.generateRoom(null, {name: 'escape.jpeg'}, 5);
     room.addAction({type: 'getItem', parameters: [{name: 'Scrap Metal', min: 1, max: 1}], waits: true, maxUses: 1});
 
     room = wastelandGrid.generateRoom([2,4], {name: 'escape.jpeg'});
