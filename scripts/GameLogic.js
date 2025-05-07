@@ -10,7 +10,7 @@ import { generateRooms } from './RoomGenerator.js';
 import * as fnExports from './Functions.js';
 Object.entries(fnExports).forEach(([name, exported]) => window[name] = exported);
 
-let devMode = false;
+let devMode = true;
 
 export let player;
 let textController; // makes text writing cancellable
@@ -18,7 +18,8 @@ let textControllerSignal;
 let textCancelled = false;
 export let game;
 export let history;
-let itemData;
+let itemData = {};
+let enemyData = {};
 export let particleHandler;
 
 const parsableStyles = [
@@ -109,29 +110,29 @@ class Game {
         this.currentEnding = 'unset';
         this.endings = {}; // holds the possible ending names and text
         this.leaveChoices = false; // choices get left if this is true
-        this.startingRoom = 'd-start'; // [ 'Example Hub' ][ 'b-start' ]
+        this.startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
         this.runNumber = -1;
     }
 
     // Gives an item to the player's inventory
-    getItem(itemName, min=1, max=0, style = '', customMessage = '') {
+    getItem({name, min=1, max=0, style = '', customMessage = ''}={}) {
         max = max || min;
         let count = random(min, max);
         let messages = [];
-        style = style || itemData?.[itemName]?.style || '[c:var(--item-color)]';
+        style = style || itemData?.[name]?.style || '[c:var(--item-color)]';
         let item;
-        if (!(itemName in itemData)) {
-            item = new Item({name: itemName, count, type: 'generic', description: 'An item', style: style});
-        } else if (itemData[itemName].type === 'generic') {
-            item = new Item({count, style, ...itemData[itemName]});
-        } else if (itemData[itemName].type === 'consumable') {
-            item = new Consumable({count, style, ...itemData[itemName]});
+        if (!(name in itemData)) {
+            item = new Item({name, count, type: 'generic', description: 'An item', style: style});
+        } else if (itemData[name].type === 'generic') {
+            item = new Item({count, style, ...itemData[name]});
+        } else if (itemData[name].type === 'consumable') {
+            item = new Consumable({count, style, ...itemData[name]});
         }
         player.addItem(item);
         if (count > 1) {
-            messages.push(customMessage || `Obtained [${style + itemName}[:]] X ${count}`);
+            messages.push(customMessage || `Obtained [${style + name}[:]] X ${count}`);
         } else {
-            messages.push(customMessage || `Obtained [${style + itemName}[:]]`);
+            messages.push(customMessage || `Obtained [${style + name}[:]]`);
         }
         return { messages };
     }
@@ -270,7 +271,19 @@ class Game {
 
     // a chance to initiate combat
     async encounter({enemies, rewards, groupName}={}) {
-        let battle = new Battle({enemies, rewards, groupName});
+        let generatedEnemies = [];
+        for (const enemy of enemies) {
+            if (enemy instanceof Enemy) {
+                generatedEnemies.push(enemy)
+            } else {
+                if (enemy.overrides) {
+                    generatedEnemies.push(new Enemy({...enemyData[enemy.id], ...enemy.overrides}))
+                } else {
+                    generatedEnemies.push(new Enemy(enemyData[enemy.id]))
+                }
+            }
+        }
+        let battle = new Battle({enemies: generatedEnemies, rewards, groupName});
         await battle.encounter(game.runNumber);
     }
 
@@ -346,9 +359,9 @@ class Game {
     async start() {
         player = new Player();
         if (devMode) {
-            game.getItem('Super Health Maximiser', 10);
-            game.getItem('Super Strength Maximiser', 10);
-            game.getItem('Super Agility Maximiser', 10);
+            game.getItem({name: 'Super Health Maximiser', min: 10});
+            game.getItem({name: 'Super Strength Maximiser', min: 10});
+            game.getItem({name: 'Super Agility Maximiser', min: 10});
         }
         game.changeParticleAnimation('none', 1, 1);
         generateRooms();
@@ -636,7 +649,7 @@ class Battle {
             typeText(`You have defeated ${this.groupName}`, {...this.textConfig});
             let rewardActions = []
             for (const reward of this.rewards) {
-                rewardActions.push(new Action({type: 'getItem', parameters: [reward.name, reward.min, reward.max], waits: false}))
+                rewardActions.push(new Action({type: 'getItem', parameters: [{name: reward.name, min: reward.min, max: reward.max}], waits: false}))
             }
             await attemptActionsWithText(rewardActions);
     }
@@ -848,6 +861,10 @@ export class StoryObject extends TextObject {
         this.maxUses = this.maxUses ?? maxUses;
         this.usesLeft = this.maxUses;
     }
+
+    clone() {
+        return new StoryObject(this.text, {speed:this.speed, variance:this.variance, animation:this.animation, waitDelay:this.waitDelay, skippable:this.skippable, maxUses: this.maxUses})
+    }
 }
 
 export class Requirement {
@@ -868,6 +885,10 @@ export class Requirement {
             mode:'show', parameters:[], inverse:false
         }
         Object.assign(this, Object.assign(defaults, options));
+    }
+
+    clone() {
+        return new Requirement({type:this.type, parameters:this.parameters, inverse:this.inverse});
     }
 }
 
@@ -901,6 +922,10 @@ export class Action {
         options.mode = options.mode ?? 'use';;
         this.requirements.push(new Requirement(options));
         return this;
+    }
+
+    clone() {
+        return new Action({type:this.type, parameters:this.parameters, waits:this.waits, chance:this.chance, maxUses:this.maxUses})
     }
 }
 
@@ -936,6 +961,10 @@ export class Choice extends TextObject {
         this.usesLeft = this.maxUses;
         this.actions = [];
         this.requirements = [];
+    }
+
+    clone() {
+        return new Choice(this.text, {speed:this.speed, variance:this.variance, animation:this.animation, waitDelay:this.waitDelay, skippable:this.skippable, maxUses: this.maxUses, customID: this.customID, value: this.value, color: this.color, classList: this.classList, persistant: this.persistant})
     }
 
     /**
@@ -974,14 +1003,27 @@ export class Room {
     }
 
     // returns a copy of this room, optionally with its own name.
-    copy(name) {
+    clone(name) {
         name = name ?? this.name;
-        let copiedRoom = new Room(name, this.bg);
+        let clonedRoom = new Room(name, this.bg);
+        for (let queueItem of this.queuelist) {
+            if (queueItem.type === 'choiceList') {
+                for (let choice of queueItem.value) {
+                    clonedRoom.createChoice(...choice.clone());
+                }
+            } else if (queueItem.type === 'actionList') {
+                for (let action of queueItem.value) {
+                    clonedRoom.addAction(...action.clone());
+                }
+            } else if (queueItem.type === 'story') {
+                clonedRoom.addStory(queueItem.value.text, queueItem.value)
+            }
+        }
         Object.assign(copiedRoom.queuelist, this.queuelist);
         Object.assign(copiedRoom.choices, this.choices);
         Object.assign(copiedRoom.actions, this.actions);
         Object.assign(copiedRoom.storyParts, this.storyParts);
-        return copiedRoom;
+        return clonedRoom;
     }
 
     // adds a choice to the room
@@ -1147,7 +1189,7 @@ export class RoomGrid {
     }
 
     generateDefaultRoom(coords) {
-        let room = this.emptyTemplate.copy(`${this.name}-${coords[0]}-${coords[1]}`)
+        let room = this.emptyTemplate.clone(`${this.name}-${coords[0]}-${coords[1]}`)
         return room;
     }
 
@@ -1161,7 +1203,7 @@ export class RoomGrid {
                 if (looseIndexOf(this.unusedCoords, roomCoords) >= 0) {
                     this.unusedCoords.splice(looseIndexOf(this.unusedCoords, roomCoords), 1);
                 }
-                let newRoom = room.copy(`${this.name}-${roomCoords[0]}-${roomCoords[1]}`);
+                let newRoom = room.clone(`${this.name}-${roomCoords[0]}-${roomCoords[1]}`);
                 this.filledRooms[roomCoords[0] + '-' + roomCoords[1]] = newRoom;
             }
             if (this.unusedCoords.length === 0) break;
@@ -1790,9 +1832,8 @@ function multiBuffer(elementID=undefined, iterations=1,count = 8, duration = 200
     }
 }
 
-
-// initializes the rooms and player
-export async function init() {
+// loads the loading buffers
+function loadBuffers() {
     multiBuffer('loading-buffer', 1, 10, 3000, 1, undefined, 30, 228, [
         { opacity: 1},
         { opacity: 0, offset: 1 },
@@ -1809,18 +1850,45 @@ export async function init() {
         { opacity: 1, scale: 1, filter: 'invert(1)' },
         { opacity: 0, scale: .5, offset: 1, filter: 'invert(0)' },
     ], [{},{scale: (base, index)=>base + index*1 * (1 + index % 2 * -2)}]);
-    particleHandler = new CanvasHandler(document.getElementById('particle-canvas'), undefined, 1, 1)
-    createEventListeners();
-    history = new History();
-    game = new Game();
-    preloadImages();
-    itemData = await fnExports.parseJSON('./data/items.json');
-    generateRooms();
-    if (!devMode) await sleep(1500);
+}
+
+async function clearBuffers() {
     document.getElementById('loading-screen').classList.add('hidden');
-    game.start();
     await fnExports.awaitEvent(document.getElementById('loading-screen'), 'transitionend');
     document.getElementById('loading-buffer').innerHTML = '';
+}
+
+// loads the item/enemy data and preloads images
+async function loadData() {
+    let itemPaths = [
+        '../data/items/misc_items.json',
+        '../data/items/consumables.json'
+    ]
+    let enemyPaths = [
+        '../data/enemies/example_enemies.json',
+    ]
+    for (const itemPath of itemPaths) {
+        Object.assign(itemData, await fnExports.parseJSON(itemPath));
+    }
+    for (const enemyPath of enemyPaths) {
+        Object.assign(enemyData, await fnExports.parseJSON(enemyPath));
+    }
+    
+    preloadImages();
+}
+
+// initializes the rooms and player
+export async function init() {
+    loadBuffers();
+    particleHandler = new CanvasHandler(document.getElementById('particle-canvas'), undefined, 1, 1)
+    history = new History();
+    game = new Game();
+    await loadData();
+    createEventListeners();
+    generateRooms();
+    if (!devMode) await sleep(1500);
+    game.start();
+    clearBuffers();
 }
 
 // preloads images
