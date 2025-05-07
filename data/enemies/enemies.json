@@ -1,0 +1,23 @@
+{
+    "Blatto": {
+        "name": "Blatto",
+        "hp": 30,
+        "strength": 5,
+        "agility": 15,
+        "desc": "Annoying little roaches that tend to swarm in packs. They are weak yet resilient, and can be dangerous in large numbers."
+    },
+    "Average Joe": {
+        "name": "Average Joe",
+        "hp": 20,
+        "strength": 8,
+        "agility": 8,
+        "desc": "Jack of all trades, master of none."
+    },
+    "FishBat": {
+        "name": "FishBat",
+        "hp": 30,
+        "strength": 10,
+        "agility": 30,
+        "desc": "A large, ugly beast of a fish with bat wings, surprisingly agile for its size. Not to be confused with a batfish."
+    }
+}
