@@ -34,7 +34,6 @@ export class CanvasHandler {
         }
         let awaitDespawning = async()=> {
             while (this.particles.length > 0) {
-                console.log(this.particles);
                 await sleep(5);
             }
         }

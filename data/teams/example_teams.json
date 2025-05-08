@@ -1,0 +1,19 @@
+{
+    "ExampleTeam1": {
+        "enemyPool": [
+            {"name": "Example enemy 1", "weight": 5},
+            {"name": "Example enemy 2", "weight": 1}
+        ],
+        "enemyMin": 4,
+        "enemyMax": 6,
+        "UniqueEnemies": false,
+        "rewardPool": [
+            {"name": "Example Reward", "min": 2, "weight": 5},
+            {"name": "Example Reward 2", "min": 2, "weight": 1}
+        ],
+        "rewardMin": 4,
+        "rewardMax": 6,
+        "groupName": "Example Team 1",
+        "useEnemyLoot": true
+    }
+}

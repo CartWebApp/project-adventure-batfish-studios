@@ -20,6 +20,8 @@ export let game;
 export let history;
 let itemData = {};
 let enemyData = {};
+let teamData = {};
+let lootTableData = {};
 export let particleHandler;
 
 const parsableStyles = [
@@ -115,24 +117,14 @@ class Game {
     }
 
     // Gives an item to the player's inventory
-    getItem({name, min=1, max=0, style = '', customMessage = ''}={}) {
-        max = max || min;
-        let count = random(min, max);
+    getItem(data={}, customMessage='') {
         let messages = [];
-        style = style || itemData?.[name]?.style || '[c:var(--item-color)]';
-        let item;
-        if (!(name in itemData)) {
-            item = new Item({name, count, type: 'generic', description: 'An item', style: style});
-        } else if (itemData[name].type === 'generic') {
-            item = new Item({count, style, ...itemData[name]});
-        } else if (itemData[name].type === 'consumable') {
-            item = new Consumable({count, style, ...itemData[name]});
-        }
+        let item = parseItem(data)
         player.addItem(item);
-        if (count > 1) {
-            messages.push(customMessage || `Obtained [${style + name}[:]] X ${count}`);
+        if (item.count > 1) {
+            messages.push(customMessage || `Obtained [${item.style + item.name}[:]] X ${item.count}`);
         } else {
-            messages.push(customMessage || `Obtained [${style + name}[:]]`);
+            messages.push(customMessage || `Obtained [${item.style + item.name}[:]]`);
         }
         return { messages };
     }
@@ -273,15 +265,7 @@ class Game {
     async encounter({enemies, rewards, groupName, useEnemyLoot=true}={}) {
         let generatedEnemies = [];
         for (const enemy of enemies) {
-            if (enemy instanceof Enemy) {
-                generatedEnemies.push(enemy)
-            } else {
-                if (enemy.overrides) {
-                    generatedEnemies.push(new Enemy({...enemyData[enemy.id], ...enemy.overrides}))
-                } else {
-                    generatedEnemies.push(new Enemy(enemyData[enemy.id]))
-                }
-            }
+            generatedEnemies.push(parseEnemy(enemy))
         }
         let battle = new Battle({enemies: generatedEnemies, rewards, groupName, useEnemyLoot});
         await battle.encounter(game.runNumber);
@@ -1313,6 +1297,46 @@ export class Ending extends Room {
     }
 }
 
+// parses an input for item data, returning an Item object
+function parseItem(data) {
+    let count = 1;
+        if (data.min) {
+            let max = data.max ?? data.min
+            count = random(data.min, max);
+        }
+        let item;
+        if (!(data.name in itemData)) {
+            if (data instanceof Item) {
+                item = data;
+            } else {
+                item = new Item({count, ...data});
+            }
+        } else if (itemData[data.name].type === 'generic') {
+            item = new Item({count, ...itemData[data.name]});
+        } else if (itemData[data.name].type === 'consumable') {
+            item = new Consumable({count, ...itemData[data.name]});
+        }
+        return item;
+}
+
+// parses an input for item data, returning an Item object
+function parseEnemy(enemy) {
+    let returnedEnemy;
+    if (enemy instanceof Enemy) {
+        returnedEnemy = enemy
+    } else {
+        if (enemy.overrides) {
+            returnedEnemy = new Enemy({...enemyData[enemy.id], ...enemy.overrides})
+        } else {
+            returnedEnemy = new Enemy(enemyData[enemy.id])
+        }
+    }
+    return returnedEnemy;
+}
+
+
+
+
 // creates a queueList given a list of stories, actions, and choices
 export function createQueuelist(itemList) {
     let queuelist = [];
@@ -1883,11 +1907,23 @@ async function loadData() {
     let enemyPaths = [
         '../data/enemies/example_enemies.json',
     ]
+    let teamPaths = [
+        '../data/teams/example_teams.json',
+    ]
+    let lootTablePaths = [
+        '../data/loot_tables/example_loot_tables.json',
+    ]
     for (const itemPath of itemPaths) {
         Object.assign(itemData, await fnExports.parseJSON(itemPath));
     }
     for (const enemyPath of enemyPaths) {
         Object.assign(enemyData, await fnExports.parseJSON(enemyPath));
+    }
+    for (const teamPath of teamPaths) {
+        Object.assign(teamData, await fnExports.parseJSON(teamPath));
+    }
+    for (const lootTablePath of lootTablePaths) {
+        Object.assign(lootTableData, await fnExports.parseJSON(lootTablePath));
     }
     
     preloadImages();
@@ -1902,7 +1938,7 @@ export async function init() {
     await loadData();
     createEventListeners();
     generateRooms();
-    if (!devMode) await sleep(1500);
+    if (!devMode) await sleep(1400);
     game.start();
     clearBuffers();
 }

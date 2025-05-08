@@ -125,14 +125,17 @@ function generate() {
     .addAction({type: 'changeParticleStrength', parameters: [.5]});
     room.createChoice('Weaken', {persistant: true})
     .addAction({type: 'changeParticleStrength', parameters: [-.5]});
-    let ashes = room.createChoice('Next Animation')
+    let fog = room.createChoice('Fog', {persistant: true})
+    fog.addAction({type: 'changeParticleAnimation', parameters: ['fog', 1, 1]});
+    let ashes = room.createChoice('Ashes', {persistant: true})
     ashes.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 1, 1]});
-    let smoke = room.createChoice('Next Animation')
+    let smoke = room.createChoice('Smoke', {persistant: true})
     smoke.addAction({type: 'changeParticleAnimation', parameters: ['smoke top', 1, 1]});
-    smoke.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [ashes.id] })
+    // smoke.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [ashes.id] })
     room.createChoice('Return to hub', {classList: ['rainbow-overlay'], color: 'yellow'})
         .addAction({type: 'changeRoom', parameters: ['Example Hub']})
         .addAction({type: 'changeParticleAnimation', parameters: ['adawda', 1, 1]})
+        .addAction({type: 'changeBG', parameters: ['transparent.png', {}, 'background-image-2']})
         .addRequirement({ mode: 'show', type: 'madeChoice', parameters: [smoke.id] })
 
 
