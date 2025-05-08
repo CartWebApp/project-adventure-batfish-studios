@@ -4,7 +4,7 @@ import { Reactor } from './Reactor.js';
 import { CanvasHandler } from './CanvasOverlay.js';
 import { Consumable, Item } from './Item.js';
 import { Character } from './Character.js';
-import { Enemy } from './Enemies.js';
+import { Enemy, Team } from './Enemies.js';
 import { generateRooms } from './RoomGenerator.js';
 // imports general use functions and sets their namespace to this window
 import * as fnExports from './Functions.js';
@@ -262,17 +262,15 @@ class Game {
     }
 
     // a chance to initiate combat
-    async encounter({enemies, rewards, groupName, useEnemyLoot=true}={}) {
-        let generatedEnemies = [];
-        for (const enemy of enemies) {
-            generatedEnemies.push(parseEnemy(enemy))
-        }
-        let battle = new Battle({enemies: generatedEnemies, rewards, groupName, useEnemyLoot});
+    async encounter(data={}) {
+        let team = parseTeam(data)
+        
+        let battle = new Battle(team);
         await battle.encounter(game.runNumber);
     }
 
     // // a chance to initiate combat
-    //  async randomEncounter(enemyPool, rewardPool, groupName) {
+    //  async randomEncounter(teamPool) {
     //     let battle = new Battle({enemies, rewards, groupName})
     //     await battle.encounter(runNumber);
     //     [
@@ -1298,7 +1296,7 @@ export class Ending extends Room {
 }
 
 // parses an input for item data, returning an Item object
-function parseItem(data) {
+export function parseItem(data) {
     let count = 1;
         if (data.min) {
             let max = data.max ?? data.min
@@ -1319,19 +1317,46 @@ function parseItem(data) {
         return item;
 }
 
-// parses an input for item data, returning an Item object
-function parseEnemy(enemy) {
+// parses an input for enemy data, returning an Enemy object
+export function parseEnemy(enemy) {
     let returnedEnemy;
+    enemy.id = enemy.id ?? enemy.name;
     if (enemy instanceof Enemy) {
         returnedEnemy = enemy
     } else {
         if (enemy.overrides) {
-            returnedEnemy = new Enemy({...enemyData[enemy.id], ...enemy.overrides})
+            returnedEnemy = new Enemy({...enemyData[enemy.id], ...enemy.overrides, id: enemy.id})
         } else {
-            returnedEnemy = new Enemy(enemyData[enemy.id])
+            returnedEnemy = new Enemy({...enemyData[enemy.id], id: enemy.id})
         }
     }
     return returnedEnemy;
+}
+
+// parses an input for team data, returning a Team object
+export function parseTeam(data) {
+    let returnedTeam;
+    if (data instanceof Team) {
+        returnedTeam = data
+    } else if (teamData[data.id]) {
+        if (data.overrides) {
+            returnedTeam = new Team({...teamData[data.id], ...data.overrides})
+        } else {
+            returnedTeam = new Team(teamData[data.id])
+        }
+    } else {
+        returnedTeam = new Team(data)
+    }
+
+    let parsedEnemies = []
+    for (const enemy of returnedTeam.enemyPool) {
+        parsedEnemies.push(parseEnemy(enemy))
+    }
+    returnedTeam.enemyPool = parsedEnemies;
+
+    // adds enemies to team
+    returnedTeam.generateEnemies();
+    return returnedTeam;
 }
 
 
@@ -1414,6 +1439,7 @@ export function createEnding(name, bg) {
 
 // parses a string for style identifiers, returning clean text and a dictionary of location + identifier values
 function parseStyles(text, identifier) {
+    if (!text) return {text: '', data: []}
     let data = [];
     let cleanText = text;
     let specialMatches = [...text.matchAll(new RegExp(String.raw`(\[)(?!\[)(?!${identifier}:)([^:^\]]*:)([^\]]*)(\])`, 'g'))];

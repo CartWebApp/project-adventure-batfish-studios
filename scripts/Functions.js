@@ -154,7 +154,7 @@ export function randomString(charset, length=1) {
 //     f
 // }
 
-// returns random items from an array of objects {name, weight} chosen by weight based probability
+// returns random items from an array of objects {object, weight} chosen by weight based probability
 export function weightedRandom(objectList, {count=1, unique=true}={}) {
     let selections = [];
     for (let i = 0; i < count; i++) {
@@ -163,11 +163,11 @@ export function weightedRandom(objectList, {count=1, unique=true}={}) {
         for (const object of objectList) {
             totalWeight += object.weight;
         }
-        let weightLeft = random(0, totalWeight);
+        let weightLeft = random(0, totalWeight, 10);
         for (const object of objectList) {
             weightLeft -= object.weight;
             if (weightLeft <= 0) {
-                selections.push(object.name);
+                selections.push(object);
                 if (unique) {
                     objectList.splice(objectList.indexOf(object),1);
                 }

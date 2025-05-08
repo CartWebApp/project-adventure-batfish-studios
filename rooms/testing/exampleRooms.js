@@ -15,7 +15,7 @@ function generate() {
     room.createChoice('Particle Testing')
         .addAction({type: 'changeRoom', parameters: ['Example Room Particles']});
     room.createChoice('Battle Testing')
-        .addAction({type: 'changeRoom', parameters: ['Example Room Battle']});
+        .addAction({type: 'changeRoom', parameters: ['Example Battle Hub']});
     room.createChoice('Grid Testing')
         .addAction({type: 'changeRoom', parameters: ['Example Grid Hub']});
     room.createChoice('Items')
@@ -140,10 +140,21 @@ function generate() {
 
 
     // battle testing
-    room = createRoom('Example Room Battle', { name: 'neutral.jpeg' });
+    room = createRoom('Example Battle Hub');
+    room.createChoice('Back', {color: '[c:var(--back-color)]'})
+        .addAction({type: 'changeRoom', parameters: ['Example Hub']});
+    room.createChoice('Enemy Test')
+        .addAction({type: 'changeRoom', parameters: ['Example Battle 1']});
+    room.createChoice('Team Test')
+        .addAction({type: 'changeRoom', parameters: ['Example Battle 2']});
+    room.createChoice('Random Encounter Test')
+        .addAction({type: 'changeRoom', parameters: ['Example Battle 3']});
+
+    // battle 1
+    room = createRoom('Example Battle 1', { name: 'neutral.jpeg' });
     room.addAction({ type: 'getItem', parameters: [{name: 'Lume Fruit', min: 2, max: 3}], waits: true});
     room.addAction({type: 'encounter', parameters: [{
-        enemies: [
+        enemyPool: [
             {id: 'Example Enemy', overrides: {name: 'JOJO'}},
             {id: 'ThisNameDoesNotMatterAsLongAsItsAPropertyNameInItemData'}
         ],
@@ -156,7 +167,7 @@ function generate() {
     }],
     waits: true, chance: 100})
     room.addAction({type: 'encounter', parameters: [{
-        enemies:[
+        enemyPool:[
             new Enemy({name: 'Weak Enemy', hp: 10, strength: 2, agility: 2}),
             new Enemy({name: 'OP Enemy', hp: 200, strength: 100, agility: 100, desc: `You [fst:italic]really[:] don't want to mess with this guy`}),
             new Enemy({name: 'Enemy 3', hp: 5, strength: 1, agility: 1}),
@@ -174,6 +185,11 @@ function generate() {
     room.createChoice('Return to hub', {classList: ['rainbow-overlay'], color: 'yellow'})
         .addAction({type: 'changeRoom', parameters: ['Example Hub']});
 
+    // battle 2
+    room = createRoom('Example Battle 2');
+    room.addAction({type: 'encounter', parameters: [{
+        id: 'ExampleTeam1'
+    }], waits: true})
 
     // grid testing
     room = createRoom('Example Grid Hub');

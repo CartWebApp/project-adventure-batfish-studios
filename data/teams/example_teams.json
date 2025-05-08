@@ -1,12 +1,12 @@
 {
     "ExampleTeam1": {
         "enemyPool": [
-            {"name": "Example enemy 1", "weight": 5},
-            {"name": "Example enemy 2", "weight": 1}
+            {"id": "Example Enemy", "overrides":  {"name": "Example Enemy 1"}, "weight": 5},
+            {"id": "Example Enemy", "overrides":  {"name": "Example Enemy 2"}, "weight": 5}
         ],
-        "enemyMin": 4,
-        "enemyMax": 6,
-        "UniqueEnemies": false,
+        "enemyMin": 1,
+        "enemyMax": 3,
+        "uniqueEnemies": false,
         "rewardPool": [
             {"name": "Example Reward", "min": 2, "weight": 5},
             {"name": "Example Reward 2", "min": 2, "weight": 1}
