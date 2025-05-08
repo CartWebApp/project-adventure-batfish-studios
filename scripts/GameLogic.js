@@ -137,7 +137,7 @@ class Game {
     // changes the players health
     changeHP({min=0, max=0, cause='default', customMessage = ''}={}) {
         max = max || min;
-        let amount = random(min, max)
+        let amount = random(min, max + 1)
         let messages = [];
         player.changeHP(amount);
         if (player.hp <= 0) {
@@ -154,7 +154,7 @@ class Game {
     // changes the players max health
     changeMaxHP(min, max, customMessage = '') {
         max = max ?? min;
-        let amount = random(min, max)
+        let amount = random(min, max + 1)
         let messages = [];
         player.changeMaxHP(amount);
         if (amount >= 0) {
@@ -626,19 +626,49 @@ class Battle {
         await typeText(`[class:agility]Agility: ${enemy.agility}`, {...this.textConfig, waits: true});
     }
 
+    // calculates the battle rewards
+    calculateRewards() {
+        let rewards = {}
+        this.rewardMin = this.rewardMin ?? 1;
+        this.rewardMax = this.rewardMax ?? this.rewardMin;
+        let rewardCount = random(this.rewardMin, this.rewardMax + 1);
+        let teamRewards = [];
+        let generatedRewards = fnExports.weightedRandom(this.rewardPool,
+            {unique: false, count: rewardCount});
+        for (const reward of generatedRewards) {
+            reward.max = reward.max ?? reward.min
+            reward.count = random(reward.min ?? 1, reward.max + 1);
+            if (rewards[reward.name]) {
+                rewards[reward.name].count += reward.count;
+            } else {
+                rewards[reward.name] = { name: reward.name, count: reward.count }
+            }
+        }
+
+        if (this.useEnemyLoot) for (const enemy of this.enemies) {
+            for (const itemData of enemy.lootTable) {
+                itemData.max = itemData.max ?? itemData.min ?? 1
+                itemData.count = random(itemData.min ?? 1, itemData.max + 1)
+                if (!game.chanceRoll(itemData.chance ?? 1)) continue;
+                if (rewards[itemData.name]) {
+                    rewards[itemData.name].count += itemData.count
+                } else {
+                    rewards[itemData.name] = { name: itemData.name, count: itemData.count }
+                }
+            }
+        }
+        rewards = fnExports.sortByPath(Object.values(rewards), ['name'])
+        return rewards;
+    }
+
     // gives the player rewards
     async getRewards() {
         clearDialogueText();
             typeText(`You have defeated ${this.groupName}`, {...this.textConfig});
+            let rewards = this.calculateRewards();
             let rewardActions = []
-            for (const reward of this.rewards) {
-                rewardActions.push(new Action({type: 'getItem', parameters: [{name: reward.name, min: reward.min, max: reward.max}], waits: false}))
-            }
-            if (this.useEnemyLoot) for (const enemy of this.enemies) {
-                for (const itemData of enemy.lootTable) {
-                    if (!game.chanceRoll(itemData.chance ?? 1)) continue;
-                    rewardActions.push(new Action({type: 'getItem', parameters: [{name: itemData.name, min: itemData.min ?? 1, max: itemData.max}], waits: false}))
-                }
+            for (const reward of rewards) {
+                rewardActions.push(new Action({type: 'getItem', parameters: [{name: reward.name, min: reward.count}], waits: false}))
             }
             await attemptActionsWithText(rewardActions);
     }
@@ -712,7 +742,7 @@ class Player extends Character {
         // }
 
         // repopulates inventory gui
-        for (const item of Object.values(player.inventory)) {
+        for (const item of sortByPath(Object.values(player.inventory), ["name"])) {
             const itemElement = document.createElement('p');
             itemElement.className = 'item-container flex wrap';
             itemElement.itemName = item.name;
@@ -1300,7 +1330,7 @@ export function parseItem(data) {
     let count = 1;
         if (data.min) {
             let max = data.max ?? data.min
-            count = random(data.min, max);
+            count = random(data.min, max + 1);
         }
         let item;
         if (!(data.name in itemData)) {
@@ -1965,7 +1995,7 @@ export async function init() {
     await loadData();
     createEventListeners();
     generateRooms();
-    if (!devMode) await sleep(1400);
+    if (!devMode) await sleep(1300);
     game.start();
     clearBuffers();
 }

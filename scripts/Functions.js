@@ -161,11 +161,11 @@ export function weightedRandom(objectList, {count=1, unique=true}={}) {
         if (objectList.length === 0) break;
         let totalWeight = 0;
         for (const object of objectList) {
-            totalWeight += object.weight;
+            totalWeight += object.weight ?? 1;
         }
         let weightLeft = random(0, totalWeight, 10);
         for (const object of objectList) {
-            weightLeft -= object.weight;
+            weightLeft -= object.weight ?? 1;
             if (weightLeft <= 0) {
                 selections.push(object);
                 if (unique) {

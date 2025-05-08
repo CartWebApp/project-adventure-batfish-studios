@@ -158,7 +158,7 @@ function generate() {
             {id: 'Example Enemy', overrides: {name: 'JOJO'}},
             {id: 'ThisNameDoesNotMatterAsLongAsItsAPropertyNameInItemData'}
         ],
-        rewards: [
+        rewardPool: [
             {name: 'Example Reward', min: 1, max: 5},
             {name: 'Example Reward 2', min: 1, max: 5},
             {name: 'missingNo', min: 1, max: 1}
@@ -176,7 +176,7 @@ function generate() {
             new Enemy({name: 'Enemy 6', hp: 5, strength: 1, agility: 6}),
             new Enemy({name: 'Enemy 7', hp: 5, strength: 1, agility: 8})
         ], 
-        rewards: [
+        rewardPool: [
             {name: 'Wacky Thing', min: 1, max: 1},
             {name: 'Super Syrum', min: 1, max: 1}
         ],

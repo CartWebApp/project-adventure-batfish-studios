@@ -177,7 +177,7 @@ function generate() {
         enemyPool: [
             new Enemy({name: 'Average Joe', hp: 15, strength: 10, agility: 10, desc: `Jack of all trades, master of none.`})
         ],
-        rewards: [
+        rewardPool: [
             {name: 'Food Pack', min: 1, max: 4},
             {name: 'Participation Trophy', min: 1, max: 1},
         ], 
@@ -200,7 +200,7 @@ function generate() {
         enemyPool: [
             new Enemy({name: 'FishBat', hp: 20, strength: 20, agility: 5, desc: `Not to be confused with a batfish.`}),
         ],
-        rewards: [
+        rewardPool: [
             {name: 'Food Pack', min: 1, max: 4}
         ], 
         groupName: 'an abnormality!'
@@ -215,7 +215,7 @@ function generate() {
             new Enemy({name: 'Rootwraith', hp: 8, strength: 20, agility: 20, desc: `A horrid mass of roots and vines.`}),
             new Enemy({name: 'Blightfruit Beast', hp: 30, strength: 2, agility: 2, desc: `A large, mutated fruit with a gaping maw.`})
         ],
-        rewards: [
+        rewardPool: [
             {name: 'Food Pack', min: 1, max: 4},
             {name: 'Opinionated Seedling', min: 1, max: 1},
         ],
@@ -242,7 +242,7 @@ function generate() {
             new Enemy({name: 'Heavily Armed Turtle 3', hp: 15, strength: 12, agility: 12, desc: `A mutant turtle with some sick nunchucks.`}),
             new Enemy({name: 'Heavily Armed Turtle 4', hp: 15, strength: 12, agility: 12, desc: `A mutant turtle with a big stick.`})
         ],
-        rewards: [
+        rewardPool: [
             {name: 'Food Pack', min: 1, max: 7},
             {name: 'Slice of Brotherhood', min: 1, max: 1}
         ],
@@ -255,7 +255,7 @@ function generate() {
             new Enemy({name: 'Blatto', hp: 30, strength: 20, agility: 20, desc: `A giant cockroach with a bad attitude.`}),
             new Enemy({name: 'Joyama', hp: 20, strength: 15, agility: 15, desc: `A large, spider-like creature with a nasty bite.`})
         ],
-        rewards: [
+        rewardPool: [
             {name: 'Food Pack', min: 1, max: 3},
             {name: 'Questionable Mixtape', min: 1, max: 1}
         ],
@@ -401,7 +401,7 @@ function generate() {
             new Enemy({name: 'Palmetto',hp:  40, strength: 15, agility: 15, desc: `A rootin', tootin', mutasnt shootin' cockroach. No...a glockroach.`}),
             new Enemy({name: 'Blatto Lackey 2', hp: 20, strength: 10, agility: 5, desc: `A short, dumpy fellow. All brawn, no brain.`}),
         ],
-        rewards: [
+        rewardPool: [
             {name: 'Unnecessary Trauma', min: 1, max: 1},
             {name: 'The Glockinator', min: 3, max: 3}
         ],
