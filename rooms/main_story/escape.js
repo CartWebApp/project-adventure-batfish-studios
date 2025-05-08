@@ -79,7 +79,7 @@ function generate() {
     room.addStory(`[c:var(--dialogue)]"You can call me [c:var(--character)]Idelle.[c:var(--dialogue)]"`);
     room.addStory(`[c:var(--actions)][fst:italic]You and [c:var(--character)]Idelle [c:var(--actions)]are now acquainted.`)
     room.addStory(`[c:var(--dialogue)]"You should have been released years ago, Gali."`);
-    room.addStory(`[c:var(--dialogue)]"They let me and that other fellow go after the 60-year contract was up. They couldn't get your pod to open at the time, so..."`);
+    room.addStory(`[c:var(--dialogue)]"They let me and that other guy go after the 60-year contract was up. They couldn't get your pod to open at the time, so..."`);
     room.addStory(`...So you were [an:text-funky][c:var(--destruction)]abandoned, [an:][c:]it seems.`, {speed: 70, waits: false, waitDelay:1500});
     choice1 = room.createChoice(`Ask how long you've been frozen.`);
     room.addStory(`[c:var(--character)]Idelle [c:]gives a sheepish frown, awkwardly patting your shoulder.`);

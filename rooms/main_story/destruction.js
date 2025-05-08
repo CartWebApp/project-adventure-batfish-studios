@@ -44,9 +44,10 @@ function generate() {
     room.addStory(`The creature offers one of six hands to you, grabbing yours before you can react.`);
     room.addStory(`[c:var(--dialogue)]"Name's [c:var(--character)]Palmetto.[c:var(--dialogue)]"`);
     room.addStory(`[c:var(--actions)][fst:italic]You and [c:var(--character)]Palmetto [c:var(--actions)]are now acquainted.`)
-    room.addStory(`[c:var(--character)]Palmetto[c:var(--dialogue)] gestures to the group, who are still staring at you blankly.`);
-    room.addStory(`[c:var(--character)]"We's all a bit...with 'er own cautions 'n such, but we's ain't hostile. Ain't no reason 'ta be."`);
-    room.addStory(`[c:var(--character)]"Us'n just tryin' 'ta make it through this mess, same's you."`);
+    room.addStory(`[c:var(--character)]Palmetto[c:] gestures to the group. They're currently in the middle of carrying the looted pile over to a caravan of giant, dusty, rodent-like creatures. Upon tapping their heads, they open their mouths, alowing the crew to start shoving things into the critters' cheeks.`);
+    room.addStory(`Before you can keep gawking at the sight, [c:var(--character)]Palmetto[c:] snaps his fingers in your face to grab your attention back.`);
+    room.addStory(`[c:var(--dialogue)]"We's all a bit...with 'er own cautions 'n such, but we's ain't hostile. Ain't no reason 'ta be."`);
+    room.addStory(`[c:var(--dialogue)]"Us'n just tryin' 'ta make it through this mess, same's you."`);
     room.addStory(`He gives you his best approximation of a smile, and you can't help but feel a little more at ease.`);
     room.addStory(`[c:var(--dialogue)]"Real shame 'ya had 'ta wake up in'na middle'a all the mess, though."`);
     room.addStory(`[c:var(--dialogue)]"Y'know, I wuz there thet day. Woke up inna pod, came crawlin' out widd'et other gal, 'n we's wuz waitin' on ya 'ta pop out too."`);
@@ -56,4 +57,13 @@ function generate() {
     room.addStory(`[c:var(--dialogue)]"Ah, well, ain't no use dwellin' on the past. We's all here now, ain't we?"`);
     room.addStory(`[c:var(--dialogue)]"Wut's 'nuther few years, anyways?"`);
     choice1 = room.createChoice(`Define "A few" years.`);
+    room.addStory(`You hear [c:var(--character)]Palmetto [c:] quietly hiss, wings fluttering behind him.`)
+    room.addStory(`[c:var(--dialogue)]"Wull, it ain't [fst:italic]thet [fst:]bad!"`);
+    room.addStory(`He lands a hearty pat on your back.`);
+    room.addStory(`[fw:bold][fs:30px][c:var(--dialogue)][an:text-shiver .65s ease-in-out infinite alternate]"Fifteen years [fw:][an:]ain't got nuthin' awn ya!"`, {speed: 65});
+    room.addStory(`His mandibles chitter with delight as he throws an arm around you, giving you no time to let that settle in.`);
+    room.addStory(`[c:var(--dialogue)]"The 'port'n thing now's thet'churr outta there. [c:var(--Gali)]Project Permafrost[c:var(--dialogue)] ain't no more!"`);
+    room.addStory(`With that, Palmetto drags you to the window, boosting you up as you hop out of it.`);
+    room.addStory(`They all turn to face him immediately. In the distance, a stray survivor is running off into the distance, dragging one foot behind them.`);
+    room.addStory(`[c:var(--character)]Palmetto [c:]sighs, clicking his mandibles quietly.`);
 }

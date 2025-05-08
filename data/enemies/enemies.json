@@ -4,7 +4,7 @@
         "hp": 30,
         "strength": 5,
         "agility": 15,
-        "desc": "Annoying little roaches that tend to swarm in packs. They are weak yet resilient, and can be dangerous in large numbers."
+        "desc": "Annoying little roach that tends to swarm in packs. They are weak yet resilient, and can be dangerous in large numbers."
     },
     "Average Joe": {
         "name": "Average Joe",
