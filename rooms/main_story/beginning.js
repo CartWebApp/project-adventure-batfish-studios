@@ -46,7 +46,7 @@ function generate() {
 
     room = createRoom(`b-return`, { name: 'neutral.jpeg' }); // changed mind at some point
     room.addStory(`Returning to the lab, you find that the way back to your cryopod is now blocked off. The ceiling has collapsed, and the only way back out is through one of the other hallways.`);
-    room.addStory(`You can either go [c:var(--escape)]left, [c:var(--destruction)]right, [c:]or [c:var(--savior)]straight ahead.`);
+    room.addStory(`It's just a matter of which one you pick.`);
     choice1 = room.createChoice("Go left.");
     choice1.addAction({ type: 'changeRoom', parameters: ['e-start'] });
     choice1.addRequirement({ mode: 'show', type: 'madeChoice', inverse: true, parameters: ['escape']});

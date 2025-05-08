@@ -10,7 +10,7 @@ import { generateRooms } from './RoomGenerator.js';
 import * as fnExports from './Functions.js';
 Object.entries(fnExports).forEach(([name, exported]) => window[name] = exported);
 
-let devMode = false;
+let devMode = true;
 
 export let player;
 let textController; // makes text writing cancellable
@@ -112,7 +112,7 @@ class Game {
         this.currentEnding = 'unset';
         this.endings = {}; // holds the possible ending names and text
         this.leaveChoices = false; // choices get left if this is true
-        this.startingRoom = 'd-explain'; // [ 'Example Hub' ][ 'b-start' ]
+        this.startingRoom = 'd-outside'; // [ 'Example Hub' ][ 'b-start' ]
         this.runNumber = -1;
     }
 

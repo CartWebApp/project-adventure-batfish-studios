@@ -44,11 +44,11 @@ function generate() {
     room.addStory(`The creature offers one of six hands to you, grabbing yours before you can react.`);
     room.addStory(`[c:var(--dialogue)]"Name's [c:var(--character)]Palmetto.[c:var(--dialogue)]"`);
     room.addStory(`[c:var(--actions)][fst:italic]You and [c:var(--character)]Palmetto [c:var(--actions)]are now acquainted.`)
-    room.addStory(`[c:var(--character)]Palmetto[c:] gestures to the group. They're currently in the middle of carrying the looted pile over to a caravan of giant, dusty, rodent-like creatures. Upon tapping their heads, they open their mouths, alowing the crew to start shoving things into the critters' cheeks.`);
-    room.addStory(`Before you can keep gawking at the sight, [c:var(--character)]Palmetto[c:] snaps his fingers in your face to grab your attention back.`);
+    room.addStory(`[c:var(--character)]Palmetto[c:] gestures to the group outside.`);
     room.addStory(`[c:var(--dialogue)]"We's all a bit...with 'er own cautions 'n such, but we's ain't hostile. Ain't no reason 'ta be."`);
-    room.addStory(`[c:var(--dialogue)]"Us'n just tryin' 'ta make it through this mess, same's you."`);
-    room.addStory(`He gives you his best approximation of a smile, and you can't help but feel a little more at ease.`);
+    room.addStory(`[c:var(--dialogue)]"Us'n just tryin' 'ta make it through this mess, same's you, uh..."`);
+    room.addStory(`[c:var(--Gali)]Gali, [c:]you state.`);
+    room.addStory(`He gives you his best approximation of a smile at that, and you can't help but feel a little more at ease.`);
     room.addStory(`[c:var(--dialogue)]"Real shame 'ya had 'ta wake up in'na middle'a all the mess, though."`);
     room.addStory(`[c:var(--dialogue)]"Y'know, I wuz there thet day. Woke up inna pod, came crawlin' out widd'et other gal, 'n we's wuz waitin' on ya 'ta pop out too."`);
     room.addStory(`[c:var(--dialogue)]"'N then. y'know..."`);
@@ -64,6 +64,27 @@ function generate() {
     room.addStory(`His mandibles chitter with delight as he throws an arm around you, giving you no time to let that settle in.`);
     room.addStory(`[c:var(--dialogue)]"The 'port'n thing now's thet'churr outta there. [c:var(--Gali)]Project Permafrost[c:var(--dialogue)] ain't no more!"`);
     room.addStory(`With that, Palmetto drags you to the window, boosting you up as you hop out of it.`);
-    room.addStory(`They all turn to face him immediately. In the distance, a stray survivor is running off into the distance, dragging one foot behind them.`);
-    room.addStory(`[c:var(--character)]Palmetto [c:]sighs, clicking his mandibles quietly.`);
+    // room.addAction({type: ""});
+    room.addAction({type: 'changeRoom', parameters: ['d-outside']})
+    
+    room = createRoom('d-outside', {name: 'destruction.jpeg'});
+    room.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 2, 2]});
+    room.addStory(`You look to the crowd of bandits as you start walking up to them. They're currently in the middle of carrying the looted pile over to a caravan of giant, dusty, rodent-like creatures. Upon tapping their heads, they open their mouths, allowing the crew to start shoving all sorts of supplies into the critters' cheeks. [c:var(--actions)][fst:italic][fs:15px](Eww...)`);
+    room.addStory(`They all turn to face you two immediately. In the distance, a stray survivor is running off into the distance, dragging one foot behind them.`);
+    room.addStory(`[c:var(--character)]Palmetto [c:]grunts, his mandibles clicking quietly.`);
+    room.addStory(`[c:var(--dialogue)]"We git pests r'awn here all'a time. Dun' worruh 'bout it, pal. We gotcha covered."`);
+    room.addStory(`Wallking up to the biggest of the fuzzy creatures, a blonde furred fella with beads in its braids, [c:var(--character)]Palmetto [c:]scritches its chin. In return, it politely spits out a big 'ol hunk of rusty metal and bolts in front of you two.`);
+    room.addStory(`His fist clangs against the top of it rather loudly. He grins(?), pushing it across the dirt until it lands at your feet.`);
+    room.addStory(`Wiping the dust off of it, you find that it appears to be a small, round ball with a screen on it. It has two little arms and legs, and a tiny little face that looks like it's made out of pixels.`);
+    room.addStory(`It chirps for a moment, rattling loudly before its head whirrs to look at you.`);
+    room.addStory(`[c:var(--dialogue)]"XCFU-2B?`);
+    room.addStory(`Before you can keep gawking at the sight, [c:var(--character)]Palmetto[c:] snaps his fingers in your face to grab your attention back.`);
+    room.addStory(`[c:var(--dialogue)]"Thet's a lil' welcome gift fer ya. All'n me. We's cleared out all'et junk in its brain al'riddy, so's yer all welcome."`);
+    room.addStory(`He turns around, a low hiss emanating from within him. One of the crew members nods, with the rest clambering onto the rodents.`);
+    room.addStory(`[c:var(--dialogue)]"Now we's dun' rilly got a Carrybeast fer ya, but'm sure we kin work it out. Ye' jus' gotta hop on up 'ere on Marisol fer now."`);
+    room.addStory(`When he sees that you aren't instantly following his lead[c:var(--character)]Palmetto [c:]squints, eyeing you intensely.`);
+    room.addStory(`On cue, two of his lackeys step away from their own Carrybeasts. The two of them, cloaks crudely labeled "Aardvark" and "Roox" draw their weapons.`)
+    room.addStory(`[c:var(--dialogue)]"Yer comin' with, aint'cha?"`);
+    choice1 = room.createChoice(`Take the bot and run.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['s-start']});
 }
