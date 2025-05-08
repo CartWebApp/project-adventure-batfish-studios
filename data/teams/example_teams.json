@@ -11,8 +11,8 @@
             {"name": "Example Reward", "min": 2, "weight": 5},
             {"name": "Example Reward 2", "min": 2, "weight": 1}
         ],
-        "rewardMin": 4,
-        "rewardMax": 6,
+        "rewardMin": 400000000,
+
         "groupName": "Example Team 1",
         "useEnemyLoot": true
     }

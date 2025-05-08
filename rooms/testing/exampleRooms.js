@@ -117,8 +117,6 @@ function generate() {
     room.addStory('Lets try out some particles!', {waits: false});
     room.createChoice('Speed Up', {persistant: true})
     .addAction({type: 'changeParticleSpeed', parameters: [.5]})
-    .addAction({type: 'changeBG', parameters: ['destruction.jpeg', {}, 'background-image-2']})
-    .addAction({type: 'styleBG', parameters: ['[an:blink-weak 500ms ease infinite alternate]', 'background-image-2']});
     room.createChoice('Slow Down', {persistant: true})
     .addAction({type: 'changeParticleSpeed', parameters: [-.5]});
     room.createChoice('Strengthen', {persistant: true})
@@ -134,7 +132,7 @@ function generate() {
     // smoke.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [ashes.id] })
     room.createChoice('Return to hub', {classList: ['rainbow-overlay'], color: 'yellow'})
         .addAction({type: 'changeRoom', parameters: ['Example Hub']})
-        .addAction({type: 'changeParticleAnimation', parameters: ['adawda', 1, 1]})
+        .addAction({type: 'changeParticleAnimation', parameters: ['none', 1, 1]})
         .addAction({type: 'changeBG', parameters: ['transparent.png', {}, 'background-image-2']})
         .addRequirement({ mode: 'show', type: 'madeChoice', parameters: [smoke.id] })
 
@@ -171,10 +169,8 @@ function generate() {
             new Enemy({name: 'Weak Enemy', hp: 10, strength: 2, agility: 2}),
             new Enemy({name: 'OP Enemy', hp: 200, strength: 100, agility: 100, desc: `You [fst:italic]really[:] don't want to mess with this guy`}),
             new Enemy({name: 'Enemy 3', hp: 5, strength: 1, agility: 1}),
-            new Enemy({name: 'Enemy 4', hp: 5, strength: 1, agility: 2}),
-            new Enemy({name: 'Enemy 5', hp: 5, strength: 1, agility: 4}),
-            new Enemy({name: 'Enemy 6', hp: 5, strength: 1, agility: 6}),
-            new Enemy({name: 'Enemy 7', hp: 5, strength: 1, agility: 8})
+            new Enemy({name: 'Enemy 4', hp: 5, strength: 1, agility: 4}),
+            new Enemy({name: 'Enemy 5', hp: 5, strength: 1, agility: 10}),
         ], 
         rewardPool: [
             {name: 'Wacky Thing', min: 1, max: 1},

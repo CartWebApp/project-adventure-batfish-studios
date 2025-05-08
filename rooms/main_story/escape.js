@@ -5,6 +5,9 @@ export let roomGenerators = [generate];
 
 function generate() {
     let room = createRoom('e-start', {name: 'escape.jpeg'});
+    room.addAction({type: 'changeBG', parameters: ['transparent.png', {}, 'background-image-2']})
+    room.addAction({type: 'styleBG', parameters: ['', 'background-image-2']});
+    room.addAction({type: 'changeParticleAnimation', parameters: ['none']});
     room.addStory(`Heading to the [c:var(--escape)]left, [c:]you don't seem to recognize much of the place. It's completely trashed.`);
     room.addStory(`Everything here has been ransacked. Any cabinets that used to be here are rusted and broken down. One's even melted, leaning to its side.`);
     room.addStory(`It doesn't seem like there's much in the room that's worth—`, {waits: false, waitDelay: 1000});

@@ -5,6 +5,9 @@ export let roomGenerators = [generate];
 
 function generate() {
     let room = createRoom(`d-start`, {name: 'destruction.jpeg'});
+    room.addAction({type: 'changeBG', parameters: ['transparent.png', {}, 'background-image-2']})
+    room.addAction({type: 'styleBG', parameters: ['', 'background-image-2']});
+    room.addAction({type: 'changeParticleAnimation', parameters: ['none']});
     room.addStory(`Heading to the [c:var(--destruction)]right, [c:]you can hear the chants of several people. Perhaps you aren't that alone after all.`);
     room.addStory(`It's quite uniform, too. Rhythmic thuds echo through the building, a single light shining through a doorway at the end of the hall.`);
     room.addStory(`Approaching the door, you peek in to see a large, inter-species group of survivors, all donning dark masks, cloaks, hoods, and hats. There's a line of them running out of the broken window, hauling out looted supplies and equipment one by one.`);

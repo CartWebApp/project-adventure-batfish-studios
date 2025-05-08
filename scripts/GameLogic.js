@@ -1321,6 +1321,8 @@ export class Ending extends Room {
         super(name, bg);
         if (bg === defaultBG) {
             this.addAction({ type: 'styleBG', parameters: ['[an:shrink 30s ease-out][fi:grayscale(.6)]'] });
+            this.addAction({type: 'changeBG', parameters: ['transparent.png', {}, 'background-image-2']});
+            this.addAction({type: 'styleBG', parameters: ['', 'background-image-2']});
         }
     }
 }
@@ -1470,6 +1472,8 @@ export function createEnding(name, bg) {
 // parses a string for style identifiers, returning clean text and a dictionary of location + identifier values
 function parseStyles(text, identifier) {
     if (!text) return {text: '', data: []}
+    let maxIterations = 10000000;
+    let iterations = 0;
     let data = [];
     let cleanText = text;
     let specialMatches = [...text.matchAll(new RegExp(String.raw`(\[)(?!\[)(?!${identifier}:)([^:^\]]*:)([^\]]*)(\])`, 'g'))];
@@ -1477,7 +1481,8 @@ function parseStyles(text, identifier) {
         let index = match.index;
         cleanText = cleanText.substring(0, index) + cleanText.substring(index + match[0].length)
     }
-    while (cleanText.includes(`[${identifier}:`)) {
+    while (cleanText.includes(`[${identifier}:`) && iterations < maxIterations) {
+        iterations++;
         let match = cleanText.match(new RegExp(String.raw`(\[)(?=${identifier || ':'})(${identifier}:)([^\]]*)(\])`));
         if (!match) continue;
         let index = match.index;
