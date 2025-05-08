@@ -153,3 +153,62 @@ export function randomString(charset, length=1) {
 // export function findMissing(array1, array2) {
 //     f
 // }
+
+// returns random items from an array of objects {object, weight} chosen by weight based probability
+export function weightedRandom(objectList, {count=1, unique=true}={}) {
+    let selections = [];
+    for (let i = 0; i < count; i++) {
+        if (objectList.length === 0) break;
+        let totalWeight = 0;
+        for (const object of objectList) {
+            totalWeight += object.weight;
+        }
+        let weightLeft = random(0, totalWeight, 10);
+        for (const object of objectList) {
+            weightLeft -= object.weight;
+            if (weightLeft <= 0) {
+                selections.push(object);
+                if (unique) {
+                    objectList.splice(objectList.indexOf(object),1);
+                }
+                break;
+            }
+        }
+    }
+    return selections;
+}
+
+// used for testing random distribution
+export function testRandom(iterations, fn, parameters) {
+    let overallResult = {};
+    for (let i = 0; i < iterations; i++) {
+        let result = fn(...parameters);
+        if (overallResult[result]) {
+            overallResult[result].count += 1
+        } else {
+            overallResult[result] = {count: 1}
+        }
+    }
+    return overallResult;
+}
+
+/**
+ * Sorts an array of objects by a property specified by a path array.
+ * 
+ * @param {Array} array - The array of objects to sort.
+ * @param {Array} path - An array representing the path to the property.
+ * @param {Boolean} [ascending=true] - Whether to sort in ascending order.
+ * @returns {Array} - The sorted array.
+ */
+export  function sortByPath(array, path, ascending = true) {
+    return array.sort((a, b) => {
+        const getValue = (obj, path) => path.reduce((acc, key) => acc?.[key], obj);
+
+        const valueA = getValue(a, path);
+        const valueB = getValue(b, path);
+
+        if (valueA < valueB) return ascending ? -1 : 1;
+        if (valueA > valueB) return ascending ? 1 : -1;
+        return 0;
+    });
+}

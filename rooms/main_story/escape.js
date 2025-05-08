@@ -174,7 +174,7 @@ function generate() {
 
     room = wastelandGrid.generateRoom([0,2], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [{
-        enemies: [
+        enemyPool: [
             new Enemy({name: 'Average Joe', hp: 15, strength: 10, agility: 10, desc: `Jack of all trades, master of none.`})
         ],
         rewards: [
@@ -197,7 +197,7 @@ function generate() {
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO SOUTH.]`);
     room = wastelandGrid.generateRoom([1,4], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [{
-        enemies: [
+        enemyPool: [
             new Enemy({name: 'FishBat', hp: 20, strength: 20, agility: 5, desc: `Not to be confused with a batfish.`}),
         ],
         rewards: [
@@ -211,7 +211,7 @@ function generate() {
 
     room = wastelandGrid.generateRoom([2,1], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [{
-        enemies: [
+        enemyPool: [
             new Enemy({name: 'Rootwraith', hp: 8, strength: 20, agility: 20, desc: `A horrid mass of roots and vines.`}),
             new Enemy({name: 'Blightfruit Beast', hp: 30, strength: 2, agility: 2, desc: `A large, mutated fruit with a gaping maw.`})
         ],
@@ -236,7 +236,7 @@ function generate() {
 
     room = wastelandGrid.generateRoom([3,3], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [{
-        enemies: [
+        enemyPool: [
             new Enemy({name: 'Heavily Armed Turtle 1', hp: 15, strength: 12, agility: 12, desc: `A mutant turtle with a pair of swords.`}),
             new Enemy({name: 'Heavily Armed Turtle 2', hp: 15, strength: 12, agility: 12, desc: `A mutant turtle with a pair of small blades.`}),
             new Enemy({name: 'Heavily Armed Turtle 3', hp: 15, strength: 12, agility: 12, desc: `A mutant turtle with some sick nunchucks.`}),
@@ -251,7 +251,7 @@ function generate() {
 
     room = wastelandGrid.generateRoom([4,0], {name: 'destruction.jpeg'});
     room.addAction({type: 'encounter', parameters: [{
-        enemies: [
+        enemyPool: [
             new Enemy({name: 'Blatto', hp: 30, strength: 20, agility: 20, desc: `A giant cockroach with a bad attitude.`}),
             new Enemy({name: 'Joyama', hp: 20, strength: 15, agility: 15, desc: `A large, spider-like creature with a nasty bite.`})
         ],
@@ -396,7 +396,7 @@ function generate() {
     room.addStory(`You quickly turn to the source of the noise, and your heart sinks as you see [c:var(--character)]Idelle [c:]on the ground, clutching her side.`);
     room.addStory(`Above her stands [c:var(--destruction)]a large, hulking figure with a massive sword strapped to their back, and a pair of glowing red eyes that seem to pierce through the darkness.`);
     room.addAction({type: 'encounter', parameters: [{
-        enemies: [
+        enemyPool: [
             new Enemy({name: 'Blatto Lackey 1', hp: 20, strength: 5, agility: 10, desc: `A tall, lanky fellow. All brain, no brawn.`}),
             new Enemy({name: 'Palmetto',hp:  40, strength: 15, agility: 15, desc: `A rootin', tootin', mutasnt shootin' cockroach. No...a glockroach.`}),
             new Enemy({name: 'Blatto Lackey 2', hp: 20, strength: 10, agility: 5, desc: `A short, dumpy fellow. All brawn, no brain.`}),

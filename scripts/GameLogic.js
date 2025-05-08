@@ -4,7 +4,7 @@ import { Reactor } from './Reactor.js';
 import { CanvasHandler } from './CanvasOverlay.js';
 import { Consumable, Item } from './Item.js';
 import { Character } from './Character.js';
-import { Enemy } from './Enemies.js';
+import { Enemy, Team } from './Enemies.js';
 import { generateRooms } from './RoomGenerator.js';
 // imports general use functions and sets their namespace to this window
 import * as fnExports from './Functions.js';
@@ -20,6 +20,8 @@ export let game;
 export let history;
 let itemData = {};
 let enemyData = {};
+let teamData = {};
+let lootTableData = {};
 export let particleHandler;
 
 const parsableStyles = [
@@ -115,24 +117,14 @@ class Game {
     }
 
     // Gives an item to the player's inventory
-    getItem({name, min=1, max=0, style = '', customMessage = ''}={}) {
-        max = max || min;
-        let count = random(min, max);
+    getItem(data={}, customMessage='') {
         let messages = [];
-        style = style || itemData?.[name]?.style || '[c:var(--item-color)]';
-        let item;
-        if (!(name in itemData)) {
-            item = new Item({name, count, type: 'generic', description: 'An item', style: style});
-        } else if (itemData[name].type === 'generic') {
-            item = new Item({count, style, ...itemData[name]});
-        } else if (itemData[name].type === 'consumable') {
-            item = new Consumable({count, style, ...itemData[name]});
-        }
+        let item = parseItem(data)
         player.addItem(item);
-        if (count > 1) {
-            messages.push(customMessage || `Obtained [${style + name}[:]] X ${count}`);
+        if (item.count > 1) {
+            messages.push(customMessage || `Obtained [${item.style + item.name}[:]] X ${item.count}`);
         } else {
-            messages.push(customMessage || `Obtained [${style + name}[:]]`);
+            messages.push(customMessage || `Obtained [${item.style + item.name}[:]]`);
         }
         return { messages };
     }
@@ -190,13 +182,13 @@ class Game {
 
     // changes the background
     // ex: changeBG('escape.jpg');
-    async changeBG(name, transition = {}) {
+    async changeBG(name, transition = {}, id='background-image') {
         transition.out = transition.out ?? '[an:fade-out .5s ease]';
         transition.in = transition.in ?? '[an:fade-in .5s ease]';
         transition.waitsOut = transition.waitsOut ?? false;
         transition.waitsIn = transition.waitsIn ?? false;
         clearDialogueText();
-        const background = document.getElementById('background-image');
+        const background = document.getElementById(id);
         if (transition.out && transition.waitsOut) {
             game.styleBG(transition.out)
             await awaitAnimation(background);
@@ -215,8 +207,8 @@ class Game {
     }
 
     // applies styles given by a string of style identifiers to the background
-    styleBG(string) {
-        applyStyle(document.getElementById('background-image'), generateStyleList(string));
+    styleBG(style, id='background-image') {
+        applyStyle(document.getElementById(id), generateStyleList(style));
     }
 
     // changes the background particle animation
@@ -270,25 +262,15 @@ class Game {
     }
 
     // a chance to initiate combat
-    async encounter({enemies, rewards, groupName}={}) {
-        let generatedEnemies = [];
-        for (const enemy of enemies) {
-            if (enemy instanceof Enemy) {
-                generatedEnemies.push(enemy)
-            } else {
-                if (enemy.overrides) {
-                    generatedEnemies.push(new Enemy({...enemyData[enemy.id], ...enemy.overrides}))
-                } else {
-                    generatedEnemies.push(new Enemy(enemyData[enemy.id]))
-                }
-            }
-        }
-        let battle = new Battle({enemies: generatedEnemies, rewards, groupName});
+    async encounter(data={}) {
+        let team = parseTeam(data)
+        
+        let battle = new Battle(team);
         await battle.encounter(game.runNumber);
     }
 
     // // a chance to initiate combat
-    //  async randomEncounter(enemyPool, rewardPool, groupName) {
+    //  async randomEncounter(teamPool) {
     //     let battle = new Battle({enemies, rewards, groupName})
     //     await battle.encounter(runNumber);
     //     [
@@ -407,6 +389,7 @@ class Battle {
      * @prop {Array} enemies - List of enemies in the battle
      * @prop {Array} rewards - List of rewards completing the battle gives
      * @prop {String} groupName - Name of the group of enemies
+     * @prop {Boolean} useEnemyLoot - Whether the enemies add their loot table to the rewards
      * 
      * @param {BattleConfig} options - Config for the battle
      */
@@ -420,7 +403,7 @@ class Battle {
         this.advanceElement = document.getElementById('dialogue-box');
         this.textConfig = this.textConfig ?? {element: this.outputContainer, speed: 0, skipElement: this.advanceElement, skippable: true};
         this.enemies = this.enemies.map(enemy => enemy.clone());
-        this.remainingEnemies = this.enemies;
+        this.remainingEnemies = this.enemies.map(enemy => enemy.clone());
     }
 
     async encounter(currentRunNumber) {
@@ -650,6 +633,12 @@ class Battle {
             let rewardActions = []
             for (const reward of this.rewards) {
                 rewardActions.push(new Action({type: 'getItem', parameters: [{name: reward.name, min: reward.min, max: reward.max}], waits: false}))
+            }
+            if (this.useEnemyLoot) for (const enemy of this.enemies) {
+                for (const itemData of enemy.lootTable) {
+                    if (!game.chanceRoll(itemData.chance ?? 1)) continue;
+                    rewardActions.push(new Action({type: 'getItem', parameters: [{name: itemData.name, min: itemData.min ?? 1, max: itemData.max}], waits: false}))
+                }
             }
             await attemptActionsWithText(rewardActions);
     }
@@ -1306,6 +1295,73 @@ export class Ending extends Room {
     }
 }
 
+// parses an input for item data, returning an Item object
+export function parseItem(data) {
+    let count = 1;
+        if (data.min) {
+            let max = data.max ?? data.min
+            count = random(data.min, max);
+        }
+        let item;
+        if (!(data.name in itemData)) {
+            if (data instanceof Item) {
+                item = data;
+            } else {
+                item = new Item({count, ...data});
+            }
+        } else if (itemData[data.name].type === 'generic') {
+            item = new Item({count, ...itemData[data.name]});
+        } else if (itemData[data.name].type === 'consumable') {
+            item = new Consumable({count, ...itemData[data.name]});
+        }
+        return item;
+}
+
+// parses an input for enemy data, returning an Enemy object
+export function parseEnemy(enemy) {
+    let returnedEnemy;
+    enemy.id = enemy.id ?? enemy.name;
+    if (enemy instanceof Enemy) {
+        returnedEnemy = enemy
+    } else {
+        if (enemy.overrides) {
+            returnedEnemy = new Enemy({...enemyData[enemy.id], ...enemy.overrides, id: enemy.id})
+        } else {
+            returnedEnemy = new Enemy({...enemyData[enemy.id], id: enemy.id})
+        }
+    }
+    return returnedEnemy;
+}
+
+// parses an input for team data, returning a Team object
+export function parseTeam(data) {
+    let returnedTeam;
+    if (data instanceof Team) {
+        returnedTeam = data
+    } else if (teamData[data.id]) {
+        if (data.overrides) {
+            returnedTeam = new Team({...teamData[data.id], ...data.overrides})
+        } else {
+            returnedTeam = new Team(teamData[data.id])
+        }
+    } else {
+        returnedTeam = new Team(data)
+    }
+
+    let parsedEnemies = []
+    for (const enemy of returnedTeam.enemyPool) {
+        parsedEnemies.push(parseEnemy(enemy))
+    }
+    returnedTeam.enemyPool = parsedEnemies;
+
+    // adds enemies to team
+    returnedTeam.generateEnemies();
+    return returnedTeam;
+}
+
+
+
+
 // creates a queueList given a list of stories, actions, and choices
 export function createQueuelist(itemList) {
     let queuelist = [];
@@ -1383,6 +1439,7 @@ export function createEnding(name, bg) {
 
 // parses a string for style identifiers, returning clean text and a dictionary of location + identifier values
 function parseStyles(text, identifier) {
+    if (!text) return {text: '', data: []}
     let data = [];
     let cleanText = text;
     let specialMatches = [...text.matchAll(new RegExp(String.raw`(\[)(?!\[)(?!${identifier}:)([^:^\]]*:)([^\]]*)(\])`, 'g'))];
@@ -1870,16 +1927,29 @@ async function clearBuffers() {
 async function loadData() {
     let itemPaths = [
         '../data/items/misc_items.json',
-        '../data/items/consumables.json'
+        '../data/items/consumables.json',
+        '../data/items/quest_items.json'
     ]
     let enemyPaths = [
         '../data/enemies/example_enemies.json',
+    ]
+    let teamPaths = [
+        '../data/teams/example_teams.json',
+    ]
+    let lootTablePaths = [
+        '../data/loot_tables/example_loot_tables.json',
     ]
     for (const itemPath of itemPaths) {
         Object.assign(itemData, await fnExports.parseJSON(itemPath));
     }
     for (const enemyPath of enemyPaths) {
         Object.assign(enemyData, await fnExports.parseJSON(enemyPath));
+    }
+    for (const teamPath of teamPaths) {
+        Object.assign(teamData, await fnExports.parseJSON(teamPath));
+    }
+    for (const lootTablePath of lootTablePaths) {
+        Object.assign(lootTableData, await fnExports.parseJSON(lootTablePath));
     }
     
     preloadImages();
@@ -1894,7 +1964,7 @@ export async function init() {
     await loadData();
     createEventListeners();
     generateRooms();
-    if (!devMode) await sleep(1500);
+    if (!devMode) await sleep(1400);
     game.start();
     clearBuffers();
 }

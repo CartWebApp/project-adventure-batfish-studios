@@ -1,0 +1,19 @@
+{
+    "ExampleTeam1": {
+        "enemyPool": [
+            {"id": "Example Enemy", "overrides":  {"name": "Example Enemy 1"}, "weight": 5},
+            {"id": "Example Enemy", "overrides":  {"name": "Example Enemy 2"}, "weight": 5}
+        ],
+        "enemyMin": 1,
+        "enemyMax": 3,
+        "uniqueEnemies": false,
+        "rewardPool": [
+            {"name": "Example Reward", "min": 2, "weight": 5},
+            {"name": "Example Reward 2", "min": 2, "weight": 1}
+        ],
+        "rewardMin": 4,
+        "rewardMax": 6,
+        "groupName": "Example Team 1",
+        "useEnemyLoot": true
+    }
+}

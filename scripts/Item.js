@@ -16,9 +16,10 @@ export class Item {
      */
     constructor(data) {
         let defaults = {
-            name: '', count:1, type:'generic', desc:'', style:''
+            name: '', count:1, type:'generic', desc:'', style:'[c:var(--item-color)]'
         }
-        Object.assign(this, defaults, data)
+        Object.assign(this, defaults, data);
+
     }
 }
 

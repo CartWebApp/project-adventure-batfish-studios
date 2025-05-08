@@ -15,7 +15,7 @@ function generate() {
     room.createChoice('Particle Testing')
         .addAction({type: 'changeRoom', parameters: ['Example Room Particles']});
     room.createChoice('Battle Testing')
-        .addAction({type: 'changeRoom', parameters: ['Example Room Battle']});
+        .addAction({type: 'changeRoom', parameters: ['Example Battle Hub']});
     room.createChoice('Grid Testing')
         .addAction({type: 'changeRoom', parameters: ['Example Grid Hub']});
     room.createChoice('Items')
@@ -116,41 +116,58 @@ function generate() {
     room.addAction({type: 'changeParticleAnimation', parameters: ['fog', 1, 1]});
     room.addStory('Lets try out some particles!', {waits: false});
     room.createChoice('Speed Up', {persistant: true})
-    .addAction({type: 'changeParticleSpeed', parameters: [.5]});
+    .addAction({type: 'changeParticleSpeed', parameters: [.5]})
+    .addAction({type: 'changeBG', parameters: ['destruction.jpeg', {}, 'background-image-2']})
+    .addAction({type: 'styleBG', parameters: ['[an:blink-weak 500ms ease infinite alternate]', 'background-image-2']});
     room.createChoice('Slow Down', {persistant: true})
     .addAction({type: 'changeParticleSpeed', parameters: [-.5]});
     room.createChoice('Strengthen', {persistant: true})
     .addAction({type: 'changeParticleStrength', parameters: [.5]});
     room.createChoice('Weaken', {persistant: true})
     .addAction({type: 'changeParticleStrength', parameters: [-.5]});
-    let ashes = room.createChoice('Next Animation')
+    let fog = room.createChoice('Fog', {persistant: true})
+    fog.addAction({type: 'changeParticleAnimation', parameters: ['fog', 1, 1]});
+    let ashes = room.createChoice('Ashes', {persistant: true})
     ashes.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 1, 1]});
-    let smoke = room.createChoice('Next Animation')
+    let smoke = room.createChoice('Smoke', {persistant: true})
     smoke.addAction({type: 'changeParticleAnimation', parameters: ['smoke top', 1, 1]});
-    smoke.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [ashes.id] })
+    // smoke.addRequirement({ mode: 'show', type: 'madeChoice', parameters: [ashes.id] })
     room.createChoice('Return to hub', {classList: ['rainbow-overlay'], color: 'yellow'})
         .addAction({type: 'changeRoom', parameters: ['Example Hub']})
         .addAction({type: 'changeParticleAnimation', parameters: ['adawda', 1, 1]})
+        .addAction({type: 'changeBG', parameters: ['transparent.png', {}, 'background-image-2']})
         .addRequirement({ mode: 'show', type: 'madeChoice', parameters: [smoke.id] })
 
 
     // battle testing
-    room = createRoom('Example Room Battle', { name: 'neutral.jpeg' });
+    room = createRoom('Example Battle Hub');
+    room.createChoice('Back', {color: '[c:var(--back-color)]'})
+        .addAction({type: 'changeRoom', parameters: ['Example Hub']});
+    room.createChoice('Enemy Test')
+        .addAction({type: 'changeRoom', parameters: ['Example Battle 1']});
+    room.createChoice('Team Test')
+        .addAction({type: 'changeRoom', parameters: ['Example Battle 2']});
+    room.createChoice('Random Encounter Test')
+        .addAction({type: 'changeRoom', parameters: ['Example Battle 3']});
+
+    // battle 1
+    room = createRoom('Example Battle 1', { name: 'neutral.jpeg' });
     room.addAction({ type: 'getItem', parameters: [{name: 'Lume Fruit', min: 2, max: 3}], waits: true});
     room.addAction({type: 'encounter', parameters: [{
-        enemies: [
+        enemyPool: [
             {id: 'Example Enemy', overrides: {name: 'JOJO'}},
             {id: 'ThisNameDoesNotMatterAsLongAsItsAPropertyNameInItemData'}
         ],
         rewards: [
             {name: 'Example Reward', min: 1, max: 5},
-            {name: 'Example Reward 2', min: 1, max: 5}
+            {name: 'Example Reward 2', min: 1, max: 5},
+            {name: 'missingNo', min: 1, max: 1}
         ], 
         groupName: 'a couple of example enemies'
     }],
     waits: true, chance: 100})
     room.addAction({type: 'encounter', parameters: [{
-        enemies:[
+        enemyPool:[
             new Enemy({name: 'Weak Enemy', hp: 10, strength: 2, agility: 2}),
             new Enemy({name: 'OP Enemy', hp: 200, strength: 100, agility: 100, desc: `You [fst:italic]really[:] don't want to mess with this guy`}),
             new Enemy({name: 'Enemy 3', hp: 5, strength: 1, agility: 1}),
@@ -168,6 +185,11 @@ function generate() {
     room.createChoice('Return to hub', {classList: ['rainbow-overlay'], color: 'yellow'})
         .addAction({type: 'changeRoom', parameters: ['Example Hub']});
 
+    // battle 2
+    room = createRoom('Example Battle 2');
+    room.addAction({type: 'encounter', parameters: [{
+        id: 'ExampleTeam1'
+    }], waits: true})
 
     // grid testing
     room = createRoom('Example Grid Hub');

@@ -34,7 +34,6 @@ export class CanvasHandler {
         }
         let awaitDespawning = async()=> {
             while (this.particles.length > 0) {
-                console.log(this.particles);
                 await sleep(5);
             }
         }
@@ -56,6 +55,7 @@ export class CanvasHandler {
     }
 
     async loop() {
+        if (!this.currentAnimation) return;
         if (this.currentAnimation.background) {
             this.currentAnimation.background(this);
         } else {
