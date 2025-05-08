@@ -43,7 +43,7 @@
     },
     "Astrostew": {
         "name": "Astrostew",
-        "description": "You're not sure what is in this, but it must be safe, right?",
+        "description": "You're not sure what is in this, but it must be safe, right? Doesn't expire 'till Lumora 23rd, 4008!",
         "type": "consumable",
         "effects": [{"type": "heal", "value": 15}],
         "hideEffects": true
@@ -64,7 +64,7 @@
         ],
         "hideEffects": true
     },
-    "Super Syrum": {
+    "Super Serum": {
         "name": "Super Serum",
         "description": "A supernatural concoction of untold power. [[c:red]DEV ITEM[c:]]].",
         "type": "consumable",
