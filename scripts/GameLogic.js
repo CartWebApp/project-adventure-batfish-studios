@@ -25,6 +25,7 @@ let teamData = {};
 let lootTableData = {};
 export let particleHandler;
 let audioData = {};
+let audioConfig = {volume: new Reactor(0)}
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [:]
@@ -185,8 +186,8 @@ class Game {
     }
 
     // plays a sound from audioData
-    playSound(soundName) {
-        audioData[soundName].play();
+    playSound(soundName, volume, speed) {
+        audioData[soundName].play(volume, speed);
     }
 
     // stops a sound from audioData
@@ -616,12 +617,15 @@ class Battle {
 
         let animation = indicator.animate(keyframes, timing);
 
-        await Promise.race([animation.finished, awaitEvent(this.advanceElement, 'click')])
+        await Promise.race([animation.finished, awaitEvent(this.advanceElement, 'click')]);
         
         let offset = Math.abs(1 - getComputedStyle(indicator).scale)
         indicator.style.scale = getComputedStyle(indicator).scale;
         animation.cancel();
 
+        if (speed) {
+            game.playSound('hit_1', 1, random(speed ** .5 - .1, speed ** .5, 3));
+        }
         if (offset < 1) {
             animation = this.advanceElement.animate([
                 {translate: '-15px -5px'},
@@ -1951,13 +1955,9 @@ function createEventListeners() {
         let btn = e.target;
         btn.classList.toggle('muted');
         if (btn.classList.contains('muted')) {
-            for (const audio of Object.values(audioData)) {
-                audio.mute()
-            }
+            audioConfig.volume.value = 0;
         } else {
-            for (const audio of Object.values(audioData)) {
-                audio.unmute()
-            }
+            audioConfig.volume.value = 1;
         }
     })
     document.getElementById('mute-button').click();
@@ -1970,7 +1970,7 @@ function createEventListeners() {
     // gives button press sound to buttons
     window.addEventListener('click', (e)=>{
         if (e.target.tagName != 'BUTTON') return;
-        game.playSound('button_press_1');
+        game.playSound('button_2', 1, random(.95, 1.05, 3));
     })
 }
 
@@ -2018,16 +2018,24 @@ async function clearBuffers() {
 
 // loads and categorizes audio
 function loadAudio() {
-    let defaultPath = '../audio/'
+    audioConfig.volume.subscribe(()=> {
+        for (const audio of Object.values(audioData)) {
+            audio.update();
+        }
+    })
+    let defaultPath = '../audio/';
     let audios = [
-        {name: 'battle_stereo', baseVolume: .5, suffix: 'mp3', type: 'bgm'},
-        {name: 'explore_stereo', baseVolume: .5, suffix: 'mp3', type: 'bgm'},
-        {name: 'main_stereo', baseVolume: .5, suffix: 'mp3', type: 'bgm'},
-        {name: 'button_press_1', baseVolume: 1, suffix: 'mp3'},
+        {name: 'battle_stereo', baseVolume: .8, type: 'bgm'},
+        {name: 'explore_stereo', baseVolume: .8, type: 'bgm'},
+        {name: 'main_stereo', baseVolume: .8, type: 'bgm'},
+        {name: 'button_1', baseVolume: 1},
+        {name: 'button_2', baseVolume: .5},
+        {name: 'hit_1', baseVolume: .6},
+        {name: 'hit_2', baseVolume: .6},
     ]
     for (const audio of audios) {
         audio.suffix = audio.suffix ?? 'mp3';
-        audioData[audio.name] = new AudioObject(audio.name, new Audio(defaultPath + audio.name + '.' + audio.suffix), audio.type, audio.baseVolume)
+        audioData[audio.name] = new AudioObject(audio.name, new Audio(defaultPath + audio.name + '.' + audio.suffix), audio.type, audio.baseVolume, audio.loops, audioConfig)
     }
 }
 

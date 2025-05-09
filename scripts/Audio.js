@@ -6,11 +6,16 @@ export class AudioObject {
      * @param {HTMLAudioElement} audioElement - The Audio element
      * @param {Number} baseVolume - Base volume 0-1
      */
-    constructor(name, audioElement, type='default', baseVolume=1, loops=undefined) {
+    constructor(name, audioElement, type='default', baseVolume=1, loops=undefined, controller) {
         this.name = name ?? audioElement.src;
         this.audioElement = audioElement;
         this.baseVolume = baseVolume;
+        this.controller = controller
+        this.volumeMulti = 1;
+        this.speed = 1;
         this.type = type;
+        this.muted = false;
+        this.audioElement.preservesPitch = false;
         if (type === 'bgm') {
             this.loops = loops ?? true
 
@@ -23,18 +28,20 @@ export class AudioObject {
         }
     }
 
-    mute() {
-        this.audioElement.volume = 0;
-    }
-    unmute() {
-        this.audioElement.volume = this.baseVolume;
-    }
-    play() {
+    play(volume, speed) {
+        this.volumeMulti = volume ?? 1;
+        this.speed = speed ?? 1;
         this.audioElement.currentTime = 0;
+        this.audioElement.volume = this.baseVolume * this.volumeMulti * this.controller.volume.value;
+        this.audioElement.playbackRate = this.speed;
         this.audioElement.play();
     }
     stop() {
         this.audioElement.pause();
         this.audioElement.currentTime = 0;
+    }
+
+    update() {
+        this.audioElement.volume = this.baseVolume * this.volumeMulti * this.controller.volume.value;
     }
 }
