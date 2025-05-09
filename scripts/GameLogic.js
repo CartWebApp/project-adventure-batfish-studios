@@ -205,9 +205,21 @@ class Game {
         audioData.currentSong = audioData[newSong];
     }
 
-    changeSongPitch(pitch) {
-        audioData.currentSong.speed = pitch;
-        audioData.currentSong.update();
+    async changeSongPitch(pitch, transitionDuration=0) {
+        if (transitionDuration) {
+            let pitchDifference = audioData.currentSong.speed - pitch;
+            let step;
+            step = pitchDifference / transitionDuration
+
+            for (let index = 0; index < transitionDuration; index++) {
+                audioData.currentSong.speed -= step;
+                audioData.currentSong.update();
+                await sleep(1)
+            }
+        } else {
+            audioData.currentSong.speed = pitch;
+            audioData.currentSong.update();
+        }
     }
 
     // changes the background
@@ -953,6 +965,7 @@ export class Action {
      * @prop {Number} chance - (0-100) The chance for the function to be run
      * @prop {Number} maxUses The nymber of times this action be run in a run
      * @prop {Number} delay Ms delay before action is run
+     * @prop {Number} skipsWait Hard sets the action to not be awaited
      * 
      * @param {ActionConfig} options
      */
@@ -1843,7 +1856,7 @@ async function attemptActionsWithText(actions) {
     for (const action of actions) {
         if (currentRunNumber != game.runNumber) return;
         let actionResult;
-        if (!action.delay || action.waits) {
+        if ((!action.delay || action.waits) && !action.skipsWait) {
             actionResult = await attemptAction(action);
         } else {
             actionResult = attemptAction(action);

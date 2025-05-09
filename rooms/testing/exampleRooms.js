@@ -241,9 +241,9 @@ function generate() {
     room.createChoice('Play Main Music', {persistant: true})
         .addAction({type: 'changeSong', parameters: ['main_stereo']});
     room.createChoice('Low Pitch', {persistant: true})
-        .addAction({type: 'changeSongPitch', parameters: [.5]});
+        .addAction({type: 'changeSongPitch', parameters: [.5, 400], skipsWait: true});
     room.createChoice('Normal Pitch', {persistant: true})
-        .addAction({type: 'changeSongPitch', parameters: [1]});
+        .addAction({type: 'changeSongPitch', parameters: [1, 400], skipsWait: true});
     room.createChoice('High Pitch', {persistant: true})
-        .addAction({type: 'changeSongPitch', parameters: [1.5]});
+        .addAction({type: 'changeSongPitch', parameters: [2, 400], skipsWait: true});
 }
