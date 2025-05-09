@@ -50,7 +50,7 @@ function generate() {
     room.addStory(`[c:var(--Gali)]Gali, [c:]you state.`);
     room.addStory(`He gives you his best approximation of a smile at that, and you can't help but feel a little more at ease.`);
     room.addStory(`[c:var(--dialogue)]"Real shame 'ya had 'ta wake up in'na middle'a all the mess, though."`);
-    room.addStory(`[c:var(--dialogue)]"Y'know, I wuz there thet day. Woke up inna pod, came crawlin' out widd'et other gal, 'n we's wuz waitin' on ya 'ta pop out too."`);
+    room.addStory(`[c:var(--dialogue)]"Y'know, I wuz there thet day. Woke up inna pod, came crawlin' out widd'et other gal feelin' 60 years older, 'n we's wuz waitin' on ya 'ta pop out too."`);
     room.addStory(`[c:var(--dialogue)]"'N then. y'know..."`);
     room.addStory(`[c:var(--dialogue)]"'Ya didn't."`);
     room.addStory(`Sensing your discomfort, [c:var(--character)]Palmetto[c:] quickly changes the subject.`);
@@ -75,16 +75,26 @@ function generate() {
     room.addStory(`[c:var(--dialogue)]"We git pests r'awn here all'a time. Dun' worruh 'bout it, pal. We gotcha covered."`);
     room.addStory(`Wallking up to the biggest of the fuzzy creatures, a blonde furred fella with beads in its braids, [c:var(--character)]Palmetto [c:]scritches its chin. In return, it politely spits out a big 'ol hunk of rusty metal and bolts in front of you two.`);
     room.addStory(`His fist clangs against the top of it rather loudly. He grins(?), pushing it across the dirt until it lands at your feet.`);
-    room.addStory(`Wiping the dust off of it, you find that it appears to be a small, round ball with a screen on it. It has two little arms and legs, and a tiny little face that looks like it's made out of pixels.`);
+    room.addStory(`Wiping the dust off of the machine, you find that it appears to be a small, round ball with a screen on it. It has two little arms and legs, and a tiny little face that looks like it's made out of pixels.`);
     room.addStory(`It chirps for a moment, rattling loudly before its head whirrs to look at you.`);
-    room.addStory(`[c:var(--dialogue)]"XCFU-2B?`);
+    room.addStory(`[c:var(--dialogue)]"XCFS-2B?"`);
     room.addStory(`Before you can keep gawking at the sight, [c:var(--character)]Palmetto[c:] snaps his fingers in your face to grab your attention back.`);
     room.addStory(`[c:var(--dialogue)]"Thet's a lil' welcome gift fer ya. All'n me. We's cleared out all'et junk in its brain al'riddy, so's yer all welcome."`);
     room.addStory(`He turns around, a low hiss emanating from within him. One of the crew members nods, with the rest clambering onto the rodents.`);
     room.addStory(`[c:var(--dialogue)]"Now we's dun' rilly got a Carrybeast fer ya, but'm sure we kin work it out. Ye' jus' gotta hop on up 'ere on Marisol fer now."`);
-    room.addStory(`When he sees that you aren't instantly following his lead[c:var(--character)]Palmetto [c:]squints, eyeing you intensely.`);
+    room.addStory(`When he sees that you aren't instantly following his lead, [c:var(--character)]Palmetto [c:]squints, eyeing you intensely.`);
     room.addStory(`On cue, two of his lackeys step away from their own Carrybeasts. The two of them, cloaks crudely labeled "Aardvark" and "Roox" draw their weapons.`)
     room.addStory(`[c:var(--dialogue)]"Yer comin' with, aint'cha?"`);
     choice1 = room.createChoice(`Take the bot and run.`);
     choice1.addAction({type: 'changeRoom', parameters: ['s-start']});
+    choice2 = room.createChoice(`Ride off into the sunset.`);
+    choice2.addAction({type: "changeRoom", parameters: ['d-village']});
+
+    room = createRoom('d-village', {name: 'destruction.jpeg'});
+    room.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 5, 50]});
+    room.addStory(`Having been frozen for 75 years, you aren't very well versed in riding a Carrybeast. You weren't even aware these were a thing!`);
+    room.addStory(`So, naturally, [c:var(--character)]Palmetto [c:]has you up front piloting the thing while he holds you in place.`);
+    room.addStory(`The sheer speed that you're running at pierces through the cloud of fallout around you. Everyone else seems to have masks and makeshift goggles protecting them.`);
+    room.addStory(`Noting your tight grip on the beast's reins, [c:var(--character)]Palmetto [c:]lets out a boisterous howl, digging his heel further into Marisol's side.`);
+    room.addStory(`[c:var(--dialogue)]`);
 }

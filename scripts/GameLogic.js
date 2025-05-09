@@ -112,7 +112,7 @@ class Game {
         this.currentEnding = 'unset';
         this.endings = {}; // holds the possible ending names and text
         this.leaveChoices = false; // choices get left if this is true
-        this.startingRoom = 'd-outside'; // [ 'Example Hub' ][ 'b-start' ]
+        this.startingRoom = 'd-village'; // [ 'Example Hub' ][ 'b-start' ]
         this.runNumber = -1;
     }
 
