@@ -8,6 +8,7 @@ export class CanvasHandler {
         this.strength = strength;
         this.speed = speed;
         this.transitionDuration = transitionDuration;
+        this.baseTransitionDuraion = transitionDuration;
         this.ctx = canvas.getContext("2d");
         this.width = this.canvas.width = this.container.clientWidth;
         this.height = this.canvas.height = this.container.clientHeight;
@@ -27,7 +28,9 @@ export class CanvasHandler {
         this.height = this.canvas.height = this.container.clientHeight;
     }
 
-    async changeAnimation(animationName) {
+    async changeAnimation(animationName, transitionDuration) {
+        transitionDuration = transitionDuration ?? this.transitionDuration;
+        this.transitionDuration = transitionDuration;
         this.state = 'despawning';
         for (const particle of this.particles) {
             particle.despawn();
@@ -44,6 +47,7 @@ export class CanvasHandler {
         this.currentAnimation = this.animations[animationName];
         if (!this.animations[animationName] || this.currentAnimation === this.animations['none']) {
             this.state = 'idle';
+            this.transitionDuration = previousTransitionDuration;
             return;
         }
         this.state = 'running'
@@ -51,6 +55,7 @@ export class CanvasHandler {
             this.generateParticles(this.currentAnimation.generatorOptions);
         }
         this.looping = true;
+        this.transitionDuration = this.baseTransitionDuraion;
         this.loop();
     }
 

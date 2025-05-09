@@ -26,7 +26,7 @@ function generate() {
     room.addAction({type: 'styleBG', parameters: ['[an:blink-weak 1500ms ease-in-out infinite alternate]', 'background-image-2']});
     room.addStory(`Your hearing is the first of your senses to return. Alarms blare in your ears, followed by the whoosh of air and a soft click.`);
     room.addAction({ type: 'styleBG', parameters: ['[an:bd-blur-fade-in 3000ms ease]', 'background-image-3']});
-    room.addAction({type: 'changeParticleAnimation', parameters: ['none'], delay: 3000});
+    room.addAction({type: 'changeParticleAnimation', parameters: ['none', undefined, undefined, 3000], delay: 3000});
     room.addStory(`Next comes your sight. Once the steam clears, the cryopod door creaks open to the now run-down lab. Red lights are flashing through the room, presumably the whole building as well.`);
     room.addStory(`Stepping out of the pod, it appears that yours was the only one to be well-maintained. The other two pods are rusty and broken, with the glass shattered and labels long faded.`);
     room.addStory(`In fact, you can barely make out your own name on the scratchy, old label.`);

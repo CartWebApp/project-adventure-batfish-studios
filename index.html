@@ -88,7 +88,10 @@
             </div>
         </section>
     </main>
-    <button type="button" id="mute-button" class=""></button>
+    <div class="volume-container">
+        <button type="button" id="volume-button" class="muted"></button>
+        <input type="range" id="volume-slider" value="0" class="hidden" min="0" max="1" step=".01">
+    </div>
     <script src="init.js" type="module"></script>
 </body>
 </html>

@@ -131,7 +131,7 @@ function generate() {
     room.createChoice('Weaken', {persistant: true})
     .addAction({type: 'changeParticleStrength', parameters: [-.5]});
     let fog = room.createChoice('Fog', {persistant: true})
-    fog.addAction({type: 'changeParticleAnimation', parameters: ['fog', 1, 1]});
+    fog.addAction({type: 'changeParticleAnimation', parameters: ['fog', 1, 1, 500]});
     let ashes = room.createChoice('Ashes', {persistant: true})
     ashes.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 1, 1]});
     let smoke = room.createChoice('Smoke', {persistant: true})
@@ -241,9 +241,9 @@ function generate() {
     room.createChoice('Play Main Music', {persistant: true})
         .addAction({type: 'changeSong', parameters: ['main_stereo']});
     room.createChoice('Low Pitch', {persistant: true})
-        .addAction({type: 'changeSongPitch', parameters: [.5]});
+        .addAction({type: 'changeSongPitch', parameters: [.5, 400], skipsWait: true});
     room.createChoice('Normal Pitch', {persistant: true})
-        .addAction({type: 'changeSongPitch', parameters: [1]});
+        .addAction({type: 'changeSongPitch', parameters: [1, 400], skipsWait: true});
     room.createChoice('High Pitch', {persistant: true})
-        .addAction({type: 'changeSongPitch', parameters: [1.5]});
+        .addAction({type: 'changeSongPitch', parameters: [2, 400], skipsWait: true});
 }

@@ -130,11 +130,18 @@ p {
     z-index: -1;
 }
 
-#mute-button {
-    position: absolute;
+.volume-container {
+    display: flex;
+    flex-direction: column-reverse;
     z-index: 8;
     bottom: 1rem;
     right: 1rem;
+    position: absolute;
+    gap: 12px;
+}
+
+#volume-button {
+    background-position: center;
     height: 32px;
     width: 32px;
     background-image: url(imgs/icons/volume-unmuted.svg);
@@ -142,8 +149,13 @@ p {
     background-repeat: no-repeat;
 }
 
-#mute-button.muted {
+#volume-button.muted {
     background-image: url(imgs/icons/volume-muted.svg);
+}
+
+#volume-slider {
+    writing-mode: vertical-lr;
+    direction: rtl;
 }
 
 #loading-screen {
@@ -800,6 +812,14 @@ p {
         transform: translate(-50%, 90%) scale(.5);
     }
 }
+
+@media screen and (max-width: 600px){ 
+    .volume-container {
+        right: 4px;
+        bottom: 4px;
+    }
+}
+
 
 @container dialogue-box (max-width: 600px) {
     #choices,
