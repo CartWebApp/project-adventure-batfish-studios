@@ -196,12 +196,18 @@ class Game {
     }
 
     // stops a sound from audioData
-    changeMusic(newSong) {
+    changeSong(newSong, pitch) {
         for (const audio of Object.values(audioData)) {
             if (audio.type != 'bgm') continue;
             audio.stop();
         }
-        audioData[newSong].play();
+        audioData[newSong].play(1, pitch);
+        audioData.currentSong = audioData[newSong];
+    }
+
+    changeSongPitch(pitch) {
+        audioData.currentSong.speed = pitch;
+        audioData.currentSong.update();
     }
 
     // changes the background
@@ -289,9 +295,9 @@ class Game {
         let team = parseTeam(data)
         
         let battle = new Battle(team);
-        game.changeMusic('battle_stereo');
+        game.changeSong('battle_stereo');
         await battle.encounter(game.runNumber);
-        game.changeMusic('main_stereo');
+        game.changeSong('main_stereo');
     }
 
     // // a chance to initiate combat
@@ -623,10 +629,8 @@ class Battle {
         indicator.style.scale = getComputedStyle(indicator).scale;
         animation.cancel();
 
-        if (speed) {
-            game.playSound('hit_1', 1, random(speed ** .5 - .1, speed ** .5, 3));
-        }
         if (offset < 1) {
+            game.playSound('hit_1', 1, random(speed ** .5 - .1, speed ** .5, 3));
             animation = this.advanceElement.animate([
                 {translate: '-15px -5px'},
                 {translate: '15px 5px'},
@@ -1150,26 +1154,34 @@ export class Room {
 export class RoomGrid {
 
     /**
+     * 
+     * @typedef {Object} DirectionMessages - The messages for what direction to move
+     * @prop {String} east - The message for heading east
+     * @prop {String} north - The message for heading north
+     * @prop {String} south - The message for heading south
+     * @prop {String} west - The message for heading west
+     * 
      * @typedef {Object} RoomGridConfig
      * @prop {String} name 
      * @prop {Number} width 
      * @prop {Number} height 
      * @prop {Array} entrance 
-     * @prop {Boolean} showCoordinates 
+     * @prop {Boolean} showCoordinates
+     * @prop {DirectionMessages} directionMessages 
      * 
      * @param {RoomGridConfig} options
      */
 
     constructor(options) {
         let defaults = {
-            name:'', width:3, height:3, entrance:[0,0], showCoordinates:true
+            name:'', width:3, height:3, entrance:[0,0], showCoordinates:true, directionMessages:{}
         }
         Object.assign(this, Object.assign(defaults, options));
-        if (!this.name) this.name = name;
-        if (!this.width) this.width = width;
-        if (!this.height) this.height = height;
-        if (!this.entrance) this.entrance = entrance;
         if (typeof this.showCoordinates != 'boolean') this.showCoordinates = showCoordinates;
+        if (!this.directionMessages.east) this.directionMessages.east = 'Go East';
+        if (!this.directionMessages.west) this.directionMessages.west = 'Go West';
+        if (!this.directionMessages.south) this.directionMessages.south = 'Go South';
+        if (!this.directionMessages.north) this.directionMessages.north = 'Go North';
         this.grid = [];
         this.emptyTemplate = new Room();
         this.startQueuelist = [];
@@ -1296,31 +1308,31 @@ export class RoomGrid {
             // adds move choice if there is a room in the target spot
             if (this.grid?.[x-1]?.[y]) {
                 let westRoom = this.grid[x-1][y];
-                room.createChoice(`Go West.`)
+                room.createChoice(this.directionMessages.west)
                     .addAction({type: 'changeRoom', parameters: [westRoom.name]});
             } else {
-                room.createChoice(`Go West.`, {classList: ['disabled']});
+                room.createChoice(this.directionMessages.west, {classList: ['disabled']});
             }
             if (this.grid?.[x]?.[y-1]) {
                 let northRoom = this.grid[x][y-1];
-                room.createChoice(`Go North.`)
+                room.createChoice(this.directionMessages.north)
                     .addAction({type: 'changeRoom', parameters: [northRoom.name]});
             } else {
-                room.createChoice(`Go North.`, {classList: ['disabled']});
+                room.createChoice(this.directionMessages.north, {classList: ['disabled']});
             }
             if (this.grid?.[x]?.[y+1]) {
                 let southRoom = this.grid[x][y+1];
-                room.createChoice(`Go South.`)
+                room.createChoice(this.directionMessages.south)
                     .addAction({type: 'changeRoom', parameters: [southRoom.name]});
             } else {
-                room.createChoice(`Go South.`, {classList: ['disabled']});
+                room.createChoice(this.directionMessages.south, {classList: ['disabled']});
             }
             if (this.grid?.[x+1]?.[y]) {
                 let eastRoom = this.grid[x+1][y];
-                room.createChoice(`Go East.`)
+                room.createChoice(this.directionMessages.east)
                     .addAction({type: 'changeRoom', parameters: [eastRoom.name]});
             } else {
-                room.createChoice(`Go East.`, {classList: ['disabled']});
+                room.createChoice(this.directionMessages.east, {classList: ['disabled']});
             }
         })
     }
@@ -1964,7 +1976,7 @@ function createEventListeners() {
 
     // plays audio on first user interaction
     window.addEventListener('click', ()=> {
-        audioData['main_stereo'].play();
+        game.changeSong('main_stereo', 1)
     }, {once: true})
 
     // gives button press sound to buttons
@@ -2029,9 +2041,9 @@ function loadAudio() {
         {name: 'explore_stereo', baseVolume: .8, type: 'bgm'},
         {name: 'main_stereo', baseVolume: .8, type: 'bgm'},
         {name: 'button_1', baseVolume: 1},
-        {name: 'button_2', baseVolume: .5},
+        {name: 'button_2', baseVolume: .2},
         {name: 'hit_1', baseVolume: .6},
-        {name: 'hit_2', baseVolume: .6},
+        {name: 'hit_2', baseVolume: .6, suffix: 'mp3'},
     ]
     for (const audio of audios) {
         audio.suffix = audio.suffix ?? 'mp3';
