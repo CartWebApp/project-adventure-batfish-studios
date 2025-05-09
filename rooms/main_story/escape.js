@@ -5,9 +5,7 @@ export let roomGenerators = [generate];
 
 function generate() {
     let room = createRoom('e-start', {name: 'escape.jpeg'});
-    room.addAction({type: 'changeBG', parameters: ['transparent.png', {}, 'background-image-2']})
-    room.addAction({type: 'styleBG', parameters: ['', 'background-image-2']});
-    room.addAction({type: 'changeParticleAnimation', parameters: ['none']});
+    room.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 2, 2]});
     room.addStory(`Heading to the [c:var(--escape)]left, [c:]you don't seem to recognize much of the place. It's completely trashed.`);
     room.addStory(`Everything here has been ransacked. Any cabinets that used to be here are rusted and broken down. One's even melted, leaning to its side.`);
     room.addStory(`It doesn't seem like there's much in the room that's worth—`, {waits: false, waitDelay: 1000});
@@ -82,7 +80,7 @@ function generate() {
     room.addStory(`[c:var(--dialogue)]"You can call me [c:var(--character)]Idelle.[c:var(--dialogue)]"`);
     room.addStory(`[c:var(--actions)][fst:italic]You and [c:var(--character)]Idelle [c:var(--actions)]are now acquainted.`)
     room.addStory(`[c:var(--dialogue)]"You should have been released years ago, Gali."`);
-    room.addStory(`[c:var(--dialogue)]"They let me and that other fellow go after the 60-year contract was up. They couldn't get your pod to open at the time, so..."`);
+    room.addStory(`[c:var(--dialogue)]"They let me and that other guy go after the 60-year contract was up. They couldn't get your pod to open at the time, so..."`);
     room.addStory(`...So you were [an:text-funky][c:var(--destruction)]abandoned, [an:][c:]it seems.`, {speed: 70, waits: false, waitDelay:1500});
     choice1 = room.createChoice(`Ask how long you've been frozen.`);
     room.addStory(`[c:var(--character)]Idelle [c:]gives a sheepish frown, awkwardly patting your shoulder.`);
@@ -94,6 +92,7 @@ function generate() {
 
     room = createRoom(`e-gfSarcastic`, {name: 'escape.jpeg'});
     room.addStory(`You stand your ground, glaring at the leader with a defiant expression.`);
+    room.addStory(`Before you can even manage a "Wouldn't you like to know?" the leader thrusts their spear at you. The tip barely grazes your chest.`)
 
     room = createRoom(`e-offer`, {name:'escape.jpeg', transition: {out: '', in: ''}});
     room.addStory(`Continuing to eye you a little, she appears to be lost in thought.`);
@@ -361,7 +360,6 @@ function generate() {
     choice1.addAction({type: 'changeRoom', parameters: ['e-hospital']});
     choice2 = room.createChoice('Get out of here.');
     choice2.addAction({type: 'changeRoom', parameters: ['e-ultimatum']});
-
     room = createRoom(`e-hospital`, {name: 'neutral.jpeg'}, {transition: {out: '', in: ''}});
     room.addAction({type: 'changeParticleAnimation', parameters: ['fog', 0.3, 0.3]})
     room.addStory(`Considering her words very carefully...`);
@@ -420,7 +418,6 @@ function generate() {
         ],
         groupName: 'the Six-Legged Syndicate!'
     }], waits: true});
-
     room.addStory(`You quickly rush to [c:var(--character)]Idelle's [c:]aide as the others chase the bandits away.`);
     room.addStory(`[c:var(--destruction)]...This isn't good at all.`);
     room.addStory(`[fs:12px][c:var(--dialogue)]"Go..."`);
