@@ -12,7 +12,7 @@ export class AudioObject {
         this.baseVolume = baseVolume;
         this.controller = controller
         this.volumeMulti = 1;
-        this.speed = 1;
+        this.pitch = 1;
         this.type = type;
         this.muted = false;
         this.audioElement.preservesPitch = false;
@@ -28,12 +28,12 @@ export class AudioObject {
         }
     }
 
-    play(volume, speed) {
+    play(volume, pitch) {
         this.volumeMulti = volume ?? 1;
-        this.speed = speed ?? 1;
+        this.pitch = pitch ?? 1;
         this.audioElement.currentTime = 0;
         this.audioElement.volume = this.baseVolume * this.volumeMulti * this.controller.volume.value;
-        this.audioElement.playbackRate = this.speed;
+        this.audioElement.playbackRate = this.pitch;
         this.audioElement.play();
     }
     stop() {
@@ -43,6 +43,6 @@ export class AudioObject {
 
     update() {
         this.audioElement.volume = this.baseVolume * this.volumeMulti * this.controller.volume.value;
-        this.audioElement.playbackRate = this.speed;
+        this.audioElement.playbackRate = this.pitch;
     }
 }

@@ -207,17 +207,17 @@ class Game {
 
     async changeSongPitch(pitch, transitionDuration=0) {
         if (transitionDuration) {
-            let pitchDifference = audioData.currentSong.speed - pitch;
+            let pitchDifference = audioData.currentSong.pitch - pitch;
             let step;
             step = pitchDifference / transitionDuration
 
             for (let index = 0; index < transitionDuration; index++) {
-                audioData.currentSong.speed -= step;
+                audioData.currentSong.pitch -= step;
                 audioData.currentSong.update();
                 await sleep(1)
             }
         } else {
-            audioData.currentSong.speed = pitch;
+            audioData.currentSong.pitch = pitch;
             audioData.currentSong.update();
         }
     }
@@ -254,8 +254,8 @@ class Game {
     }
 
     // changes the background particle animation
-    changeParticleAnimation(animationName, strength, speed) {
-        particleHandler.changeAnimation(animationName);
+    changeParticleAnimation(animationName, strength, speed, transitionDuration) {
+        particleHandler.changeAnimation(animationName, transitionDuration);
         if (strength) particleHandler.strength = strength;
         if (speed) particleHandler.speed = speed;
     }
@@ -303,13 +303,14 @@ class Game {
     }
 
     // a chance to initiate combat
-    async encounter(data={}) {
+    async encounter(data={}, songSettings={name: 'battle_stereo', pitch: 1}) {
         let team = parseTeam(data)
+        let currentSong = audioData.currentSong;
         
         let battle = new Battle(team);
-        game.changeSong('battle_stereo');
+        game.changeSong(songSettings.name, songSettings.pitch ?? 1);
         await battle.encounter(game.runNumber);
-        game.changeSong('main_stereo');
+        game.changeSong(currentSong.name, currentSong.pitch);
     }
 
     // // a chance to initiate combat
@@ -1976,16 +1977,21 @@ function createEventListeners() {
     })
 
     // mute button
-    document.getElementById('mute-button').addEventListener('click', (e)=> {
+    document.getElementById('volume-button').addEventListener('click', (e)=> {
         let btn = e.target;
-        btn.classList.toggle('muted');
-        if (btn.classList.contains('muted')) {
-            audioConfig.volume.value = 0;
+        document.getElementById('volume-slider').classList.toggle('hidden')
+    })
+
+    // audio slider
+    document.getElementById('volume-slider').addEventListener('input', (e)=> {
+        let slider = e.target;
+        audioConfig.volume.value = slider.value;
+        if (audioConfig.volume.value > 0) {
+            document.getElementById('volume-button').classList.remove('muted')
         } else {
-            audioConfig.volume.value = 1;
+            document.getElementById('volume-button').classList.add('muted')
         }
     })
-    document.getElementById('mute-button').click();
 
     // plays audio on first user interaction
     window.addEventListener('click', ()=> {
