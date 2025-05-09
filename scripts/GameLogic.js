@@ -10,7 +10,7 @@ import { generateRooms } from './RoomGenerator.js';
 import * as fnExports from './Functions.js';
 Object.entries(fnExports).forEach(([name, exported]) => window[name] = exported);
 
-let devMode = false;
+let devMode = true;
 
 export let player;
 let textController; // makes text writing cancellable
@@ -37,6 +37,7 @@ const parsableStyles = [
     {name: 'filter', identifier: 'fi'}, // example: [fi:blur(6px)], or [fi:] to reset
     {name: 'scale', identifier: 'sc'}, // example: [sc:1.5], or [sc:] to reset
     {name: 'opacity', identifier: 'op'}, // example: [op:0.5], or [op:] to reset
+    {name: 'backdrop-filter', identifier: 'bdfi'}, // example: [bdfi:blur(8px)], or [bdfi:] to reset
 ]  
 
 // holds history data
@@ -112,7 +113,7 @@ class Game {
         this.currentEnding = 'unset';
         this.endings = {}; // holds the possible ending names and text
         this.leaveChoices = false; // choices get left if this is true
-        this.startingRoom = 'd-explain'; // [ 'Example Hub' ][ 'b-start' ]
+        this.startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
         this.runNumber = -1;
     }
 
@@ -251,7 +252,6 @@ class Game {
         let elementID = options.elementID ?? 'story';
         let clearsText = options.clearsText ?? false;
         if (clearsText) clearText(document.getElementById(elementID));
-
         await typeText(textObj.text,{element: document.getElementById(elementID), speed: textObj.speed, variance: textObj.variance, skippable: options.skippable, skipElement: document.getElementById('dialogue-box'), animation: textObj.animation, textControllerSignal, waits: textObj.waits, waitdelay: textObj.waitDelay});
     }
     
@@ -632,12 +632,12 @@ class Battle {
         this.rewardMin = this.rewardMin ?? 1;
         this.rewardMax = this.rewardMax ?? this.rewardMin;
         let rewardCount = random(this.rewardMin, this.rewardMax + 1);
-        let teamRewards = [];
         let generatedRewards = fnExports.weightedRandom(this.rewardPool,
-            {unique: false, count: rewardCount});
+            {unique: true, count: rewardCount});
         for (const reward of generatedRewards) {
-            reward.max = reward.max ?? reward.min
-            reward.count = random(reward.min ?? 1, reward.max + 1);
+            reward.min = reward.min ?? 1;
+            reward.max = reward.max ?? reward.min;
+            reward.count = random(reward.min, reward.max + 1);
             if (rewards[reward.name]) {
                 rewards[reward.name].count += reward.count;
             } else {
@@ -648,7 +648,7 @@ class Battle {
         if (this.useEnemyLoot) for (const enemy of this.enemies) {
             for (const itemData of enemy.lootTable) {
                 itemData.max = itemData.max ?? itemData.min ?? 1
-                itemData.count = random(itemData.min ?? 1, itemData.max + 1)
+                itemData.count = random(itemData.min ?? 1, itemData.max)
                 if (!game.chanceRoll(itemData.chance ?? 1)) continue;
                 if (rewards[itemData.name]) {
                     rewards[itemData.name].count += itemData.count
@@ -728,7 +728,7 @@ class Player extends Character {
         const inventory = document.getElementById('inventory');
         inventory.innerHTML = '';
 
-        if (!player.inventory[player.selectedItem]) {
+        if (!player.inventory[player.selectedItem?.name]) {
             document.getElementById('item-description').innerHTML = '';
             document.getElementById('item-actions').innerHTML = '';
         }
@@ -920,13 +920,14 @@ export class Action {
      * @prop {Boolean} waits - Whether the function is awaited
      * @prop {Number} chance - (0-100) The chance for the function to be run
      * @prop {Number} maxUses The nymber of times this action be run in a run
+     * @prop {Number} delay Ms delay before action is run
      * 
      * @param {ActionConfig} options
      */
 
     constructor(options) {
         let defaults = {
-            type:'', parameters:[], waits:false, chance:100, maxUses:Infinity
+            type:'', parameters:[], waits:false, chance:100, maxUses:Infinity, delay: 0
         }
         
         Object.assign(this, Object.assign(defaults, options))
@@ -1104,7 +1105,7 @@ export class Room {
         } else {
             this.queuelist.push({ type: 'actionlist', value: [action] });
         }
-        return this
+        return action;
     }
 
     // appends a queuelist to the rooms queuelist
@@ -1320,9 +1321,9 @@ export class Ending extends Room {
         bg = bg ?? defaultBG;
         super(name, bg);
         if (bg === defaultBG) {
-            this.addAction({ type: 'styleBG', parameters: ['[an:shrink 30s ease-out][fi:grayscale(.6)]'] });
             this.addAction({type: 'changeBG', parameters: ['transparent.png', {}, 'background-image-2']});
             this.addAction({type: 'styleBG', parameters: ['', 'background-image-2']});
+            this.addAction({ type: 'styleBG', parameters: ['[an:shrink 30s ease-out][fi:grayscale(.6)]'] });
         }
     }
 }
@@ -1767,10 +1768,11 @@ async function selectChoice(choiceContainer) {
 
 // tries to run an action
 async function attemptAction(action) {
-    if (action.usesLeft <= 0) return;
-    if (!game.chanceRoll(action.chance)) return;
-    if (!checkRequirements(action, 'use').metRequirements) return;
+    if (action.usesLeft <= 0) return false;
+    if (!game.chanceRoll(action.chance)) return false;
+    if (!checkRequirements(action, 'use').metRequirements) return false;
     action.usesLeft -= 1;
+    if (action.delay) await sleep(action.delay)
     if (action.waits) {
 
         // if the function is within the game object, or is a global function
@@ -1800,16 +1802,21 @@ async function attemptActionsWithText(actions) {
     if (Object.prototype.toString.call(actions) != '[object Array]') actions = [actions];
     for (const action of actions) {
         if (currentRunNumber != game.runNumber) return;
-        let actionResult = await attemptAction(action);
+        let actionResult;
+        if (!action.delay || action.waits) {
+            actionResult = await attemptAction(action);
+        } else {
+            actionResult = attemptAction(action);
+        }
         if (actionResult && actionResult?.messages) {
             for (const message of actionResult.messages) {
                 typeText(message, {element: document.getElementById('action-output')});
                 const cleanText = parseStyles(message, 'This returns the clean text because nothing matches this.').text;
                 history.addAction(cleanText);
             }
-            if (action.waits) {
-                await awaitClick(document.getElementById('dialogue-box'));
-            }
+        }
+        if (action.waits && actionResult != false && action.type != 'encounter' && action.type != 'randomEncounter') {
+            await awaitClick(document.getElementById('dialogue-box'));
         }
     }
 }

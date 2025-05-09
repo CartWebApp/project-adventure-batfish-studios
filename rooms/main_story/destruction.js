@@ -37,7 +37,7 @@ function generate() {
     room.addStory(`You continue on with your rambling, frantically over-explaining your situation as the group stares at you blankly.`);
     room.addStory(`[c:var(--character)]The hulking figure [c:]seems to be the only one who is actually listening to you, and they nod along as you speak.`);
     room.addStory(`Just as you gasp for a breath, they raise a hand to silence you.`);
-    room.addStory(`[c:var(--dialogue)][fs:30px]"Enough."`, {speed: 250, waits: false, waitDelay: 3000});
+    room.addStory(`[c:var(--dialogue)][fs:30px]"Enough."`, {speed: 250, waits: false, waitDelay: 1500});
     room.addStory(`[c:var(--character)]The figure [c:]speaks in a deep, gravelly voice, their words booming in your ears.`);
     room.addStory(`...which immediately melts away as they pull their mask down, revealing chittering mandibles and a pair of large, black orbs for eyes.`);
     room.addStory(`[c:var(--dialogue)]"...You the feller thet wuz all up in'net freezer pod?"`);

@@ -34,15 +34,15 @@ export class Team {
 
     /**
      * @typedef {Object} TeamConfig
-     * @prop {Array} groupName - The display name of the team. ex: a bunch of hooligans
+     * @prop {String} groupName - The display name of the team. ex: a bunch of hooligans
      * @prop {Array} enemyPool - List of enemies and their weights to pull from
      * @prop {Array} rewardPool - List of rewards and their weights to pull from
-     * @prop {Array} enemyMin - The lower boundry for the number of enemies
-     * @prop {Array} enemyMax - The upper boundry for the number of enemies
-     * @prop {Array} rewardMin - The lower boundry for the number of rewards
-     * @prop {Array} rewardMax - The upper boundry for the number of rewards
-     * @prop {Array} uniqueEnemies - Whether each enemy can only be added once
-     * @prop {Array} useEnemyLoot - Whether the enemy loot gets rolled in addition to the team rewards
+     * @prop {Number} enemyMin - The lower boundry for the number of enemies
+     * @prop {Number} enemyMax - The upper boundry for the number of enemies
+     * @prop {Number} rewardMin - The lower boundry for the number of rewards
+     * @prop {Number} rewardMax - The upper boundry for the number of rewards
+     * @prop {Boolean} uniqueEnemies - Whether each enemy can only be added once
+     * @prop {Boolean} useEnemyLoot - Whether the enemy loot gets rolled in addition to the team rewards
      * @param {TeamConfig} options
      */
     constructor(options={}) {

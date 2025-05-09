@@ -165,8 +165,17 @@ function generate() {
     // defaultRoom.addStory('The land is barren');
     wastelandGrid.setDefaultRoom(defaultRoom)
     wastelandGrid.addQueuelist('end', createQueuelist([
+        new Action({type: 'getItem', parameters: [{name: 'Scrap Metal', min: 1, max: 1}], waits: true, chance: 3})
+    ]), [
+        new Requirement({ mode: 'use', type: 'hasItem', parameters: ['Scrap Metal', 5], inverse: true }),
+    ])
+    wastelandGrid.addQueuelist('end', createQueuelist([
         new StoryObject(`[an:text-shiver .15s ease-in-out infinite alternate]You've found everything!`),
         new Choice(`See Idelle.`)
+            .addAction({ type: 'removeItem', parameters: ['Scrap Metal', 5] })
+            .addAction({ type: 'removeItem', parameters: ['Scrap Metal', 5] })
+            .addAction({ type: 'removeItem', parameters: ['Microchip', 1] })
+            .addAction({ type: 'removeItem', parameters: ['Fuel Canister', 1] })
             .addAction({type: 'changeRoom', parameters: ['e-finalTask']})
     ]), [
         new Requirement({ mode: 'show', type: 'hasItem', parameters: ['Scrap Metal', 5] }),
@@ -228,8 +237,9 @@ function generate() {
     room = wastelandGrid.generateRoom([2,2], {name: 'escape.jpeg'});
     room.addStory('[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO NORTH.]');
 
-    room = wastelandGrid.generateRoom(null, {name: 'escape.jpeg'}, 5);
-    room.addAction({type: 'getItem', parameters: [{name: 'Scrap Metal', min: 1, max: 1}], waits: true, maxUses: 1});
+    room = wastelandGrid.generateRoom(null, {name: 'escape.jpeg'}, 6);
+    room.addAction({type: 'getItem', parameters: [{name: 'Scrap Metal', min: 1, max: 1}], waits: true, maxUses: 1})
+        .addRequirement({ mode: 'use', type: 'hasItem', parameters: ['Scrap Metal', 5], inverse: true });
 
     room = wastelandGrid.generateRoom([2,4], {name: 'escape.jpeg'});
     room.addStory(`[c:var(--dialogue)][OTTO RECOMMENDS YOU DO NOT GO WEST.]`);
@@ -269,7 +279,7 @@ function generate() {
     room.addAction({type: 'getItem', parameters: [{name: 'Fuel Canister', min: 1}], waits: true, maxUses: 1});
 
     room = wastelandGrid.generateRoom([4,3], {name: 'escape.jpeg'});
-    room.addAction({type: 'getItem', parameters: [{name: 'Food Pack', min: 1, max: 4}]});
+    room.addAction({type: 'getItem', parameters: [{name: 'Food Pack', min: 1, max: 4}], maxUses: 1});
 
     wastelandGrid.generateGrid(); // only use once, and after you add all the rooms you want
 
@@ -394,7 +404,7 @@ function generate() {
     room.addAction({ type: 'styleBG', parameters: ['[an:blur-in 2s ease-out,fade-in 2s ease-out][fi:][op:]'] });
     room.addStory(`[c:var(--actions)](BANG!)`);
     room.addStory(`[c:var(--dialogue)][fst:italic]"AUGH!"`);
-    room.addAction({type: 'styleBG', parameters: '[an: shake 70ms 9 linear alternate][sc:1.2]'});
+    room.addAction({type: 'styleBG', parameters: ['[an:shake 70ms 9 linear alternate][sc:1.2]']});
     room.addStory(`[c:var(--actions)](Thud!)`);
     room.addStory(`You quickly turn to the source of the noise, and your heart sinks as you see [c:var(--character)]Idelle [c:]on the ground, clutching her side.`);
     room.addStory(`Above her stands [c:var(--destruction)]a large, hulking figure with a massive sword strapped to their back, and a pair of glowing red eyes that seem to pierce through the darkness.`);

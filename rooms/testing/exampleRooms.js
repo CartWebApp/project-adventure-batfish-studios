@@ -37,6 +37,11 @@ function generate() {
             game.startingRoom = 'e-wasteland-start';
             game.restart();
         }});
+        room.createChoice('Escape Wasteland-after')
+        .addAction({type: ()=> {
+            game.startingRoom = 'e-finalTask';
+            game.restart();
+        }});
 
     room = createRoom('Example Room Items');
     room.createChoice('Back', {color: '[c:var(--back-color)]'})
