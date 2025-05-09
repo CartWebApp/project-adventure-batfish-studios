@@ -208,7 +208,7 @@ function generate() {
     room.addStory('This story should show twice.', {maxUses: 2})
     grid.generateGrid();
 
-    grid = new RoomGrid({name: 'example-grid-2', width: 20, height: 20, showCoordinates: true, entrance: [10, 10]})
+    grid = new RoomGrid({name: 'example-grid-2', width: 20, height: 20, showCoordinates: true, entrance: [10, 10], directionMessages: {east: 'Move East', north: 'Head North', west: 'Shimmy West'}})
     grid.setDefaultRoom(new Room('', {name: 'neutral.jpeg'}))
     grid.addQueuelist('start', createQueuelist([
         new StoryObject(`This text should have a 5% chance of appearing at the start of any room`),
@@ -235,9 +235,15 @@ function generate() {
     room.createChoice('Back', {color: '[c:var(--back-color)]'})
         .addAction({type: 'changeRoom', parameters: ['Example Hub']});
     room.createChoice('Play Battle Music', {persistant: true})
-        .addAction({type: 'changeMusic', parameters: ['battle_stereo']});
+        .addAction({type: 'changeSong', parameters: ['battle_stereo']});
     room.createChoice('Play Exploring Music', {persistant: true})
-        .addAction({type: 'changeMusic', parameters: ['explore_stereo']});
+        .addAction({type: 'changeSong', parameters: ['explore_stereo']});
     room.createChoice('Play Main Music', {persistant: true})
-        .addAction({type: 'changeMusic', parameters: ['main_stereo']});
+        .addAction({type: 'changeSong', parameters: ['main_stereo']});
+    room.createChoice('Low Pitch', {persistant: true})
+        .addAction({type: 'changeSongPitch', parameters: [.5]});
+    room.createChoice('Normal Pitch', {persistant: true})
+        .addAction({type: 'changeSongPitch', parameters: [1]});
+    room.createChoice('High Pitch', {persistant: true})
+        .addAction({type: 'changeSongPitch', parameters: [1.5]});
 }

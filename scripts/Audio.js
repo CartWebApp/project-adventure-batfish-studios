@@ -43,5 +43,6 @@ export class AudioObject {
 
     update() {
         this.audioElement.volume = this.baseVolume * this.volumeMulti * this.controller.volume.value;
+        this.audioElement.playbackRate = this.speed;
     }
 }
