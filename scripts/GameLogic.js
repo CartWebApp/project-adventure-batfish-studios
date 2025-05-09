@@ -6,6 +6,7 @@ import { Consumable, Item } from './Item.js';
 import { Character } from './Character.js';
 import { Enemy, Team } from './Enemies.js';
 import { generateRooms } from './RoomGenerator.js';
+import { AudioObject } from './Audio.js';
 // imports general use functions and sets their namespace to this window
 import * as fnExports from './Functions.js';
 Object.entries(fnExports).forEach(([name, exported]) => window[name] = exported);
@@ -23,6 +24,7 @@ let enemyData = {};
 let teamData = {};
 let lootTableData = {};
 export let particleHandler;
+let audioData = {};
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [:]
@@ -115,6 +117,7 @@ class Game {
         this.leaveChoices = false; // choices get left if this is true
         this.startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
         this.runNumber = -1;
+        this.playerState = 'default'; // 'default', 'battle', 'exploring'
     }
 
     // Gives an item to the player's inventory
@@ -179,6 +182,25 @@ class Game {
     }
         history.addRoom(room);
         game.currentRoom = game.rooms[room];
+    }
+
+    // plays a sound from audioData
+    playSound(soundName) {
+        audioData[soundName].play();
+    }
+
+    // stops a sound from audioData
+    stopSound(soundName) {
+        audioData[soundName].stop();
+    }
+
+    // stops a sound from audioData
+    changeMusic(newSong) {
+        for (const audio of Object.values(audioData)) {
+            if (audio.type != 'bgm') continue;
+            audio.stop();
+        }
+        audioData[newSong].play();
     }
 
     // changes the background
@@ -266,7 +288,9 @@ class Game {
         let team = parseTeam(data)
         
         let battle = new Battle(team);
+        game.changeMusic('battle_stereo');
         await battle.encounter(game.runNumber);
+        game.changeMusic('main_stereo');
     }
 
     // // a chance to initiate combat
@@ -1921,6 +1945,33 @@ function createEventListeners() {
         game.restart();
         document.getElementById('menu-toggle').click();
     })
+
+    // mute button
+    document.getElementById('mute-button').addEventListener('click', (e)=> {
+        let btn = e.target;
+        btn.classList.toggle('muted');
+        if (btn.classList.contains('muted')) {
+            for (const audio of Object.values(audioData)) {
+                audio.mute()
+            }
+        } else {
+            for (const audio of Object.values(audioData)) {
+                audio.unmute()
+            }
+        }
+    })
+    document.getElementById('mute-button').click();
+
+    // plays audio on first user interaction
+    window.addEventListener('click', ()=> {
+        audioData['main_stereo'].play();
+    }, {once: true})
+
+    // gives button press sound to buttons
+    window.addEventListener('click', (e)=>{
+        if (e.target.tagName != 'BUTTON') return;
+        game.playSound('button_press_1');
+    })
 }
 
 // creates multi-layer buffers
@@ -1965,6 +2016,21 @@ async function clearBuffers() {
     document.getElementById('loading-buffer').innerHTML = '';
 }
 
+// loads and categorizes audio
+function loadAudio() {
+    let defaultPath = '../audio/'
+    let audios = [
+        {name: 'battle_stereo', baseVolume: .5, suffix: 'mp3', type: 'bgm'},
+        {name: 'explore_stereo', baseVolume: .5, suffix: 'mp3', type: 'bgm'},
+        {name: 'main_stereo', baseVolume: .5, suffix: 'mp3', type: 'bgm'},
+        {name: 'button_press_1', baseVolume: 1, suffix: 'mp3'},
+    ]
+    for (const audio of audios) {
+        audio.suffix = audio.suffix ?? 'mp3';
+        audioData[audio.name] = new AudioObject(audio.name, new Audio(defaultPath + audio.name + '.' + audio.suffix), audio.type, audio.baseVolume)
+    }
+}
+
 // loads the item/enemy data and preloads images
 async function loadData() {
     let itemPaths = [
@@ -1995,6 +2061,7 @@ async function loadData() {
         Object.assign(lootTableData, await fnExports.parseJSON(lootTablePath));
     }
     
+    loadAudio();
     preloadImages();
 }
 

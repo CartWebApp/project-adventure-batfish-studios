@@ -10,6 +10,8 @@ function generate() {
 // current identifiers: [c: color][ff: fontFamily][fs: fontSize][rt: rotate][ts: textShadow][an: animation][fi: filter][class: class][fst: fontStyle]
 
     let room = createRoom('Example Hub', { name: 'neutral.jpeg' });
+    room.createChoice('Teleporter')
+        .addAction({type: 'changeRoom', parameters: ['Example Teleporter Hub']});
     room.createChoice('Example Rooms')
         .addAction({type: 'changeRoom', parameters: ['Example Room']});
     room.createChoice('Particle Testing')
@@ -20,8 +22,8 @@ function generate() {
         .addAction({type: 'changeRoom', parameters: ['Example Grid Hub']});
     room.createChoice('Items')
         .addAction({type: 'changeRoom', parameters: ['Example Room Items']});
-    room.createChoice('Teleporter')
-        .addAction({type: 'changeRoom', parameters: ['Example Teleporter Hub']});
+    room.createChoice('Audio')
+        .addAction({type: 'changeRoom', parameters: ['Example Room Audio']});
 
     // teleporter hub
     room = createRoom('Example Teleporter Hub')
@@ -227,4 +229,15 @@ function generate() {
     room.createChoice('Stay')
         .addAction({type: 'leaveChoice', parameters: []});
     grid.generateGrid();
+
+    // audio testing
+    room = createRoom('Example Room Audio');
+    room.createChoice('Back', {color: '[c:var(--back-color)]'})
+        .addAction({type: 'changeRoom', parameters: ['Example Hub']});
+    room.createChoice('Play Battle Music', {persistant: true})
+        .addAction({type: 'changeMusic', parameters: ['battle_stereo']});
+    room.createChoice('Play Exploring Music', {persistant: true})
+        .addAction({type: 'changeMusic', parameters: ['explore_stereo']});
+    room.createChoice('Play Main Music', {persistant: true})
+        .addAction({type: 'changeMusic', parameters: ['main_stereo']});
 }
