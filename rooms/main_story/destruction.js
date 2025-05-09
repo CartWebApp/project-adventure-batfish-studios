@@ -37,7 +37,7 @@ function generate() {
     room.addStory(`You continue on with your rambling, frantically over-explaining your situation as the group stares at you blankly.`);
     room.addStory(`[c:var(--character)]The hulking figure [c:]seems to be the only one who is actually listening to you, and they nod along as you speak.`);
     room.addStory(`Just as you gasp for a breath, they raise a hand to silence you.`);
-    room.addStory(`[c:var(--dialogue)][fs:30px]"Enough."`, {speed: 250, waits: false, waitDelay: 1500});
+    room.addStory(`[c:var(--dialogue)][fs:30px][an:alternate]"Enough."`, {speed: 250, waits: false, waitDelay: 1500});
     room.addStory(`[c:var(--character)]The figure [c:]speaks in a deep, gravelly voice, their words booming in your ears.`);
     room.addStory(`...which immediately melts away as they pull their mask down, revealing chittering mandibles and a pair of large, black orbs for eyes.`);
     room.addStory(`[c:var(--dialogue)]"...You the feller thet wuz all up in'net freezer pod?"`);
@@ -91,13 +91,80 @@ function generate() {
     choice1 = room.createChoice(`Take the bot and run.`);
     choice1.addAction({type: 'changeRoom', parameters: ['s-start']});
     choice2 = room.createChoice(`Ride off into the sunset.`);
-    choice2.addAction({type: "changeRoom", parameters: ['d-village']});
+    choice2.addAction({type: "changeRoom", parameters: ['d-journey']});
 
-    room = createRoom('d-village', {name: 'destruction.jpeg'});
+    room = createRoom('d-journey', {name: 'destruction.jpeg'});
+    room.addAction({type: 'changeMusic', parameters: ['explore_stereo']});
     room.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 5, 50]});
     room.addStory(`Having been frozen for 75 years, you aren't very well versed in riding a Carrybeast. You weren't even aware these were a thing!`);
     room.addStory(`So, naturally, [c:var(--character)]Palmetto [c:]has you up front piloting the thing while he holds you in place.`);
     room.addStory(`The sheer speed that you're running at pierces through the cloud of fallout around you. Everyone else seems to have masks and makeshift goggles protecting them.`);
     room.addStory(`Noting your tight grip on the beast's reins, [c:var(--character)]Palmetto [c:]lets out a boisterous howl, digging his heel further into Marisol's side.`);
-    room.addStory(`[c:var(--dialogue)]`);
+    room.addStory(`[c:var(--dialogue)]"G'awn, girl, 'ye got it! Yer fine, yer fine!"`);
+    room.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 3, 15]});
+    room.addStory(`Marisol squeaks, slowing her shuffle.`);
+    room.addStory(`[c:var(--dialogue)]"Ye gotta be curr'ful wid'er. Them Carrybeasts dun' take too kindly 'ta bein' manhandled. [fst:italic]Scares 'em half 'ta death, [fst:]'n then all'a sudden yer stranded an' yer buddy's runnin' off 'ta git picked off by Butcherbirds."`);
+    room.addStory(`[c:var(--character)]Palmetto [c:]runs his hand along Marisol's side.`);
+    room.addStory(`[c:var(--dialogue)]"Ain't too hard if yer gentle."`);
+    room.addStory(`He peers off into the distance, wings rattling behind him.`);
+    room.addStory(`[c:var(--dialogue)]"Say..."`);
+    room.addStory(`[c:var(--dialogue)]"How far would'ja say yer willin' 'ta go fer some justice?"`);
+    choice1 = room.createChoice('Pretty far.');
+    choice1.addAction({type: 'changeRoom', parameters: ['d-journey2']});
+    choice2 = room.createChoice('Somewhat far.');
+    choice2.addAction({type: 'changeRoom', parameters: ['d-journey2']});
+    choice3 = room.createChoice('Kind of far.');
+    choice3.addAction({type: 'changeRoom', parameters: ['d-journey2']});
+
+    room = createRoom('d-journey2', {name: 'destruction.jpeg', transition: {out: '', in: ''}});
+    room.addStory(`[c:var(--character)]Palmetto [c:]hums to himself, giving nothing more than a brief chitter. It's...kind of hard to gauge ow he's feeling right now.`);
+    room.addStory(`[c:var(--dialogue)]"We's got...[fst:italic][c:var(--destruction)]unfinished business [fst:][c:]'ta deal with. Now thet'churr comin' along, iss'in muh bes' int'rest thet ya rilly got the guts 'ta handle this."`);
+    room.addStory(`[c:var(--dialogue)]"Thurr's a camp up East'n thet we's ain't too fond of. Naw, ain't ginna get'cha all frazzled inna middle'a thet, but 'ya bet yer behind thet it's gotta git taken care'a now."`);
+    room.addStory(`[c:var(--dialogue)]"Fer now, 'ye gotta git'churr practice in. Muh crew's gonna lead, an' it's yer job 'ta help Marisol follow 'em there. Capiche?"`);
+    choice1 = room.createChoice(`Get to it.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['d-village']}); //d-wasteland grid later
+
+    // room = createRoom(`d-wasteland`, {name: 'destruction.jpeg'});
+    // let grid = new RoomGrid({name: 'd-wastelandGrid', width: 5, height: 5, showCoordinates: true})
+    // room = grid.generateRoom([0, 2]);
+    // room.addStory(`Marisol begins to lurch forward.`);
+    // grid.generateGrid(); 
+
+    room = createRoom(`d-village`);
+    room.addStory(`Wiping the sweat from your face, you finally stop just before reaching the top of a dune. You're in the perfect position to peer down at the campsite without being spotted.`);
+    room.addStory(`[c:var(--dialogue)]"Thurr it is. D'awn in'net 'ol ditch."`);
+    room.addStory(`[c:var(--character)]Palmetto [c:]points down at the campsite. It's nothing too fancy. It's just a big circle closed off by a log fence. Within it there's some huts, laundry strung about, and loads of people sitting around living about as well as one could in a nuclear wasteland.`);
+    room.addStory(`[c:var(--dialogue)]"Don'tcha be fooled, now. Them's all nuthin' butta load'a conniving, heartless varmints."`);
+    room.addStory(`He bitterly spits the word out with a loathing sort of venom to his voice. The kind only someone...experienced...would hold.`);
+    room.addStory(`[c:var(--dialogue)]"See thet?"`);
+    room.addStory(`Looking closely, there's a line of smaller folks weaving in, out, and around stray poles and hopping over countless obstacles. they're squealing quite loudly as they swing around dirty rags tied to sticks.`);
+    room.addStory(`[c:var(--dialogue)]"Disgustin'. They been trainin' thurr kiddos fer war since day one."`);
+    room.addStory(`Looking again, they do seem pretty...hefty.`);
+    room.addStory(`[c:var(--destruction)]"Best 'ta take 'em out now b'fore them'alls got us'n kickin' the bucket."`);
+    room.addStory(`[c:var(--dialogue)]"C'mon. We're burnin' daylight awt 'ere."`);
+    room.addStory(`"Take these. Yer gunna ned 'em fer this crowd.`);
+    choice1 = room.createChoice(`Nuh uh. You quit.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['s-start']});
+    choice2 = room.createChoice(`If it's for the sake of the rest of the planet...`);
+    choice2.addAction({type: 'changeRoom', parameters: ['d-villageFight']});
+
+    room = createRoom(`d-villageFight`);
+    room.addAction({type: 'encounter', parameters: [{
+        enemyPool: [
+            {id: 'Joyama'},
+            {id: 'Joyama'},
+        ],
+        rewardPool: [
+            {name: 'Astrostew', min: 1, max: 5},
+        ], 
+        groupName: 'some nasty crooks!'
+    }],
+    chance: 100});
+    room.addAction({type: 'changeRoom', parameters: ['d-success']});
+
+    room = createRoom(`d-success`, {name: 'destruction.jpeg'});
+    room.addAction({type: 'changeParticleAnimation', parameters: ['smoke top', 3, 1]})
+    room.addStory(`The camp's been totally emptied. Their fires have been snuffed out, their supplies looted and burned, and whoever remains has escaped far into the wasteland.`);
+    room.addStory(`The others are cheering with delight, rejoicing as they bask in the afterglow of victory.`);
+    room.addStory(`[c:var(--dialogue)]""`);
 }

@@ -48,6 +48,12 @@
         "effects": [{"type": "heal", "value": 15}],
         "hideEffects": true
     },
+    "Bandages": {
+        "name": "Bandages",
+        "description": "Stuck on them, 'cuz they're stuck on you!",
+        "type": "consumable",
+        "effects": [{"type": "heal", "value": 15}]
+    },
     "Food Pack": {
         "name": "Food Pack",
         "description": "Bland, but filling.",
