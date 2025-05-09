@@ -19,5 +19,12 @@
         "strength": 10,
         "agility": 30,
         "desc": "A large, ugly beast of a fish with bat wings, surprisingly agile for its size. Not to be confused with a batfish."
+    },
+    "Joyama": {
+        "name": "Joyama",
+        "hp": 20,
+        "strength": 15,
+        "agility": 15,
+        "desc": "A large, spider-like creature with a nasty bite."
     }
 }
