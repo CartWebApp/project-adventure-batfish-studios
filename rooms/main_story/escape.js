@@ -94,7 +94,10 @@ function generate() {
 
     room = createRoom(`e-gfSarcastic`, {name: 'escape.jpeg'});
     room.addStory(`You stand your ground, glaring at the leader with a defiant expression.`);
-    room.addStory(`Before you can even manage a "Wouldn't you like to know?" the leader thrusts their spear at you. The tip barely grazes your chest.`)
+    room.addStory(`Before you can even manage a "Wouldn't you like to know?" the leader thrusts their spear at you.`);
+    room.addStory(`[c:var(--dialogue)][fs: 30px][fst:italic]"Don't test me."`, {speed: 350});
+    room.addStory(`...It's becoming increasingly clear that this is not a group you want to mess with.`);
+    room.addAction({type: 'changeRoom', parameters: ['e-gfCareful']});
 
     room = createRoom(`e-offer`, {name:'escape.jpeg', transition: {out: '', in: ''}});
     room.addStory(`Continuing to eye you a little, she appears to be lost in thought.`);
@@ -408,12 +411,12 @@ function generate() {
     room.addAction({type: 'styleBG', parameters: ['[an:shake 70ms 9 linear alternate][sc:1.2]']});
     room.addStory(`[c:var(--actions)](Thud!)`);
     room.addStory(`You quickly turn to the source of the noise, and your heart sinks as you see [c:var(--character)]Idelle [c:]on the ground, clutching her side.`);
-    room.addStory(`Above her stands [c:var(--destruction)]a large, hulking figure with a massive sword strapped to their back, and a pair of glowing red eyes that seem to pierce through the darkness.`);
+    room.addStory(`Above her stands [c:var(--destruction)]a large, hulking figure with a massive shotgun strapped to their back, and a pair of glowing red eyes that seem to pierce through the darkness.`);
     room.addAction({type: 'encounter', parameters: [{
         enemyPool: [
-            new Enemy({name: 'Blatto Lackey 1', hp: 20, strength: 5, agility: 10, desc: `A tall, lanky fellow. All brain, no brawn.`}),
-            new Enemy({name: 'Palmetto',hp:  40, strength: 15, agility: 15, desc: `A rootin', tootin', mutasnt shootin' cockroach. No...a glockroach.`}),
-            new Enemy({name: 'Blatto Lackey 2', hp: 20, strength: 10, agility: 5, desc: `A short, dumpy fellow. All brawn, no brain.`}),
+            new Enemy({name: `Palmetto's Lackey 1`, hp: 20, strength: 5, agility: 10, desc: `A tall, lanky fellow. All brain, no brawn.`}),
+            new Enemy({name: 'Palmetto',hp:  50, strength: 15, agility: 15, desc: `A rootin', tootin', mutasnt shootin' cockroach. No...a glockroach.`}),
+            new Enemy({name: `Palmetto's Lackey 2`, hp: 20, strength: 10, agility: 5, desc: `A short, dumpy fellow. All brawn, no brain.`}),
         ],
         rewardPool: [
             {name: 'Unnecessary Trauma', min: 1, max: 1},

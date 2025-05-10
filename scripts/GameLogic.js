@@ -11,7 +11,7 @@ import { AudioObject } from './Audio.js';
 import * as fnExports from './Functions.js';
 Object.entries(fnExports).forEach(([name, exported]) => window[name] = exported);
 
-let devMode = true;
+let devMode = false;
 
 export let player;
 let textController; // makes text writing cancellable
@@ -2059,6 +2059,7 @@ function loadAudio() {
         {name: 'battle_stereo', baseVolume: .8, type: 'bgm'},
         {name: 'explore_stereo', baseVolume: .8, type: 'bgm'},
         {name: 'main_stereo', baseVolume: .8, type: 'bgm'},
+        {name: 'VBOminous', baseVolume: .8, type: 'bgm'},
         {name: 'button_1', baseVolume: 1},
         {name: 'button_2', baseVolume: .2},
         {name: 'hit_1', baseVolume: .6},
