@@ -45,7 +45,10 @@
         "name": "Astrostew",
         "description": "You're not sure what is in this, but it must be safe, right? Doesn't expire 'till Lumora 23rd, 4008!",
         "type": "consumable",
-        "effects": [{"type": "heal", "value": 15}],
+        "effects": [
+            {"type": "heal", "value": 15},
+            {"type": "gainMaxHP", "value": 2}
+        ],
         "hideEffects": true
     },
     "Bandages": {

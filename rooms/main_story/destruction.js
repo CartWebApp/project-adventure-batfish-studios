@@ -27,8 +27,8 @@ function generate() {
     room.addStory(`The only sounds among you are your own heavy breathing and the light buzz of the beast's wings.`);
     choice1 = room.createChoice(`Explain yourself.`);
     choice1.addAction({type: 'changeRoom', parameters: ['d-explain']});
-    choice2 = room.createChoice(`Refuse to be intimidated by this riff-raff.`);
-    choice2.addAction({type: 'changeRoom', parameters: ['d-fight']});
+    // choice2 = room.createChoice(`Refuse to be intimidated by this riff-raff.`);
+    // choice2.addAction({type: 'changeRoom', parameters: ['d-fight']});
     let choice3 = room.createChoice(`Get out of here NOW.`);
     choice3.addAction({type: 'changeRoom', parameters: ['b-return']});
 
@@ -94,7 +94,7 @@ function generate() {
     choice2.addAction({type: "changeRoom", parameters: ['d-journey']});
 
     room = createRoom('d-journey', {name: 'destruction.jpeg'});
-    room.addAction({type: 'changeSong', parameters: ['explore_stereo']});
+    room.addAction({type: 'changeSong', parameters: ['explore_stereo'], skipsWait: true});
     room.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 5, 50]});
     room.addStory(`Having been frozen for 75 years, you aren't very well versed in riding a Carrybeast. You weren't even aware these were a thing!`);
     room.addStory(`So, naturally, [c:var(--character)]Palmetto [c:]has you up front piloting the thing while he holds you in place.`);
@@ -143,7 +143,7 @@ function generate() {
     room.addStory(`[c:var(--destruction)]"Best 'ta take 'em out now b'fore them'alls got us'n kickin' the bucket."`);
     room.addStory(`[c:var(--dialogue)]"C'mon. We're burnin' daylight awt 'ere."`);
     room.addStory(`"Take these. Yer gunna ned 'em fer this crowd.`);
-    room.addAction({type: 'addItem', parameters: ['Bandages', 3]});
+    room.addAction({type: 'getItem', parameters: ['Bandages', 3]});
     room.addStory(`[c:var(--dialogue)]"An' fer the love'a all thurr's good, don'tcha go'n get yerself kil't. Ain't no one else 'round 'ere fer ya."`);
     choice1 = room.createChoice(`Nuh uh. You quit.`);
     choice1.addAction({type: 'changeRoom', parameters: ['s-start']});
@@ -202,7 +202,7 @@ function generate() {
     room.addStory(`[c:var(--dialogue)]"Welcome to the Rusty Nail! We's got all sorts of goodies fer ya!"`);
     room.addStory(`[c:var(--character)]Palmetto [c:]nudges you with his elbow, lifting up your hand and placing his fist in your palm.`);
     room.addStory(`[c:var(--dialogue)]"Go on, kid. This'un is all'n me."`);
-    room.addAction({type: 'addItem', parameters: ['Corebits', 25]});
+    room.addAction({type: 'getItem', parameters: [{name: 'Corebits', min: 25}]});
     room.addStory(`You look down at the small pile of shiny bits in your hand.`);
     room.addStory(`You can feel the weight of them, and you can't help but feel a little giddy at the thought of all the things you could buy with them.`);
     choice1 = room.createChoice(`Buy something.`);
@@ -211,16 +211,16 @@ function generate() {
     room = createRoom(`d-shop`, {name: 'destruction.jpeg'});
     room.addStory(`You step forward, peering at the little bits of junk on the shelves.`);
     choice1 = room.createChoice(`Buy a weapon (7 CB).`, {maxUses: 1});
-    choice1.addAction({type: 'addItem', parameters: ['Rusty Pipe', 1]});
+    choice1.addAction({type: 'getItem', parameters: [{name: 'Rusty Pipe', min: 1}]});
     choice1.addAction({type: "removeItem", parameters: ['Corebits', 7]});
     choice2 = room.createChoice(`Buy some armor (10 CB).`, {maxUses: 1});
-    choice2.addAction({type: 'addItem', parameters: ['Scrappy Armor', 1]});
+    choice2.addAction({type: 'getItem', parameters: [{name: 'Scrappy Armor', min: 1}]});
     choice2.addAction({type: "removeItem", parameters: ['Corebits', 10]});
     choice3 = room.createChoice(`Buy some food (5 CB).`);
-    choice3.addAction({type: 'addItem', parameters: ['Astrostew', 1]});
+    choice3.addAction({type: 'getItem', parameters: [{name: 'Astrostew', min: 1}]});
     choice3.addAction({type: "removeItem", parameters: ['Corebits', 5]});
     let choice4 = room.createChoice(`Buy some bandages (5 CB).`);
-    choice4.addAction({type: 'addItem', parameters: ['Bandages', 1]});
+    choice4.addAction({type: 'getItem', parameters: [{name: 'Bandages', min: 1}]});
     choice4.addAction({type: "removeItem", parameters: ['Corebits', 5]});
     let choice5 = room.createChoice(`Leave the shop.`);
     choice5.addAction({type: 'changeRoom', parameters: ['d-syn2']});

@@ -235,11 +235,11 @@ function generate() {
     room.createChoice('Back', {color: '[c:var(--back-color)]'})
         .addAction({type: 'changeRoom', parameters: ['Example Hub']});
     room.createChoice('Play Battle Music', {persistant: true})
-        .addAction({type: 'changeSong', parameters: ['battle_stereo']});
+        .addAction({type: 'changeSong', parameters: ['battle_stereo'], skipsWait: true});
     room.createChoice('Play Exploring Music', {persistant: true})
-        .addAction({type: 'changeSong', parameters: ['explore_stereo']});
+        .addAction({type: 'changeSong', parameters: ['explore_stereo'], skipsWait: true});
     room.createChoice('Play Main Music', {persistant: true})
-        .addAction({type: 'changeSong', parameters: ['main_stereo']});
+        .addAction({type: 'changeSong', parameters: ['main_stereo'], skipsWait: true});
     room.createChoice('Low Pitch', {persistant: true})
         .addAction({type: 'changeSongPitch', parameters: [.5, 400], skipsWait: true});
     room.createChoice('Normal Pitch', {persistant: true})

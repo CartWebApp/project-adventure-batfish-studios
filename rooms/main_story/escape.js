@@ -163,7 +163,7 @@ function generate() {
     room.addStory(`The wasteland is a desolate, barren dust bowl. The ground is cracked and dry, and the air is thick with dust and debris. Your mouth tastes more and more like metal the longer you stand out here.`);
     choice1 = room.createChoice(`Explore the wasteland and gather supplies for the ship.`);
     choice1.addAction({type: 'changeRoom', parameters: ['e-wasteland-start']});
-    choice1.addAction({type: 'changeSong', parameters: ['explore_stereo']});
+    choice1.addAction({type: 'changeSong', parameters: ['explore_stereo'], skipsWait: true});
 
     let wastelandGrid = new RoomGrid({name: 'e-wasteland', width: 5, height: 5, entrance: [2, 2]});
     let defaultRoom = new Room('', {name: 'escape.jpeg'});

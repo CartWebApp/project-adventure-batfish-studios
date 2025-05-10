@@ -31,17 +31,20 @@ export class AudioObject {
     }
 
     get volumeMulti() {
-        return this._volumeMulti;
+        return this._volumeMulti || 0;
     }
     set volumeMulti(newValue) {
-        this._volumeMulti = clamp(newValue, 0, 1);
+        this._volumeMulti = clamp(newValue, 0, 1) || 0;
+        if (isNaN(newValue)) {
+            console.log('newValue isNaN')
+        }
     }
 
     play(volume, pitch) {
         this._volumeMulti = volume ?? 1;
         this.pitch = pitch ?? 1;
         this.audioElement.currentTime = 0;
-        this.audioElement.volume = fnExports.clamp(this.baseVolume * this._volumeMulti * this.controller.volume.value, 0, 1);
+        this.audioElement.volume = fnExports.clamp(this.baseVolume * this.volumeMulti * this.controller.volume.value, 0, 1);
         this.audioElement.playbackRate = this.pitch;
         this.audioElement.play();
     }
@@ -51,7 +54,7 @@ export class AudioObject {
     }
 
     update() {
-        this.audioElement.volume = fnExports.clamp(this.baseVolume * this._volumeMulti * this.controller.volume.value, 0, 1);
+        this.audioElement.volume = fnExports.clamp(this.baseVolume * this.volumeMulti * this.controller.volume.value, 0, 1);
         this.audioElement.playbackRate = this.pitch;
     }
 }

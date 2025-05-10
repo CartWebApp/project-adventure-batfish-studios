@@ -26,6 +26,8 @@ let lootTableData = {};
 export let particleHandler;
 let audioData = {};
 let audioConfig = {volume: new Reactor(0)}
+let userInteracted = false;
+let firstRun = true;
 
 const parsableStyles = [
     {name: 'reset', identifier: ''}, // parses for full style resets (removes all styles). Syntax is [:]
@@ -198,6 +200,11 @@ class Game {
     // stops a sound from audioData
     async changeSong(newSong, pitch, transitionDuration=500) {
         if (audioData[newSong] === audioData.currentSong) return;
+        for (const audio of Object.values(audioData)) {
+            if (audioData.currentSong && (audio.name != audioData.currentSong.name && audio.name != newSong)) {
+                audio.volumeMulti = 0;
+            }
+        }
         let newAudio = audioData[newSong]
         let stepCurrent;
         if (audioData.currentSong) {
@@ -205,7 +212,7 @@ class Game {
         }
         let stepNew = 1 / transitionDuration;
         
-        audioData[newSong].play(0, pitch);
+        newAudio.play(0, pitch);
         for (let index = 0; index < transitionDuration; index++) {
             if (audioData.currentSong) {
                 audioData.currentSong.volumeMulti -= stepCurrent;
@@ -215,7 +222,11 @@ class Game {
             newAudio.update()
             await sleep(1)
         }
-        audioData.currentSong = audioData[newSong];
+        if (audioData.currentSong) {
+            audioData.currentSong.volumeMulti = 0;
+        }
+        newAudio.volumeMulti = 1;
+        audioData.currentSong = newAudio;
     }
 
     async changeSongPitch(pitch, transitionDuration=0) {
@@ -408,6 +419,10 @@ class Game {
         document.getElementById('background-image').src = '../imgs/backgrounds/transparent.png';
         clearDialogueText();
         game.isGameLoop = true;
+        if (userInteracted && !firstRun) {
+            this.changeSong('main_stereo', 1);
+        }
+        firstRun = false;
         gameLoop();
     }
 
@@ -1388,7 +1403,7 @@ export class Ending extends Room {
         bg = bg ?? defaultBG;
         super(name, bg);
         if (bg === defaultBG) {
-            this.addAction({type: 'changeSong', parameters: ['VBOminous']});
+            this.addAction({type: 'changeSong', parameters: ['VBOminous', 1, 100], skipsWait: true});
             this.addAction({type: 'changeBG', parameters: ['transparent.png', {}, 'background-image-2']});
             this.addAction({type: 'styleBG', parameters: ['', 'background-image-2']});
             this.addAction({ type: 'styleBG', parameters: ['[an:shrink 30s ease-out][fi:grayscale(.6)]'] });
@@ -2009,7 +2024,8 @@ function createEventListeners() {
 
     // plays audio on first user interaction
     window.addEventListener('click', ()=> {
-        game.changeSong('main_stereo', 1)
+        userInteracted = true;
+        game.changeSong('main_stereo', 1, 0);
     }, {once: true})
 
     // gives button press sound to buttons
