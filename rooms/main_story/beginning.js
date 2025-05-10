@@ -46,7 +46,7 @@ function generate() {
     choice1.addAction({ type: 'changeRoom', parameters: ['e-start'] }); //escape route
     choice2 = room.createChoice("Go right.", {customID: 'destruction'});
     choice2.addAction({ type: 'changeRoom', parameters: ['d-start'] }); //destruction route
-    let choice3 = room.createChoice("Go straight.", {customID: 'savior', classList: ['disabled']});
+    let choice3 = room.createChoice("Go straight.", {customID: 'savior'});
     choice3.addAction({ type: 'changeRoom', parameters: ['s-start'] }); //savior route
 
     room = createRoom(`b-return`, { name: 'neutral.jpeg' }); // changed mind at some point

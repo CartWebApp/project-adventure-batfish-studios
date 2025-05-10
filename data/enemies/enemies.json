@@ -22,9 +22,44 @@
     },
     "Joyama": {
         "name": "Joyama",
-        "hp": 20,
+        "hp": 25,
         "strength": 15,
         "agility": 15,
         "desc": "A large, spider-like creature with a nasty bite."
+    },
+    "Rootwraith": {
+        "name": "Rootwraith",
+        "hp": 20,
+        "strength": 20,
+        "agility": 3,
+        "desc": "A horrid mass of roots and vines. It is slow but powerful."
+    },
+    "Blightfruit Beast": {
+        "name": "Blightfruit Beast",
+        "hp": 25,
+        "strength": 10,
+        "agility": 15,
+        "desc": "A large, mutated fruit with a gaping maw. The toxins from its flesh seem to have been transferred to its attitude instead."
+    },
+    "Scorchling": {
+        "name": "Scorchling",
+        "hp": 10,
+        "strength": 10,
+        "agility": 30,
+        "desc": "A small, fiery insectoid that moves quickly and can unleash bursts of flame. They travel in packs and are suspected by many to be controlled by a hive mind."
+    },
+    "Murmurant": {
+        "name": "Murmurant",
+        "hp": 22,
+        "strength": 8,
+        "agility": 12,
+        "desc": "A gangly creature that moves with an unsettling grace. Beware of its song, as it can cause confusion and disorientation."
+    },
+    "Virex": {
+        "name": "Virex",
+        "hp": 24,
+        "strength": 15,
+        "agility": 30,
+        "desc": "Bulky, feral scavengers that lurk around the wasteland. Very dangerous if they catch you off guard."
     }
 }

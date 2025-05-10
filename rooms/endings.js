@@ -29,4 +29,14 @@ function generate() {
     ending.addStory('...A friend.');
     ending.addStory(`But hey! At least you made it out [c:var(--escape)][an:text-shiver .30s ease-in-out infinite alternate]alive...`);
     ending.addStory(`You drive off into the cosmos, letting Virema fade into nothing more than a distant memory.`, {waits: false});
+
+    ending = createEnding('destruction');
+    ending.addStory(`Well, congratulations to you.`);
+    ending.addStory(`You have singlehandedly turned into one of the most powerful beings on the planet.`);
+    ending.addStory(`With the help of your...dear friend, you've managed to pillage your way through the world.`);
+    ending.addStory(`But eventually, [c:var(--destruction)][an:text-shiver .30s ease-in-out infinite alternate]all good things must come to an end.`);
+    ending.addStory(`With nobody left to stop you, there is no other choice but for you and your mates to pick each other off one by one.`);
+    ending.addStory(`You emerge victorious, obviously...`);
+    ending.addStory(`Which leaves you with nothing. Nobody. Just you and your thoughts.`);
+    ending.addStory(`You're left with nothing but the memories of your crimes, waiting to wither away into nothingness.`, {waits: false});
 }

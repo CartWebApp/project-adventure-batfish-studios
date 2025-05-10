@@ -52,7 +52,7 @@
         "name": "Bandages",
         "description": "Stuck on them, 'cuz they're stuck on you!",
         "type": "consumable",
-        "effects": [{"type": "heal", "value": 15}]
+        "effects": [{"type": "heal", "value": 20}]
     },
     "Food Pack": {
         "name": "Food Pack",
@@ -69,6 +69,37 @@
             {"type": "heal", "value": 15}
         ],
         "hideEffects": true
+    },
+    "Blight Fruit": {
+        "name": "Blight Fruit",
+        "description": "A citrus-smelling fruit with enough acid in its juices to corrode metal.",
+        "type": "consumable",
+        "effects": [
+            {"type": "heal", "value": -10}
+        ],
+        "hideEffects": true
+    },
+    "Corebits": {
+        "name": "Corebits",
+        "description": "A small, glowing pebble of energy. They're most commonly used as currency among scavengers and mechanics alike.",
+        "type": "generic"
+    },
+    "Rusty Pipe": {
+        "name": "Rusty Pipe",
+        "description": "A rusty pipe. It looks like it could be used as a weapon, but it's not very effective.",
+        "type": "consumable",
+        "effects": [
+            {"type": "gainStrength", "value": 3}
+        ]
+    },
+    "Scrappy Armor": {
+        "name": "Scrappy Armor",
+        "description": "A piece of heavy armor made from scrap metal. It offers some protection, but it's not very reliable.",
+        "type": "consumable",
+        "effects": [
+            {"type": "gainMaxHP", "value": 10},
+            {"type": "gainAgility", "value": -2}
+        ]
     },
     "Super Serum": {
         "name": "Super Serum",

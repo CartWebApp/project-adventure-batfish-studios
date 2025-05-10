@@ -116,7 +116,7 @@ class Game {
         this.currentEnding = 'unset';
         this.endings = {}; // holds the possible ending names and text
         this.leaveChoices = false; // choices get left if this is true
-        this.startingRoom = 'd-success'; // [ 'Example Hub' ][ 'b-start' ]
+        this.startingRoom = 'b-start'; // [ 'Example Hub' ][ 'b-start' ]
         this.runNumber = -1;
         this.playerState = 'default'; // 'default', 'battle', 'exploring'
     }
@@ -2059,6 +2059,7 @@ function loadAudio() {
         {name: 'battle_stereo', baseVolume: .8, type: 'bgm'},
         {name: 'explore_stereo', baseVolume: .8, type: 'bgm'},
         {name: 'main_stereo', baseVolume: .8, type: 'bgm'},
+        {name: 'VBOminous', baseVolume: .8, type: 'bgm'},
         {name: 'button_1', baseVolume: 1},
         {name: 'button_2', baseVolume: .2},
         {name: 'hit_1', baseVolume: .6},
