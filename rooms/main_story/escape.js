@@ -93,8 +93,10 @@ function generate() {
 
     room = createRoom(`e-gfSarcastic`, {name: 'escape.jpeg'});
     room.addStory(`You stand your ground, glaring at the leader with a defiant expression.`);
-    room.addStory(`Before you can even manage a "Wouldn't you like to know?" the leader thrusts their spear at you. The tip barely grazes your chest.`);
+    room.addStory(`Before you can even manage a "Wouldn't you like to know?" the leader thrusts their spear at you.`);
     room.addStory(`[c:var(--dialogue)][fs: 30px][fst:italic]"Don't test me."`, {speed: 350});
+    room.addStory(`...It's becoming increasingly clear that this is not a group you want to mess with.`);
+    room.addAction({type: 'changeRoom', parameters: ['e-gfCareful']});
 
     room = createRoom(`e-offer`, {name:'escape.jpeg', transition: {out: '', in: ''}});
     room.addStory(`Continuing to eye you a little, she appears to be lost in thought.`);
