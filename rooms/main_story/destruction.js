@@ -94,7 +94,7 @@ function generate() {
     choice2.addAction({type: "changeRoom", parameters: ['d-journey']});
 
     room = createRoom('d-journey', {name: 'destruction.jpeg'});
-    room.addAction({type: 'changeMusic', parameters: ['explore_stereo']});
+    room.addAction({type: 'changeSong', parameters: ['explore_stereo']});
     room.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 5, 50]});
     room.addStory(`Having been frozen for 75 years, you aren't very well versed in riding a Carrybeast. You weren't even aware these were a thing!`);
     room.addStory(`So, naturally, [c:var(--character)]Palmetto [c:]has you up front piloting the thing while he holds you in place.`);
@@ -138,11 +138,13 @@ function generate() {
     room.addStory(`He bitterly spits the word out with a loathing sort of venom to his voice. The kind only someone...experienced...would hold.`);
     room.addStory(`[c:var(--dialogue)]"See thet?"`);
     room.addStory(`Looking closely, there's a line of smaller folks weaving in, out, and around stray poles and hopping over countless obstacles. they're squealing quite loudly as they swing around dirty rags tied to sticks.`);
-    room.addStory(`[c:var(--dialogue)]"Disgustin'. They been trainin' thurr kiddos fer war since day one."`);
+    room.addStory(`[c:var(--dialogue)]"Disgustin'. They been trainin' thurr youngins fer war since day one."`);
     room.addStory(`Looking again, they do seem pretty...hefty.`);
     room.addStory(`[c:var(--destruction)]"Best 'ta take 'em out now b'fore them'alls got us'n kickin' the bucket."`);
     room.addStory(`[c:var(--dialogue)]"C'mon. We're burnin' daylight awt 'ere."`);
     room.addStory(`"Take these. Yer gunna ned 'em fer this crowd.`);
+    room.addAction({type: 'addItem', parameters: ['Bandages', 3]});
+    room.addStory(`[c:var(--dialogue)]"An' fer the love'a all thurr's good, don'tcha go'n get yerself kil't. Ain't no one else 'round 'ere fer ya."`);
     choice1 = room.createChoice(`Nuh uh. You quit.`);
     choice1.addAction({type: 'changeRoom', parameters: ['s-start']});
     choice2 = room.createChoice(`If it's for the sake of the rest of the planet...`);
@@ -152,19 +154,139 @@ function generate() {
     room.addAction({type: 'encounter', parameters: [{
         enemyPool: [
             {id: 'Joyama'},
-            {id: 'Joyama'},
+            {id: 'Virex'},
+            {id: 'Murmurant'},
+
         ],
         rewardPool: [
-            {name: 'Astrostew', min: 1, max: 5},
+            {name: 'Astrostew', min: 3, max: 5},
         ], 
-        groupName: 'some nasty crooks!'
-    }],
-    chance: 100});
+        groupName: 'some desertgoers!'
+    }]});
     room.addAction({type: 'changeRoom', parameters: ['d-success']});
 
     room = createRoom(`d-success`, {name: 'destruction.jpeg'});
-    room.addAction({type: 'changeParticleAnimation', parameters: ['smoke top', 3, 1]})
+    room.addAction({type: 'changeParticleAnimation', parameters: ['smoke top', 3, 1]});
     room.addStory(`The camp's been totally emptied. Their fires have been snuffed out, their supplies looted and burned, and whoever remains has escaped far into the wasteland.`);
     room.addStory(`The others are cheering with delight, rejoicing as they bask in the afterglow of victory.`);
-    room.addStory(`[c:var(--dialogue)]""`);
+    room.addStory(`[c:var(--dialogue)]"Ye did good, kid! Real good!"`);
+    room.addStory(`[c:var(--character)]Palmetto [c:]smirks with satisfaction, grabbing your shoulder and shaking it with pride.`);
+    room.addStory(`For some reason, you can't help but feel a little uneasy.`);
+    room.addStory(`There's a tug in your gut as you look around the campsite. It's all completely barren now, and the only thing left is the smell of smoke, ash, and iron.`);
+    room.addStory(`The others are still cheering, but you can't help but feel a little sick to your stomach.`);
+    room.addStory(`Maybe this victory wasn't as clean as it seemed.`);
+    room.addStory(`You look over at [c:var(--character)]Palmetto[c:] and see that he's still smiling, but there's a glint in his eye that you can't quite place.`);
+    room.addStory(`[c:var(--dialogue)]"Alright, kid. Let's move. Muh crew's got a few more stops 'ta make, an' I reckon we's all got some shoppin' 'ta do."`);
+    room.addStory(`He boosts you up onto Marisol, roughly scritching at her neck.`);
+    room.addStory(`[c:var(--dialogue)]"I know a place 'round here we kin stop fer a bit. Could get'cha some new gear, if'n yer up fer it."`);
+    room.addStory(`[c;var(--character)]Palmetto [c:]hops up behind you, wrapping his arms around your waist as he guides Marisol away from the campsite.`);
+    room.addStory(`The others follow suit, and you all ride off into the distance, leaving the camp behind.`);
+    room.addStory(`The sun is setting, and the sky is painted with hues of orange and pink. The air is thick and you can't get the taste of metal out of your mouth.`);
+    choice1 = room.createChoice(`Head to their campsite.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['d-syndicate']});
+
+    room = createRoom(`d-syndicate`, {name: 'destruction.jpeg'});
+    room.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 3, 1]});
+    room.addStory(`You arrive at a small, rundown village in the middle of nowhere. It's filled with crude tents and shacks, all of which are in various states of disrepair.`);
+    room.addStory(`The inhabitants are all wearing masks and goggles, and they all seem to be on edge. They eye you suspiciously as you ride in, and you can feel their gazes boring into your back.`);
+    room.addStory(`And above all, there's almost an alarming number of them that look just like [c:var(--character)]Palmetto[c:].`);
+    room.addStory(`You dismount Marisol, and [c:var(--character)]Palmetto [c:]hops off behind you.`);
+    room.addStory(`[c:var(--dialogue)]"Welcome 'ta the Six-Legged Syndicate, kid. Ain't much, but it's home."`);
+    room.addStory(`All around you, the inhabitants are busy working on various projects. Some are repairing machines, while others are tending to the animals. Loud chattering and laughter fills the night air.`);
+    room.addStory(`You can see a few of them still eyeing you, but most seem to be too busy to care anymore.`);
+    room.addStory(`[c:var(--character)]Palmetto [c:]leads you through the village, weaving in and out of the bustling crowd.`);
+    room.addStory(`[c:var(--dialogue)]"We's got a few shops 'round here, if'n yer lookin' fer somethin' special."`);
+    room.addStory(`[c:var(--dialogue)]"We's also got a few folks 'round here who kin help ya out with yer gear. Ain't no one else 'round here fer ya, so's yer best bet's t'git it fixed up."`);
+    room.addStory(`He gestures to a small shop with a sign that reads "The Rusty Nail".`);
+    room.addStory(`The shop is filled with all sorts of strange and unusual items, from weapons to armor to food. The owner, a small, scrappy-looking creature with a pair of goggles perched on their head, waves you over.`);
+    room.addStory(`[c:var(--dialogue)]"Welcome to the Rusty Nail! We's got all sorts of goodies fer ya!"`);
+    room.addStory(`[c:var(--character)]Palmetto [c:]nudges you with his elbow, lifting up your hand and placing his fist in your palm.`);
+    room.addStory(`[c:var(--dialogue)]"Go on, kid. This'un is all'n me."`);
+    room.addAction({type: 'addItem', parameters: ['Corebits', 25]});
+    room.addStory(`You look down at the small pile of shiny bits in your hand.`);
+    room.addStory(`You can feel the weight of them, and you can't help but feel a little giddy at the thought of all the things you could buy with them.`);
+    choice1 = room.createChoice(`Buy something.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['d-shop']});
+
+    room = createRoom(`d-shop`, {name: 'destruction.jpeg'});
+    room.addStory(`You step forward, peering at the little bits of junk on the shelves.`);
+    choice1 = room.createChoice(`Buy a weapon (7 CB).`, {maxUses: 1});
+    choice1.addAction({type: 'addItem', parameters: ['Rusty Pipe', 1]});
+    choice1.addAction({type: "removeItem", parameters: ['Corebits', 7]});
+    choice2 = room.createChoice(`Buy some armor (10 CB).`, {maxUses: 1});
+    choice2.addAction({type: 'addItem', parameters: ['Scrappy Armor', 1]});
+    choice2.addAction({type: "removeItem", parameters: ['Corebits', 10]});
+    choice3 = room.createChoice(`Buy some food (5 CB).`);
+    choice3.addAction({type: 'addItem', parameters: ['Astrostew', 1]});
+    choice3.addAction({type: "removeItem", parameters: ['Corebits', 5]});
+    let choice4 = room.createChoice(`Buy some bandages (5 CB).`);
+    choice4.addAction({type: 'addItem', parameters: ['Bandages', 1]});
+    choice4.addAction({type: "removeItem", parameters: ['Corebits', 5]});
+    let choice5 = room.createChoice(`Leave the shop.`);
+    choice5.addAction({type: 'changeRoom', parameters: ['d-syn2']});
+
+    room = createRoom(`d-syn2`, {name: 'destruction.jpeg'});
+    room.addStory(`You step out of the shop, feeling a little lighter in the pocket.`);
+    room.addStory(`[c:var(--character)]Palmetto [c:]is still standing there, looking a little impatient.`);
+    room.addStory(`[c:var(--dialogue)]"C'mon, kid. We's got a few more stops 'ta make."`);
+    room.addStory(`He starts to lead you back through the village, approaching some run down stables.`);
+    room.addStory(`[c:var(--dialogue)]"We's got a few spare Carrybeasts, if'n yer lookin' fer somethin' special."`);
+    room.addStory(`[c:var(--character)]Palmetto[c:] gestures to a small pen filled with a few different types of Carrybeasts. There's a few different colors and sizes, but they all look pretty similar.`);
+    room.addStory(`You can see a few of them are already saddled up and ready to go.`);
+    room.addStory(`[c:var(--dialogue)]"So who'zzit gunna be? We's got all kinds, but them'all gunna do the same thing."`);
+    choice1 = room.createChoice(`Pick the fluffy one.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['d-beast']});
+    choice2 = room.createChoice(`Pick the cute one.`);
+    choice2.addAction({type: 'changeRoom', parameters: ['d-beast']});
+    choice3 = room.createChoice(`Pick the chubby one.`);
+    choice3.addAction({type: 'changeRoom', parameters: ['d-beast']});
+
+    room = createRoom(`d-beast`, {name: 'destruction.jpeg', transition: {out: '', in: ''}});
+    room.addStory(`You hop onto the back of the Carrybeast, feeling a little more comfortable this time.`);
+    room.addStory(`As you settle in, you can feel the warmth of the creature beneath you, and you can't help but grin.`);
+    room.addStory(`The Carrybeast lets out a soft grunt, as if acknowledging your presence.`);
+    room.addStory(`[c:var(--dialogue)]"Wull look'it thet! Ain't she a beaut?"`);
+    room.addStory(`[c:var(--character)]Palmetto [c:]grins, patting the Carrybeast on the side.`);
+    room.addStory(`[c:var(--dialogue)]"And'ja went 'n made friendly wit'er alriddy!"`);
+    room.addStory(`[c:var(--character)]Palmetto helps to guide you and your Carrybeast back to the gates of the village, where the rest of the crew is waiting for you.`);
+    room.addStory(`They've all gathered in a circle, and they're all looking at you expectantly.`);
+    room.addStory(`You can sense the excitement in the air as you approach.`);
+    room.addStory(`[c:var(--dialogue)]"Alright, naw! We's all set 'ta go!"`);
+    room.addStory(`[c:var(--dialogue)]"We's got a long road ahead'a us, so's we's gotta git movin'."`);
+    choice1 = room.createChoice(`Let's go!`);
+    choice1.addAction({type: 'changeRoom', parameters: ['d-rushedfinale-temp']});
+
+    room = createRoom(`d-rushedfinale-temp`, {name: 'destruction.jpeg'});
+    room.addAction({type: "changeParticleAnimation", parameters: ['ashes', 3, 15]});
+    room.addStory(`You and the crew have been traveling through the wasteland for what feels like centuries.`);
+    room.addStory(`Town after town, you all have been looting and pillaging, taking whatever you can find.`);
+    room.addStory(`The weight in your chest has been getting heavier, though you've found it easier to carry over time.`);
+    room.addStory(`The crew has been getting more and more rowdy in the meantime. You've been getting used to the sound of their screeching and chittering, and it's almost uncomfortable when they fall silent nowadays.`);
+    room.addStory(`Which is why you find it odd that the crew is so quiet right now.`);
+    room.addStory(`You look around, and you can see that they're all staring forward with narrowed eyes.`);
+    room.addStory(`You look ahead, and you can see a dark figure standing in the distance. [c:var(--character)]A tall, cloaked figure with a burlap hood. They've got their own crew with them, and they all look just as intimidating as the figure.`);
+    room.addStory(`[c:var(--character)]Palmetto [c:]hisses, his wings rattling behind him.`);
+    room.addStory(`[c:var(--dialogue)]"Thurr it is. Thet's the one we's been lookin' fer."`);
+    room.addStory(`The figure raises their hand, and the crew behind them starts to move.`);
+    room.addStory(`[c:var(--dialogue)][fst:italic]"Oi, [c:var(--Gali)]Gali![c:var(--dialogue)]"`);
+    room.addStory(`Suddenly, you find that [c:var(--character)]Palmetto [c:]is thrusting his shotgun into your hands.`);
+    room.addStory(`[c:var(--dialogue)]"Ye got th'better shot standin' there, kid. Take it!"`);
+    room.addStory(`You look down at the shotgun, and you can feel the weight of it in your hands. It's heavy, but it feels good. Natural, almost.`);
+    room.addStory(`You can feel the adrenaline pumping through your veins as you raise the gun to your shoulder, aiming it at the figure in the distance.`);
+    choice1 = room.createChoice(`Take the shot.`);
+    choice1.addAction({type: 'changeRoom', parameters: ['d-end']});
+
+    room = createRoom(`d-end`, {name: 'destruction.jpeg', transition: {out: '', in: ''}});
+    room.addStory(`You pull the trigger, and the gun goes off with a-`);
+    room.addStory(`[c:var(--actions)](BANG!)`);
+    room.addStory(`[c:var(--dialogue)][fst:italic]"AUGH!"`);
+    room.addAction({type: 'styleBG', parameters: ['[an:shake 70ms 9 linear alternate][sc:1.2]']});
+    room.addStory(`[c:var(--actions)](Thud!)`);
+    room.addStory(`The figure falls to the ground, and you can hear the sound of their crew screaming in terror.`);
+    room.addStory(`[c:var(--character)]Palmetto [c:]and the rest of the crew start charging forward.`);
+    room.addStory(`The smell of gunpowder still lingers in the air. The weight in your heart is now gone.`);
+    room.addStory(`You feel oddly...freed.`);
+    room.addStory(`It appears that [c:var(--character)]Palmetto [c:]is still standing before you, hand outstretched to yours.`);
+    choice1 = room.createChoice(`Conquer the wasteland.`);
+    choice1.addAction({type: 'ending', parameters: ['destruction']});
 }

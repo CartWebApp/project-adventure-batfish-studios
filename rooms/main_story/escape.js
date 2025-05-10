@@ -6,6 +6,8 @@ export let roomGenerators = [generate];
 function generate() {
     let room = createRoom('e-start', {name: 'escape.jpeg'});
     room.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 2, 2]});
+    room.addAction({type: 'changeBG', parameters: ['transparent.png', {}, 'background-image-2']})
+    room.addAction({type: 'styleBG', parameters: ['', 'background-image-2']});
     room.addStory(`Heading to the [c:var(--escape)]left, [c:]you don't seem to recognize much of the place. It's completely trashed.`);
     room.addStory(`Everything here has been ransacked. Any cabinets that used to be here are rusted and broken down. One's even melted, leaning to its side.`);
     room.addStory(`It doesn't seem like there's much in the room that's worth—`, {waits: false, waitDelay: 1000});
@@ -92,7 +94,10 @@ function generate() {
 
     room = createRoom(`e-gfSarcastic`, {name: 'escape.jpeg'});
     room.addStory(`You stand your ground, glaring at the leader with a defiant expression.`);
-    room.addStory(`Before you can even manage a "Wouldn't you like to know?" the leader thrusts their spear at you. The tip barely grazes your chest.`)
+    room.addStory(`Before you can even manage a "Wouldn't you like to know?" the leader thrusts their spear at you.`);
+    room.addStory(`[c:var(--dialogue)][fs: 30px][fst:italic]"Don't test me."`, {speed: 350});
+    room.addStory(`...It's becoming increasingly clear that this is not a group you want to mess with.`);
+    room.addAction({type: 'changeRoom', parameters: ['e-gfCareful']});
 
     room = createRoom(`e-offer`, {name:'escape.jpeg', transition: {out: '', in: ''}});
     room.addStory(`Continuing to eye you a little, she appears to be lost in thought.`);
@@ -158,6 +163,7 @@ function generate() {
     room.addStory(`The wasteland is a desolate, barren dust bowl. The ground is cracked and dry, and the air is thick with dust and debris. Your mouth tastes more and more like metal the longer you stand out here.`);
     choice1 = room.createChoice(`Explore the wasteland and gather supplies for the ship.`);
     choice1.addAction({type: 'changeRoom', parameters: ['e-wasteland-start']});
+    choice1.addAction({type: 'changeSong', parameters: ['explore_stereo']});
 
     let wastelandGrid = new RoomGrid({name: 'e-wasteland', width: 5, height: 5, entrance: [2, 2]});
     let defaultRoom = new Room('', {name: 'escape.jpeg'});
@@ -400,23 +406,25 @@ function generate() {
     room.addStory(`[c:var(--dialogue)]"We're going home."`);
     room.addAction({ type: 'changeBG', parameters: ['destruction.jpeg', { out: '', in: '' }] });
     room.addAction({ type: 'styleBG', parameters: ['[an:blur-in 2s ease-out,fade-in 2s ease-out][fi:][op:]'] });
+    room.addAction({type: 'changeSongPitch', parameters: [.7, 300], skipsWait: true});
     room.addStory(`[c:var(--actions)](BANG!)`);
     room.addStory(`[c:var(--dialogue)][fst:italic]"AUGH!"`);
     room.addAction({type: 'styleBG', parameters: ['[an:shake 70ms 9 linear alternate][sc:1.2]']});
     room.addStory(`[c:var(--actions)](Thud!)`);
     room.addStory(`You quickly turn to the source of the noise, and your heart sinks as you see [c:var(--character)]Idelle [c:]on the ground, clutching her side.`);
-    room.addStory(`Above her stands [c:var(--destruction)]a large, hulking figure with a massive sword strapped to their back, and a pair of glowing red eyes that seem to pierce through the darkness.`);
+    room.addStory(`Above her stands [c:var(--destruction)]a large, hulking figure with a massive shotgun strapped to their back, and a pair of glowing red eyes that seem to pierce through the darkness.`);
     room.addAction({type: 'encounter', parameters: [{
         enemyPool: [
-            new Enemy({name: 'Blatto Lackey 1', hp: 20, strength: 5, agility: 10, desc: `A tall, lanky fellow. All brain, no brawn.`}),
-            new Enemy({name: 'Palmetto',hp:  40, strength: 15, agility: 15, desc: `A rootin', tootin', mutasnt shootin' cockroach. No...a glockroach.`}),
-            new Enemy({name: 'Blatto Lackey 2', hp: 20, strength: 10, agility: 5, desc: `A short, dumpy fellow. All brawn, no brain.`}),
+            new Enemy({name: `Palmetto's Lackey 1`, hp: 20, strength: 5, agility: 10, desc: `A tall, lanky fellow. All brain, no brawn.`}),
+            new Enemy({name: 'Palmetto',hp:  50, strength: 15, agility: 15, desc: `A rootin', tootin', mutasnt shootin' cockroach. No...a glockroach.`}),
+            new Enemy({name: `Palmetto's Lackey 2`, hp: 20, strength: 10, agility: 5, desc: `A short, dumpy fellow. All brawn, no brain.`}),
         ],
         rewardPool: [
             {name: 'Unnecessary Trauma', min: 1, max: 1},
             {name: 'The Glockinator', min: 3, max: 3}
         ],
-        groupName: 'the Six-Legged Syndicate!'
+        groupName: 'the Six-Legged Syndicate!',
+        songSettings: {name: 'battle_stereo', pitch: .7}
     }], waits: true});
     room.addStory(`You quickly rush to [c:var(--character)]Idelle's [c:]aide as the others chase the bandits away.`);
     room.addStory(`[c:var(--destruction)]...This isn't good at all.`);

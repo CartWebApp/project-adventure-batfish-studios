@@ -5,6 +5,7 @@ export let roomGenerators = [generate];
 
 function generate() {
     let room = createRoom('b-start', { name: 'neutral.jpeg' }); // beginning-1
+    // room.addAction({type: 'changeSong', parameters: ['main_stereo']});
     room.addStory(`Danger is imminent. You, among two others, were the only ones smart enough to take precautions. Now, you stand before your cryopod, ready to bid your conciousness farewell.`);
     room.addStory(`Step into the pod?`, { waits: false });
     let choice1 = room.createChoice("Enter.", {customID: 'enter-pod'});
@@ -46,7 +47,7 @@ function generate() {
     choice1.addAction({ type: 'changeRoom', parameters: ['e-start'] }); //escape route
     choice2 = room.createChoice("Go right.", {customID: 'destruction'});
     choice2.addAction({ type: 'changeRoom', parameters: ['d-start'] }); //destruction route
-    let choice3 = room.createChoice("Go straight.", {customID: 'savior', classList: ['disabled']});
+    let choice3 = room.createChoice("Go straight.", {customID: 'savior'});
     choice3.addAction({ type: 'changeRoom', parameters: ['s-start'] }); //savior route
 
     room = createRoom(`b-return`, { name: 'neutral.jpeg' }); // changed mind at some point

@@ -4,8 +4,11 @@ import { Enemy } from '../../scripts/Enemies.js';
 export let roomGenerators = [generate];
 
 function generate() {
-    let room = new Room(); // fill this out
-    room.addAction({type: 'changeBG', parameters: ['transparent.png', {}, 'background-image-2']})
-    room.addAction({type: 'styleBG', parameters: ['', 'background-image-2']});
-    room.addAction({type: 'changeParticleAnimation', parameters: ['none']});
+    let room = createRoom(`s-start`, {name: 'savior.jpeg'});
+    room.addStory(`The world isn't meant for saving at the moment. [c:var(--actions)][fst:italic](If only there were someplace to read up on what would happen if it was...)`);
+    let choice1 = room.createChoice("Go back.");
+    choice1.addAction({ type: 'changeRoom', parameters: ['b-return'] });
+    // room.addAction({type: 'changeParticleAnimation', parameters: ['smoke top', 2, 2]});
+    // room.addStory(`Heading [c:var(--savior)]straight, [c:]the memories start flooding right back to you. The buzz of the fluorescent lights overhead, .`);
+
 }

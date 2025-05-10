@@ -1,4 +1,6 @@
 
+import * as fnExports from './Functions.js';
+
 // allows more things to be stored with an Audio element
 export class AudioObject {
     /**
@@ -11,7 +13,7 @@ export class AudioObject {
         this.audioElement = audioElement;
         this.baseVolume = baseVolume;
         this.controller = controller
-        this.volumeMulti = 1;
+        this._volumeMulti = 1;
         this.pitch = 1;
         this.type = type;
         this.muted = false;
@@ -28,11 +30,18 @@ export class AudioObject {
         }
     }
 
+    get volumeMulti() {
+        return this._volumeMulti;
+    }
+    set volumeMulti(newValue) {
+        this._volumeMulti = clamp(newValue, 0, 1);
+    }
+
     play(volume, pitch) {
-        this.volumeMulti = volume ?? 1;
+        this._volumeMulti = volume ?? 1;
         this.pitch = pitch ?? 1;
         this.audioElement.currentTime = 0;
-        this.audioElement.volume = this.baseVolume * this.volumeMulti * this.controller.volume.value;
+        this.audioElement.volume = fnExports.clamp(this.baseVolume * this._volumeMulti * this.controller.volume.value, 0, 1);
         this.audioElement.playbackRate = this.pitch;
         this.audioElement.play();
     }
@@ -42,7 +51,7 @@ export class AudioObject {
     }
 
     update() {
-        this.audioElement.volume = this.baseVolume * this.volumeMulti * this.controller.volume.value;
+        this.audioElement.volume = fnExports.clamp(this.baseVolume * this._volumeMulti * this.controller.volume.value, 0, 1);
         this.audioElement.playbackRate = this.pitch;
     }
 }

@@ -11,7 +11,7 @@ import { AudioObject } from './Audio.js';
 import * as fnExports from './Functions.js';
 Object.entries(fnExports).forEach(([name, exported]) => window[name] = exported);
 
-let devMode = true;
+let devMode = false;
 
 export let player;
 let textController; // makes text writing cancellable
@@ -196,12 +196,25 @@ class Game {
     }
 
     // stops a sound from audioData
-    changeSong(newSong, pitch) {
-        for (const audio of Object.values(audioData)) {
-            if (audio.type != 'bgm') continue;
-            audio.stop();
+    async changeSong(newSong, pitch, transitionDuration=500) {
+        if (audioData[newSong] === audioData.currentSong) return;
+        let newAudio = audioData[newSong]
+        let stepCurrent;
+        if (audioData.currentSong) {
+            stepCurrent = audioData.currentSong.volumeMulti / transitionDuration;
         }
-        audioData[newSong].play(1, pitch);
+        let stepNew = 1 / transitionDuration;
+        
+        audioData[newSong].play(0, pitch);
+        for (let index = 0; index < transitionDuration; index++) {
+            if (audioData.currentSong) {
+                audioData.currentSong.volumeMulti -= stepCurrent;
+                audioData.currentSong.update();
+            }
+            newAudio.volumeMulti += stepNew;
+            newAudio.update()
+            await sleep(1)
+        }
         audioData.currentSong = audioData[newSong];
     }
 
@@ -1375,6 +1388,7 @@ export class Ending extends Room {
         bg = bg ?? defaultBG;
         super(name, bg);
         if (bg === defaultBG) {
+            this.addAction({type: 'changeSong', parameters: ['VBOminous']});
             this.addAction({type: 'changeBG', parameters: ['transparent.png', {}, 'background-image-2']});
             this.addAction({type: 'styleBG', parameters: ['', 'background-image-2']});
             this.addAction({ type: 'styleBG', parameters: ['[an:shrink 30s ease-out][fi:grayscale(.6)]'] });
@@ -2059,10 +2073,10 @@ function loadAudio() {
         {name: 'battle_stereo', baseVolume: .8, type: 'bgm'},
         {name: 'explore_stereo', baseVolume: .8, type: 'bgm'},
         {name: 'main_stereo', baseVolume: .8, type: 'bgm'},
+        {name: 'VBOminous', baseVolume: .8, type: 'bgm'},
         {name: 'button_1', baseVolume: 1},
         {name: 'button_2', baseVolume: .2},
         {name: 'hit_1', baseVolume: .6},
-        {name: 'hit_2', baseVolume: .6, suffix: 'mp3'},
     ]
     for (const audio of audios) {
         audio.suffix = audio.suffix ?? 'mp3';
