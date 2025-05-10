@@ -406,6 +406,7 @@ function generate() {
     room.addStory(`[c:var(--dialogue)]"We're going home."`);
     room.addAction({ type: 'changeBG', parameters: ['destruction.jpeg', { out: '', in: '' }] });
     room.addAction({ type: 'styleBG', parameters: ['[an:blur-in 2s ease-out,fade-in 2s ease-out][fi:][op:]'] });
+    room.addAction({type: 'changeSongPitch', parameters: [.7, 300], skipsWait: true});
     room.addStory(`[c:var(--actions)](BANG!)`);
     room.addStory(`[c:var(--dialogue)][fst:italic]"AUGH!"`);
     room.addAction({type: 'styleBG', parameters: ['[an:shake 70ms 9 linear alternate][sc:1.2]']});
@@ -422,7 +423,8 @@ function generate() {
             {name: 'Unnecessary Trauma', min: 1, max: 1},
             {name: 'The Glockinator', min: 3, max: 3}
         ],
-        groupName: 'the Six-Legged Syndicate!'
+        groupName: 'the Six-Legged Syndicate!',
+        songSettings: {name: 'battle_stereo', pitch: .7}
     }], waits: true});
     room.addStory(`You quickly rush to [c:var(--character)]Idelle's [c:]aide as the others chase the bandits away.`);
     room.addStory(`[c:var(--destruction)]...This isn't good at all.`);

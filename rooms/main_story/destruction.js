@@ -94,7 +94,7 @@ function generate() {
     choice2.addAction({type: "changeRoom", parameters: ['d-journey']});
 
     room = createRoom('d-journey', {name: 'destruction.jpeg'});
-    room.addAction({type: 'changeMusic', parameters: ['explore_stereo']});
+    room.addAction({type: 'changeSong', parameters: ['explore_stereo']});
     room.addAction({type: 'changeParticleAnimation', parameters: ['ashes', 5, 50]});
     room.addStory(`Having been frozen for 75 years, you aren't very well versed in riding a Carrybeast. You weren't even aware these were a thing!`);
     room.addStory(`So, naturally, [c:var(--character)]Palmetto [c:]has you up front piloting the thing while he holds you in place.`);

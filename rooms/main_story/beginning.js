@@ -5,6 +5,7 @@ export let roomGenerators = [generate];
 
 function generate() {
     let room = createRoom('b-start', { name: 'neutral.jpeg' }); // beginning-1
+    // room.addAction({type: 'changeSong', parameters: ['main_stereo']});
     room.addStory(`Danger is imminent. You, among two others, were the only ones smart enough to take precautions. Now, you stand before your cryopod, ready to bid your conciousness farewell.`);
     room.addStory(`Step into the pod?`, { waits: false });
     let choice1 = room.createChoice("Enter.", {customID: 'enter-pod'});
